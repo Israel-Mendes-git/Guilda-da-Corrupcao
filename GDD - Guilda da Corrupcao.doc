@@ -1,0 +1,78 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset='utf-8'>
+<meta name='ProgId' content='Word.Document'>
+<title>GDD - Guilda da Corrupcao</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page { size: 21cm 29.7cm; margin: 2.5cm; }
+body { font-family: 'Calibri','Segoe UI',sans-serif; font-size: 11.5pt; color: #222; line-height: 1.55; }
+h1 { font-size: 24pt; margin: 0 0 2px 0; }
+.sub { color: #666; font-style: italic; margin-bottom: 20px; }
+h2 { font-size: 15pt; color: #1a1a1a; border-bottom: 1px solid #bbb; padding-bottom: 3px; margin-top: 24px; }
+p { margin: 8px 0; }
+ul { margin: 6px 0; padding-left: 22px; }
+li { margin: 4px 0; }
+.tag { color: #888; font-size: 10pt; font-style: italic; }
+hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+.foot { color: #999; font-size: 9.5pt; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<h1>Guilda da Corrupção</h1>
+<div class="sub">Documento de design (GDD) — título provisório · projeto Unity · 19/06/2026</div>
+
+<h2>Do que se trata</h2>
+<p>É um jogo de PC feito em Unity que mistura <b>gestão de guilda</b>, <b>roguelike</b> e <b>cartas (deckbuilder)</b>. Você é o mestre de uma guilda de aventureiros num mundo de fantasia sombria que está sendo consumido por uma praga chamada <b>Corrupção</b>. Você não controla os heróis na luta — você decide quem contratar, como montar os baralhos deles e em quais missões mandá-los.</p>
+<p>A ideia central: <b>cada escolha pesa</b>. Heróis morrem de verdade e não voltam. Cada partida é uma tentativa de levar a guilda o mais longe possível antes de ela cair — e cada queda deixa você um pouco mais forte para a próxima.</p>
+
+<h2>Como se joga</h2>
+<p>O jogo gira em torno de um ciclo simples:</p>
+<ul>
+<li><b>Na guilda (hub):</b> você contrata heróis na Taverna, compra cartas na Biblioteca e monta os baralhos.</li>
+<li><b>Escolhe uma missão:</b> seleciona a quest, monta a equipe e define qual herói leva o baralho.</li>
+<li><b>Parte em jornada:</b> a missão é uma sequência de dias. Cada dia traz um evento que você resolve fazendo uma escolha, jogando uma carta ou entrando em combate. No último dia, encara o chefe.</li>
+<li><b>Volta pra guilda:</b> recebe o ouro, os sobreviventes descansam, os mortos ficam pelo caminho, e surgem novas missões. O ciclo recomeça.</li>
+</ul>
+
+<h2>O mundo e o clima</h2>
+<p>Fantasia sombria, tom pesado mas com aquele humor de taverna. As missões acontecem em sete biomas (Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas), cada um com seu nível de corrupção: quanto mais corrompido, mais perigoso e mais lucrativo. Os heróis têm nome, personalidade e defeitos — a ideia é que você se importe com eles e sinta quando perde um.</p>
+
+<h2>Heróis</h2>
+<p>Cada herói tem uma classe, nível, vida, salário, personalidade e um traço especial. São seis classes no total — Guerreiro, Mago, Curandeiro e Caçador já têm cartas; Ladino e Bardo ainda não. Heróis sobem de nível, ganham baralhos melhores, mas também se cansam, se ferem e podem ser corrompidos com o tempo.</p>
+
+<h2>Cartas</h2>
+<p>Cada carta tem dois usos: um <b>efeito de jornada</b> (resolver obstáculos, curar, ganhar ouro, pular dias) e um <b>efeito de combate</b> (dano, bloqueio, cura). Vêm em quatro raridades (Comum, Rara, Épica, Lendária) e custam energia pra usar. O baralho de cada herói é montado automaticamente quando ele entra, e você pode ajustar à mão depois.</p>
+
+<h2>O que já está pronto</h2>
+<ul>
+<li>Hub da guilda com navegação entre telas.</li>
+<li>Taverna (recrutamento), Biblioteca (loja de cartas) e Gerenciador de baralho.</li>
+<li>Geração de missões e seleção em 3 passos.</li>
+<li>Sistema de jornada por dias, com recursos (rações, tochas, energia).</li>
+<li>Cartas e geração automática de baralhos (16 cartas no total).</li>
+</ul>
+
+<h2>O que ainda falta</h2>
+<ul>
+<li><b>Combate tático</b> por turnos com cartas (os dados já existem, falta a tela).</li>
+<li><b>Eventos com escolhas</b> de verdade na jornada (hoje tudo é por carta).</li>
+<li><b>Estrutura de partidas (runs)</b> com começo, fim e progressão entre elas.</li>
+<li>Mais eventos por bioma, cartas de Ladino e Bardo, e os locais ainda vazios (Mercado, Forja, Cemitério, Sala de Mapas).</li>
+<li>Dar uso real à reputação e aos traços/personalidades dos heróis.</li>
+</ul>
+
+<h2>Próximos passos sugeridos</h2>
+<ul>
+<li><b>1.</b> Ligar os eventos de escolha na jornada e criar mais eventos por bioma.</li>
+<li><b>2.</b> Construir a tela de combate tático e plugar o chefe final.</li>
+<li><b>3.</b> Fechar a estrutura de run (permadeath da guilda + progressão entre partidas).</li>
+<li><b>4.</b> Conteúdo e polimento: novas cartas, locais do hub, arte e som.</li>
+</ul>
+
+<hr>
+<p class="foot">Decisões de design: fantasia sombria com Corrupção · jornada híbrida (cartas + escolhas) · combate tático por cartas · roguelike por partidas. Documento feito a partir da análise do código em 19/06/2026.</p>
+
+</body>
+</html>

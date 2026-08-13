@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: Mercador Errante
+  m_EditorClassIdentifier:
+  eventTitle: '🛒 Mercador Errante'
+  description: 'Um homem magro empurra uma carroça coberta. Ele sorri antes de vocês falarem, como se já soubesse do que precisam.'
+  eventImage: {fileID: 0}
+  biome: 0
+  minCorruptionToAppear: 0
+  minDay: 2
+  outcomes:
+  - optionText: '💰 Comprar mantimentos (-40 ouro)'
+    consequences:
+      goldChange: -40
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🗡️ Tomar a carroça à força'
+    consequences:
+      goldChange: 60
+      reputationChange: -10
+      heroEffects:
+      - heroName: Random
+        hpChange: -6
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: -12
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🚶 Recusar e seguir'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+  eventType: 5
+  isBossEvent: 0

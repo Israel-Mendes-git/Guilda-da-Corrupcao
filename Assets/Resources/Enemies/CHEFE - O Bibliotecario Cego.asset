@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
+  m_Name: CHEFE - O Bibliotecario Cego
+  m_EditorClassIdentifier:
+  enemyName: 'O Bibliotecário Cego'
+  description: 'Não tem olhos, mas vira a cabeça na direção exata de quem entra.'
+  portrait: {fileID: 0}
+  biome: 7
+  isBoss: 1
+  maxHp: 80
+  attackDamage: 10
+  blockAmount: 10
+  stressDamage: 22
+  attackWeight: 30
+  defendWeight: 20
+  stressWeight: 40
+  attackAllWeight: 10
+  goldReward: 155

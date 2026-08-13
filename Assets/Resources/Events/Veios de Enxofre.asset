@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: Veios de Enxofre
+  m_EditorClassIdentifier:
+  eventTitle: '🌋 Veios de Enxofre'
+  description: 'O chão queima através das botas e o ar arde nos pulmões. Entre as fissuras, cristais amarelos valem uma fortuna em qualquer cidade.'
+  eventImage: {fileID: 0}
+  biome: 6
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: '⛏️ Extrair os cristais das fissuras'
+    consequences:
+      goldChange: 140
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: -10
+        addInjury: 0
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🏃 Atravessar rápido e sem parar'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: Random
+        hpChange: -6
+        addInjury: 0
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🧭 Esperar a noite esfriar a rocha'
+    consequences:
+      goldChange: 60
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    extraDays: 1
+    triggersCorruption: 0
+  eventType: 2
+  isBossEvent: 0
