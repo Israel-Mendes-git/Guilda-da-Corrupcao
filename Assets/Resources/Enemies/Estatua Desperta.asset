@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
+  m_Name: Estatua Desperta
+  m_EditorClassIdentifier:
+  enemyName: 'Estátua Desperta'
+  description: 'Estava de costas quando vocês entraram. Agora não está mais.'
+  portrait: {fileID: 0}
+  biome: 7
+  isBoss: 0
+  maxHp: 34
+  attackDamage: 6
+  blockAmount: 10
+  stressDamage: 9
+  attackWeight: 40
+  defendWeight: 40
+  stressWeight: 15
+  attackAllWeight: 5
+  goldReward: 35

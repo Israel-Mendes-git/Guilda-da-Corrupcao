@@ -104,3 +104,9 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# --- Especifico deste projeto ---
+# Relatorios de Play Mode gerados a cada sessao de teste
+PlayModeReport*.txt
+# Token de autenticacao do MCP for Unity (credencial local, nunca versionar)
+[Aa]ssets/.mcp_auth_token

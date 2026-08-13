@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: Altar Afundado
+  m_EditorClassIdentifier:
+  eventTitle: '🛐 Altar Afundado'
+  description: 'Metade de um templo submerso na água parada. Moedas antigas cobrem o fundo, e algo se move devagar entre elas.'
+  eventImage: {fileID: 0}
+  biome: 3
+  minCorruptionToAppear: 20
+  minDay: 2
+  outcomes:
+  - optionText: '💰 Recolher as oferendas'
+    consequences:
+      goldChange: 130
+      reputationChange: -5
+      heroEffects:
+      - heroName: Random
+        hpChange: -12
+        addInjury: 0
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 1
+  - optionText: '🕯️ Rezar e deixar uma moeda'
+    consequences:
+      goldChange: -15
+      reputationChange: 5
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 14
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🔨 Destruir o altar'
+    consequences:
+      goldChange: 40
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: -6
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: -12
+    extraDays: 0
+    triggersCorruption: 1
+  eventType: 2
+  isBossEvent: 0

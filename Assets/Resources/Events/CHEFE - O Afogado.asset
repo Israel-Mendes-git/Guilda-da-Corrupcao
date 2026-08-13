@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: CHEFE - O Afogado
+  m_EditorClassIdentifier:
+  eventTitle: '🌊 O AFOGADO'
+  description: 'Ele emerge do lodo ainda vestindo a armadura da guarda que se perdeu aqui. A água escorre dele sem parar, e não há água por perto.'
+  eventImage: {fileID: 0}
+  biome: 3
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: '⚔️ Enfrentá-lo no seco'
+    consequences:
+      goldChange: 210
+      reputationChange: 15
+      heroEffects:
+      - heroName: All
+        hpChange: -13
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: -10
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '⚰️ Devolver o brasão da guarda ao corpo'
+    consequences:
+      goldChange: 90
+      reputationChange: 25
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 20
+    extraDays: 1
+    triggersCorruption: 0
+  - optionText: '🔥 Incendiar o pântano inteiro'
+    consequences:
+      goldChange: 160
+      reputationChange: -15
+      heroEffects:
+      - heroName: Random
+        hpChange: -25
+        addInjury: 1
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 1
+  eventType: 1
+  isBossEvent: 1

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: Nevoa Putrida
+  m_EditorClassIdentifier:
+  eventTitle: '🌫️ Névoa Pútrida'
+  description: 'O ar fica doce demais, quase adocicado. Respirar aqui deixa gosto de metal na boca e sombras nos cantos dos olhos.'
+  eventImage: {fileID: 0}
+  biome: 3
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: '😷 Cobrir o rosto e atravessar rápido'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: -5
+        addInjury: 0
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 1
+  - optionText: '🧭 Esperar o vento virar'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: -6
+    extraDays: 1
+    triggersCorruption: 0
+  - optionText: '🌿 Queimar ervas e seguir devagar'
+    consequences:
+      goldChange: -20
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+  eventType: 0
+  isBossEvent: 0

@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: Mau Presagio
+  m_EditorClassIdentifier:
+  eventTitle: '🐦 Mau Presságio'
+  description: 'Corvos acompanham o grupo desde o amanhecer. Um deles pousa perto demais e não foge quando gritam com ele.'
+  eventImage: {fileID: 0}
+  biome: 0
+  minCorruptionToAppear: 25
+  minDay: 2
+  outcomes:
+  - optionText: '🏹 Abater a ave e seguir em silêncio'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: -6
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🙏 Fazer uma oferenda ao que quer que observe'
+    consequences:
+      goldChange: -25
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 15
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '👁️ Ignorar o agouro'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 1
+  eventType: 6
+  isBossEvent: 0

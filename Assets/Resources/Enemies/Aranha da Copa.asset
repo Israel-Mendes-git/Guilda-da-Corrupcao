@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
+  m_Name: Aranha da Copa
+  m_EditorClassIdentifier:
+  enemyName: 'Aranha da Copa'
+  description: 'Desce sem ruído das árvores. Você só percebe quando o fio encosta na nuca.'
+  portrait: {fileID: 0}
+  biome: 1
+  isBoss: 0
+  maxHp: 18
+  attackDamage: 5
+  blockAmount: 2
+  stressDamage: 10
+  attackWeight: 45
+  defendWeight: 10
+  stressWeight: 35
+  attackAllWeight: 10
+  goldReward: 22

@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: Desfiladeiro Estreito
+  m_EditorClassIdentifier:
+  eventTitle: '⛰️ Desfiladeiro Estreito'
+  description: 'A trilha se afina até caber um homem por vez. Lá embaixo, a neblina esconde o fundo. Pedras soltas caem quando ninguém pisa nelas.'
+  eventImage: {fileID: 0}
+  biome: 2
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: '🧗 Atravessar amarrados uns aos outros'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: Random
+        hpChange: -8
+        addInjury: 0
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🐐 Seguir a trilha das cabras, mais longa'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    extraDays: 2
+    triggersCorruption: 0
+  - optionText: '🏃 Correr um por um, sem corda'
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: Random
+        hpChange: -18
+        addInjury: 1
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: -10
+    extraDays: 0
+    triggersCorruption: 0
+  eventType: 3
+  isBossEvent: 0

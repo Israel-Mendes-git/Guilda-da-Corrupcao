@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7be476b0e829083478ad6c0549117e46, type: 3}
+  m_Name: "B\xEAn\xE7\xE3o"
+  m_EditorClassIdentifier: 
+  cardName: "B\xEAn\xE7\xE3o"
+  cardDescription: "B\xEAn\xE7\xE3o"
+  cardImage: {fileID: 0}
+  rarity: 0
+  requiredClass: 2
+  energyCost: 2
+  journeyEffect: 11
+  journeyEffectValue: 10
+  journeyEffectDescription: Aumenta o moral do grupo em +10.
+  combatEffect: 6
+  combatDamage: 0
+  combatBlock: 0
+  combatHeal: 5
+  combatDuration: 0
+  combatEffectDescription: Cura 5 HP para todos aliados.
+  cardColor: {r: 1, g: 1, b: 1, a: 1}

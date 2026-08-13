@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: CHEFE - O Bibliotecario Cego
+  m_EditorClassIdentifier:
+  eventTitle: '📖 O BIBLIOTECÁRIO CEGO'
+  description: 'Ele não tem olhos, mas vira a cabeça na direção exata de cada um que entra. Nas mãos, um livro encadernado em couro que ainda respira.'
+  eventImage: {fileID: 0}
+  biome: 7
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: '⚔️ Silenciá-lo antes que termine a frase'
+    consequences:
+      goldChange: 230
+      reputationChange: 15
+      heroEffects:
+      - heroName: All
+        hpChange: -11
+        addInjury: 0
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '📚 Deixar que leia o nome de vocês em voz alta'
+    consequences:
+      goldChange: 320
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: 0
+        addInjury: 0
+        addTrait: 1
+      moraleChanges:
+      - heroName: All
+        moraleChange: -25
+    extraDays: 0
+    triggersCorruption: 1
+  - optionText: '🔥 Queimar o livro com ele junto'
+    consequences:
+      goldChange: 140
+      reputationChange: 20
+      heroEffects:
+      - heroName: Random
+        hpChange: -20
+        addInjury: 1
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: 10
+    extraDays: 0
+    triggersCorruption: 0
+  eventType: 1
+  isBossEvent: 1
