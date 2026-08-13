@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: CHEFE - A Coisa da Mata
+  m_EditorClassIdentifier:
+  eventTitle: '🌳 A COISA DA MATA'
+  description: 'O que se ergue entre as árvores tem galhos no lugar de braços e usa rostos humanos como cascas. Ele conhece o nome de cada um de vocês.'
+  eventImage: {fileID: 0}
+  biome: 1
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: '🔥 Queimar a criatura e o bosque inteiro'
+    consequences:
+      goldChange: 240
+      reputationChange: 15
+      heroEffects:
+      - heroName: All
+        hpChange: -12
+        addInjury: 0
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🎯 Cortar as raízes e atacar o núcleo'
+    consequences:
+      goldChange: 180
+      reputationChange: 10
+      heroEffects:
+      - heroName: Random
+        hpChange: -22
+        addInjury: 1
+        addTrait: 0
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+  - optionText: '🤝 Ouvir o que ela oferece'
+    consequences:
+      goldChange: 300
+      reputationChange: -20
+      heroEffects:
+      - heroName: Random
+        hpChange: 0
+        addInjury: 0
+        addTrait: 1
+      moraleChanges:
+      - heroName: All
+        moraleChange: -20
+    extraDays: 0
+    triggersCorruption: 1
+  eventType: 1
+  isBossEvent: 1
