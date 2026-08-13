@@ -110,3 +110,5 @@ InitTestScene*.unity*
 PlayModeReport*.txt
 # Token de autenticacao do MCP for Unity (credencial local, nunca versionar)
 [Aa]ssets/.mcp_auth_token
+# Ferramenta de desenvolvimento com repositorio proprio (MCP for Unity)
+[Aa]ssets/StreamingAssets/realvirtual-MCP/
