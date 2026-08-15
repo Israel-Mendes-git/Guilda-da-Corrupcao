@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: "O Guardi\xE3o Sem Nome"
   description: "Ele esperava por voc\xEAs. N\xE3o h\xE1 como saber h\xE1 quanto tempo."
-  portrait: {fileID: 0}
+  portrait: {fileID: 4723107735738678597, guid: 1018b0ba13578bf459bd254ae1a2be99, type: 3}
   biome: 0
   isBoss: 1
   maxHp: 78
@@ -26,3 +26,5 @@ MonoBehaviour:
   stressWeight: 18
   attackAllWeight: 12
   goldReward: 260
+  portraitTint: {r: 0.45, g: 0.42, b: 0.52, a: 1}
+  portraitScale: 2.8

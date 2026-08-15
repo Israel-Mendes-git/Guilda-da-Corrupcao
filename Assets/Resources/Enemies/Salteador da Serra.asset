@@ -11,10 +11,10 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
   m_Name: Salteador da Serra
-  m_EditorClassIdentifier:
-  enemyName: 'Salteador da Serra'
-  description: 'Conhece cada pedra deste desfiladeiro e cobra pedágio em sangue.'
-  portrait: {fileID: 0}
+  m_EditorClassIdentifier: 
+  enemyName: Salteador da Serra
+  description: "Conhece cada pedra deste desfiladeiro e cobra ped\xE1gio em sangue."
+  portrait: {fileID: 4723107735738678597, guid: c1cdd26cc09ad224884556bc4d8296ae, type: 3}
   biome: 2
   isBoss: 0
   maxHp: 28
@@ -26,3 +26,5 @@ MonoBehaviour:
   stressWeight: 8
   attackAllWeight: 7
   goldReward: 30
+  portraitTint: {r: 1, g: 1, b: 1, a: 1}
+  portraitScale: 2

@@ -24,6 +24,26 @@ public class EnemyData : ScriptableObject
 
     [Header("Recompensa")]
     public int goldReward = 25;
+
+    /// <summary>
+    /// Tingimento do retrato no combate.
+    ///
+    /// Existe porque há 11 inimigos e 7 criaturas desenhadas: a mesma arte serve
+    /// a mais de um inimigo, e a cor é o que os separa à primeira vista — o
+    /// esqueleto cinza-pedra da Estátua Desperta não se confunde com o esqueleto
+    /// pálido do Carniçal. Branco = a arte como ela é.
+    ///
+    /// Campo no fim da classe de propósito: os assets guardam a ordem.
+    /// </summary>
+    public Color portraitTint = Color.white;
+
+    /// <summary>
+    /// Quanto o retrato ocupa da moldura, em relação ao tamanho padrão.
+    ///
+    /// Chefe grande é linguagem de Darkest Dungeon: o tamanho na tela é o aviso
+    /// que se lê antes de qualquer número.
+    /// </summary>
+    public float portraitScale = 1f;
 }
 
 public enum EnemyIntent

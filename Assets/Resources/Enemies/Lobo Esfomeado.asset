@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
   m_Name: Lobo Esfomeado
-  m_EditorClassIdentifier:
-  enemyName: 'Lobo Esfomeado'
-  description: 'Costelas à mostra e olhos fixos. O inverno o deixou sem medo de homens.'
-  portrait: {fileID: 0}
+  m_EditorClassIdentifier: 
+  enemyName: Lobo Esfomeado
+  description: "Costelas \xE0 mostra e olhos fixos. O inverno o deixou sem medo de
+    homens."
+  portrait: {fileID: 4723107735738678597, guid: c1cdd26cc09ad224884556bc4d8296ae, type: 3}
   biome: 1
   isBoss: 0
   maxHp: 22
@@ -26,3 +27,5 @@ MonoBehaviour:
   stressWeight: 12
   attackAllWeight: 10
   goldReward: 18
+  portraitTint: {r: 0.72, g: 0.66, b: 0.52, a: 1}
+  portraitScale: 2

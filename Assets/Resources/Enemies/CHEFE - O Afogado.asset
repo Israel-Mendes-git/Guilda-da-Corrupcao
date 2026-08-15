@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: O Afogado
   description: "A \xE1gua escorre dele sem parar, e n\xE3o h\xE1 \xE1gua por perto."
-  portrait: {fileID: 0}
+  portrait: {fileID: -7078261816480267791, guid: bfeede70efd14484683f5956b4f1194b, type: 3}
   biome: 3
   isBoss: 1
   maxHp: 90
@@ -26,3 +26,5 @@ MonoBehaviour:
   stressWeight: 35
   attackAllWeight: 15
   goldReward: 290
+  portraitTint: {r: 0.55, g: 0.72, b: 0.85, a: 1}
+  portraitScale: 3.4

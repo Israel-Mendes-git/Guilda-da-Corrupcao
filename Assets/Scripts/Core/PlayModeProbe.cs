@@ -1519,6 +1519,35 @@ public class PlayModeProbe : MonoBehaviour
     /// depois não funciona — sem foco na janela o Play Mode congela e o pedido de
     /// screenshot expira. Durante o probe o jogo está rodando de verdade.
     /// </summary>
+    /// <summary>
+    /// A fila do round bate com o que está em campo?
+    ///
+    /// Conta as figuras vivas na cena em vez de perguntar ao CombatManager: é o
+    /// que o jogador vê, e é aí que mora o erro que este projeto já cometeu
+    /// várias vezes — o dado certo com a exibição ausente.
+    /// </summary>
+    void ReportarOrdemDoRound()
+    {
+        var cm = CombatManager.Instance;
+        if (cm == null || cm.turnOrder == null)
+        {
+            Line("FALHA: combate sem barra de ordem do round — rode 'Montar Cena'.");
+            return;
+        }
+
+        int inimigosVivos = cm.enemyContainer == null ? 0 : CountRows(cm.enemyContainer);
+        int esperado = inimigosVivos + 1;   // o grupo ocupa a primeira ficha
+
+        Line($"ordem do round: {cm.turnOrder.Tamanho} fichas para {inimigosVivos} inimigos"
+           + $" (esperado {esperado}) | apontando para o índice {cm.turnOrder.Atual}");
+
+        if (cm.turnOrder.Tamanho != esperado)
+            Line("FALHA: a fila do round não bate com os inimigos em campo.");
+
+        if (cm.turnOrder.Atual != 0)
+            Line("FALHA: é a vez do jogador e a fila não está no GRUPO.");
+    }
+
     IEnumerator Capture(string nome)
     {
         string pasta = Path.Combine(Application.dataPath, "Screenshots");
@@ -1948,6 +1977,14 @@ public class PlayModeProbe : MonoBehaviour
                 if (!combateCapturado)
                 {
                     combateCapturado = true;
+
+                    // A ordem do round: a fila precisa ter o grupo mais um por
+                    // inimigo vivo, e estar apontando para o grupo enquanto é a
+                    // vez do jogador. Sem esta trava, ela pode parar de ser
+                    // montada e o combate continuaria "funcionando" — que é o
+                    // padrão de erro mais caro deste projeto.
+                    ReportarOrdemDoRound();
+
                     yield return Capture("combate_cartas");
                 }
 

@@ -171,6 +171,7 @@ public static class SceneToolsTriggerWatcher
     const string PartyCardTrigger = "RunPartyCardSkin.trigger";
     const string CardFrameTrigger = "RunCardFrameSkin.trigger";
     const string MenuSetupTrigger = "RunMenuSetup.trigger";
+    const string EnemyArtTrigger = "RunEnemyArt.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -190,6 +191,12 @@ public static class SceneToolsTriggerWatcher
 
         Consumir(SetupTrigger, () =>
         {
+            // Abre a cena do jogo antes de montar. Automação não deve depender
+            // de qual cena o autor deixou aberta — e o teste de Play Mode agora
+            // termina no título, então o gatilho pegava a cena errada.
+            if (EditorSceneManager.GetActiveScene().path != MenuSceneSetup.CaminhoDoJogo)
+                EditorSceneManager.OpenScene(MenuSceneSetup.CaminhoDoJogo);
+
             GuildSceneSetup.Setup(false);
             AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
@@ -199,6 +206,7 @@ public static class SceneToolsTriggerWatcher
 
         Consumir(BarSkinTrigger, BarSkin.Aplicar);
         Consumir(CardArtTrigger, CardArt.Aplicar);
+        Consumir(EnemyArtTrigger, () => EnemyArt.Aplicar(true));
         Consumir(PortraitTrigger, PortraitCatalogBuilder.Montar);
         Consumir(BiomeArtTrigger, BiomeArtBuilder.Montar);
         Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);
