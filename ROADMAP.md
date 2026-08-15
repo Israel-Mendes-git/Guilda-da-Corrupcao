@@ -105,6 +105,9 @@ O jogo é um sandbox infinito. Não há `GameOver`, fim de run, nem tela de iní
 avisar. Vale notar que o projeto **já tem** `Assets/Bench Universal Save System/` no disco, com
 `PersistentObject` e UI de slots — pode ser exatamente a peça procurada.
 
+> **Resolvido na Fase 3.5 (15/08):** o autor escolheu **save próprio em JSON**, não os pacotes. O
+> ESave e o Bench continuam no disco, importados e não integrados.
+
 ---
 
 ## 3. O plano
@@ -494,6 +497,87 @@ foi confirmado como o save oficial. `MetaProgression` é o único ponto a trocar
 
 ---
 
+### Fase 3.5 — Menus e save ✅ *concluída em 15/08*
+
+**O jogo não tinha como ser fechado e retomado, nem como ser começado.** Abria direto na guilda, com
+a partida já em andamento; não havia tela de título, pausa, opções nem persistência de nada além dos
+decks. A meta-progressão da Fase 3 vivia em `PlayerPrefs`, declarado provisório.
+
+#### As quatro decisões do autor
+
+| Decisão | Escolha | Por quê |
+|---|---|---|
+| Backend | **JSON próprio** em `Application.persistentDataPath/saves/` | Sem dependência de terceiros no código do jogo. O ESave e o Bench continuam no disco, não integrados |
+| Modelo | **Autosave + 3 slots manuais** | Cobre o uso roguelike sem impedir experimentação |
+| Cena do menu | **`MainMenu.unity` separada**, cena 0 da build | Tela de título limpa, sem carregar a guilda antes da hora |
+| Telas | Título, pausa, opções, slots e **Santuário das Relíquias** | Todas |
+
+#### O que foi construído
+
+| Peça | Onde | O que faz |
+|---|---|---|
+| `SaveSystem` | `Scripts/Save/` | Slots, escrita atômica (`.tmp` + troca), cabeçalhos, detecção de corrompido |
+| `SaveData` | idem | DTOs do arquivo — o estado vivo são `ScriptableObject`s de runtime, que não sobrevivem a um fechar de jogo |
+| `GameStateIO` | idem | A ponte: fotografa os managers e os reconstrói |
+| `PlayerProfile` | idem | Relíquias, destraves, recordes e opções — **fora dos slots**, porque pertencem ao jogador e não à partida. Migra o `PlayerPrefs` antigo |
+| `GameSettings` | idem | Volume de música e efeitos (o `GameAudio` os tinha no Inspector e ninguém os controlava), resolução e tela cheia |
+| `SceneFlow` | idem | Título ⇄ jogo, e o **descarte do mundo anterior** |
+| `MainMenuUI`, `PauseMenuUI`, `OptionsUI`, `SaveSlotsUI`, `RelicShrineUI` | `Scripts/UI/` | As telas |
+| `MenuSceneSetup` | `Scripts/Core/` | Monta a cena de título e os painéis compartilhados; registra as duas cenas na build |
+
+**Onde o autosave cai:** ao fim de cada ciclo (`RunFlow`) e ao fechar a tela de balanço, já com o
+despojo escolhido. **Salvar é proibido no meio da estrada** — o estado de dentro da jornada (mapa,
+dia, mão, descarte, mitigação) vive em campos privados do `JourneyManager` e não é serializado por
+ninguém; gravar ali devolveria o jogador à guilda com a missão sumida do quadro.
+
+#### ⚠️ O achado: os managers sobrevivem à troca de cena, e o segundo jogo herdava o primeiro
+
+`GuildManager`, `QuestManager` e `UIManager` são `DontDestroyOnLoad`. Voltar ao título e escolher
+"Fundar uma nova guilda" **não os recria**: o `Awake` da instância nova vê que já existe uma e se
+autodestrói, deixando a antiga viva — com o ouro e o ciclo da partida anterior, e escrevendo em
+textos de UI que a troca de cena já destruiu.
+
+É a mesma família do painel das salas na Fase 2.5: **a primeira vez funciona, a segunda não**, e
+nenhum teste percebe porque todos testam a primeira. Daí o `SceneFlow.DescartarMundo`, e daí o teste
+novo do probe fazer o caminho inteiro — título → nova guilda → conferir ouro, roster e ciclo.
+
+#### ⚠️ O achado menor, mas que custou uma rodada: o painel que se desligava sozinho
+
+Os quatro componentes de tela nasceram com `Awake` chamando `panel.SetActive(false)`. Como o
+componente **mora no painel**, ligar o painel roda o `Awake` dele — que o desliga no mesmo frame. O
+relatório dizia `pausa aberta: False` sem nenhum erro no console. Quem nasce fechado passou a ser a
+cena, montada assim pelo setup.
+
+O `PauseMenuUI` foi além: mudou de casa. `Update` só roda em objeto ativo, então, dentro do painel
+fechado, **o ESC nunca chegaria a abrir a pausa** — a tecla só funcionaria depois de o jogador já ter
+aberto a pausa de outro jeito, que não existe.
+
+#### Verificação executada (15/08) — `PlayModeReport.txt`
+
+`PLAY MODE OK — nenhum erro capturado`, **0 falhas** em toda a seção nova.
+
+| Prova | Resultado |
+|---|---|
+| Ida e volta do save | ouro, reputação, roster, ciclo, corrupção e quadro conferem |
+| Roster byte a byte | `4 heróis, id/HP/XP/estresse conferem` |
+| Deck após recarregar | `11 cartas` — o `heroId` sobreviveu, que é o que amarra herói e baralho |
+| Arquivo ilegível | detectado como corrompido, sem derrubar a tela |
+| Guarda do save | permitido na guilda, bloqueado na estrada |
+| Build | `cena 0: MainMenu.unity`, cena do jogo presente |
+| Santuário | compra sem saldo recusada, compra com saldo desconta, perfil do autor reposto |
+| Título → nova guilda | managers descartados, guilda nova com 4 heróis, 500 de ouro, ciclo 0 |
+| Capturas | `menu_principal`, `menu_opcoes`, `menu_santuario`, `menu_slots`, `menu_pausa`, `menu_nova_guilda` |
+
+**Três defeitos que só a captura mostrou**, com o relatório em 0 falhas:
+
+1. Os painéis de overlay eram translúcidos (alfa 0,98). Dois por cento não se nota sobre uma sala
+   escura; sobre um título em fonte 64, o texto de baixo atravessa e briga com o de cima.
+2. O glifo **✦** não existe na fonte do jogo e virava caixinha — em cinco lugares, um deles anterior
+   a esta sessão (a opção destravada da jornada). Trocado por **◆**, que a fonte tem.
+3. A dica do "Continuar" ficava colada no subtítulo e se lia como continuação da frase de abertura.
+
+---
+
 ### Fase 3 — planejamento original
 
 1. **`RunManager`** (novo, `DontDestroyOnLoad` como os outros): número do ciclo, corrupção global,
@@ -539,7 +623,7 @@ foi confirmado como o save oficial. `MetaProgression` é o único ponto a trocar
 - **Arte**: retratos, ilustrações de carta e inimigo — segue placeholder.
 - **Áudio**: não existe nada. O kit Bloodlines já traz `SoundManager`, `ButtonSFX` e `ToggleSFX`.
 - Barras de HP/estresse com os sprites de `Progress_Bar/` do kit.
-- Menu principal / tela de título (hoje só `SampleScene`).
+- ~~Menu principal / tela de título~~ ✅ feito na Fase 3.5.
 
 ---
 
@@ -570,6 +654,8 @@ execuções possam ser comparadas.
 Fase 0 (limpeza)  →  Fase 1 (XP)  →  Fase 2 (carta ⨯ escolha, chefe, simulador)
                                           ↓
                      Fase 3 (run, corrupção global, fim de run)
+                                          ↓
+                     Fase 3.5 (menus, save, Santuário)
                                           ↓
                      Fase 4 (peso) e Fase 5 (conteúdo/arte/áudio)
 ```
