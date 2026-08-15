@@ -22,15 +22,15 @@ public static class GuildSceneSetup
     const string PartyStatusPath = "Assets/Prefabs/UI/PartyStatusPrefab.prefab";
     const string CardPath = "Assets/Prefabs/UI/CardPrefab.prefab";
 
-    static readonly Color PanelColor = new Color(0.08f, 0.07f, 0.09f, 0.98f);
-    static readonly Color BoxColor = new Color(0.13f, 0.12f, 0.14f, 1f);
-    static readonly Color ButtonColor = new Color(0.20f, 0.17f, 0.16f);
-    static readonly Color ButtonLabelColor = new Color(0.94f, 0.88f, 0.72f);
-    static readonly Color TextColor = new Color(0.92f, 0.90f, 0.85f);
-    static readonly Color TrackColor = new Color(0.10f, 0.09f, 0.11f);
-    static readonly Color HandleColor = new Color(0.30f, 0.27f, 0.24f);
+    internal static readonly Color PanelColor = new Color(0.08f, 0.07f, 0.09f, 0.98f);
+    internal static readonly Color BoxColor = new Color(0.13f, 0.12f, 0.14f, 1f);
+    internal static readonly Color ButtonColor = new Color(0.20f, 0.17f, 0.16f);
+    internal static readonly Color ButtonLabelColor = new Color(0.94f, 0.88f, 0.72f);
+    internal static readonly Color TextColor = new Color(0.92f, 0.90f, 0.85f);
+    internal static readonly Color TrackColor = new Color(0.10f, 0.09f, 0.11f);
+    internal static readonly Color HandleColor = new Color(0.30f, 0.27f, 0.24f);
     static readonly Color ToggleBoxColor = new Color(0.24f, 0.21f, 0.19f);
-    static readonly Color SubtleTextColor = new Color(0.66f, 0.63f, 0.58f);
+    internal static readonly Color SubtleTextColor = new Color(0.66f, 0.63f, 0.58f);
 
     // Kit Bloodlines UI: molduras de pedra, botões e marcas de seleção prontos em
     // 9-slice. Substituem os retângulos chapados que o setup vinha desenhando.
@@ -90,6 +90,11 @@ public static class GuildSceneSetup
         BuildTavern(canvas);
         BuildProvisions();
         BuildFormation();
+
+        // A pausa e as duas telas que ela divide com o título. Ficam num arquivo
+        // próprio porque a mesma montagem serve à cena de menu.
+        MenuSceneSetup.MontarNaCenaDoJogo(canvas);
+
         StylePreparation();
         StyleCardPrefab();
         ApplyKit(canvas);
@@ -417,7 +422,7 @@ public static class GuildSceneSetup
     }
 
     /// <summary>Caixa com fundo, para agrupar controles.</summary>
-    static GameObject EnsureBox(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+    internal static GameObject EnsureBox(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
                                 Vector2 offsetMin, Vector2 offsetMax)
     {
         Transform found = parent.Find(name);
@@ -1798,7 +1803,7 @@ public static class GuildSceneSetup
 
     #endregion
 
-    static GameObject FindOrCreatePanel(Canvas canvas, string name)
+    internal static GameObject FindOrCreatePanel(Canvas canvas, string name)
     {
         Transform existing = canvas.transform.Find(name);
         if (existing != null) return existing.gameObject;
@@ -1817,7 +1822,7 @@ public static class GuildSceneSetup
         return go;
     }
 
-    static TMP_Text EnsureText(Transform parent, string name, string content, int size,
+    internal static TMP_Text EnsureText(Transform parent, string name, string content, int size,
                                Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
     {
         Transform found = parent.Find(name);
@@ -1855,7 +1860,7 @@ public static class GuildSceneSetup
         return text;
     }
 
-    static Button EnsureButton(Transform parent, string name, string label,
+    internal static Button EnsureButton(Transform parent, string name, string label,
                                Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
     {
         Transform found = parent.Find(name);
@@ -1894,13 +1899,13 @@ public static class GuildSceneSetup
         return go.GetComponent<Button>();
     }
 
-    static GameObject EnsureRow(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+    internal static GameObject EnsureRow(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
                                 Vector2 offsetMin, Vector2 offsetMax, int spacing)
     {
         return EnsureLayout<HorizontalLayoutGroup>(parent, name, anchorMin, anchorMax, offsetMin, offsetMax, spacing);
     }
 
-    static GameObject EnsureColumn(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+    internal static GameObject EnsureColumn(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
                                    Vector2 offsetMin, Vector2 offsetMax, int spacing)
     {
         return EnsureLayout<VerticalLayoutGroup>(parent, name, anchorMin, anchorMax, offsetMin, offsetMax, spacing);
@@ -1915,7 +1920,7 @@ public static class GuildSceneSetup
     /// A lista mantém o nome de sempre e apenas muda de pai, então as referências
     /// já ligadas nos managers continuam válidas.
     /// </summary>
-    static GameObject EnsureScrollColumn(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+    internal static GameObject EnsureScrollColumn(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
                                          Vector2 offsetMin, Vector2 offsetMax, int spacing)
     {
         const float BarWidth = 14f;
@@ -2052,7 +2057,7 @@ public static class GuildSceneSetup
     /// própria. Remove um LayoutGroup preexistente — cenas montadas por versões
     /// anteriores tinham um HorizontalLayoutGroup aqui.
     /// </summary>
-    static GameObject EnsureFreeArea(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+    internal static GameObject EnsureFreeArea(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
                                      Vector2 offsetMin, Vector2 offsetMax)
     {
         Transform found = parent.Find(name);
@@ -2077,7 +2082,7 @@ public static class GuildSceneSetup
         return go;
     }
 
-    static void ApplyRect(RectTransform rt, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+    internal static void ApplyRect(RectTransform rt, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
     {
         rt.anchorMin = anchorMin;
         rt.anchorMax = anchorMax;

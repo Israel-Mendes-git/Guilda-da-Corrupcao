@@ -22,12 +22,26 @@ public class GameAudio : MonoBehaviour
         {
             if (instance != null) return instance;
 
+            // Fora do Play Mode não há tocador — e tentar criar um estoura:
+            // DontDestroyOnLoad é proibido em script de Editor. O smoke test
+            // simula 200 jornadas em edit mode, e cada morte de herói pede o
+            // stinger da permadeath; sem esta guarda, a primeira baixa derruba
+            // a bateria inteira de balanceamento com uma exceção de áudio.
+            if (!Application.isPlaying) return null;
+
             var go = new GameObject("~GameAudio");
             DontDestroyOnLoad(go);
             instance = go.AddComponent<GameAudio>();
             return instance;
         }
     }
+
+    /// <summary>
+    /// Já existe tocador? Perguntar por <see cref="Instance"/> o criaria, e as
+    /// opções não devem ligar um AudioSource só para ajustar um volume que
+    /// ninguém está ouvindo ainda.
+    /// </summary>
+    public static bool Existe => instance != null;
 
     private AudioSource musica;
     private AudioSource efeitos;
@@ -57,6 +71,26 @@ public class GameAudio : MonoBehaviour
         efeitos.loop = false;
         efeitos.playOnAwake = false;
         efeitos.volume = volumeEfeitos;
+
+        // O tocador pode nascer bem depois das opções terem sido aplicadas — ele
+        // só existe quando alguém pede som. Buscar os volumes aqui é o que
+        // impede a primeira faixa de tocar no valor de fábrica.
+        AplicarVolumes(GameSettings.VolumeMusica, GameSettings.VolumeEfeitos);
+    }
+
+    /// <summary>
+    /// Ajusta os volumes vindos das opções, sem cortar o que está tocando — é o
+    /// que permite o jogador ouvir o efeito de arrastar a barrinha.
+    /// </summary>
+    public void AplicarVolumes(float musicaVol, float efeitosVol)
+    {
+        volumeMusica = Mathf.Clamp01(musicaVol);
+        volumeEfeitos = Mathf.Clamp01(efeitosVol);
+
+        // Enquanto há fade em curso, quem manda no volume é a corrotina: escrever
+        // por cima aqui daria um salto no meio da transição.
+        if (musica != null && troca == null) musica.volume = volumeMusica;
+        if (efeitos != null) efeitos.volume = volumeEfeitos;
     }
 
     /// <summary>
@@ -68,7 +102,7 @@ public class GameAudio : MonoBehaviour
         if (AudioCatalog.Instance == null) return;
 
         GameAudio a = Instance;
-        if (a.atual == contexto) return;
+        if (a == null || a.atual == contexto) return;
 
         AudioClip clip = AudioCatalog.Instance.Musica(contexto);
         if (clip == null) return;
@@ -113,7 +147,10 @@ public class GameAudio : MonoBehaviour
 
         if (!AudioCatalog.Instance.Efeito(sfx, out AudioClip clip, out float volume)) return;
 
-        Instance.efeitos.PlayOneShot(clip, volume * Instance.volumeEfeitos);
+        GameAudio a = Instance;
+        if (a == null) return;
+
+        a.efeitos.PlayOneShot(clip, volume * a.volumeEfeitos);
     }
 
     /// <summary>Silêncio — para telas que pedem peso, como o fim de uma run.</summary>

@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -85,22 +86,60 @@ public static class PlayModeTriggerWatcher
         EditorApplication.update += Tick;
     }
 
+    /// <summary>Há quanto tempo um gatilho está esperando sem poder ser atendido.</summary>
+    static double esperandoDesde;
+    static bool avisouDaEspera;
+
     static void Tick()
     {
         if (EditorApplication.timeSinceStartup < nextCheck) return;
         nextCheck = EditorApplication.timeSinceStartup + 1.0;
 
-        if (EditorApplication.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
-        if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
-
         string path = Path.Combine(PlayModeTestLauncher.ProjectRoot, TriggerFile);
-        if (!File.Exists(path)) return;
+        bool esperando = File.Exists(path);
+
+        string bloqueio = Bloqueio();
+        if (bloqueio != null)
+        {
+            // Um gatilho parado porque o Editor está ocupado era invisível: quem
+            // esperava de fora só via o arquivo não sumir, sem nenhuma pista de
+            // por quê. Um Editor preso em refresh de asset, por exemplo, engole
+            // todos os gatilhos em silêncio e parece que a ferramenta quebrou.
+            if (esperando)
+            {
+                if (esperandoDesde <= 0) esperandoDesde = EditorApplication.timeSinceStartup;
+
+                if (!avisouDaEspera && EditorApplication.timeSinceStartup - esperandoDesde > 10.0)
+                {
+                    avisouDaEspera = true;
+                    Debug.LogWarning($"Gatilho {TriggerFile} esperando há mais de 10s: {bloqueio}.");
+                }
+            }
+
+            return;
+        }
+
+        esperandoDesde = 0;
+        avisouDaEspera = false;
+
+        if (!esperando) return;
 
         try { File.Delete(path); }
         catch { return; }
 
         Debug.Log("Trigger detectado — iniciando teste de Play Mode.");
         PlayModeTestLauncher.Launch();
+    }
+
+    /// <summary>O que impede o gatilho de ser atendido agora, ou null se nada impede.</summary>
+    static string Bloqueio()
+    {
+        if (EditorApplication.isPlaying) return "o Editor está em Play Mode";
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return "o Editor está entrando ou saindo do Play Mode";
+        if (EditorApplication.isCompiling) return "os scripts estão compilando";
+        if (EditorApplication.isUpdating) return "a AssetDatabase está atualizando";
+
+        return null;
     }
 }
 
@@ -133,11 +172,18 @@ public class PlayModeProbe : MonoBehaviour
     void Awake()
     {
         Application.logMessageReceived += OnLog;
+
+        // O teste joga uma jornada inteira e termina runs de propósito. Sem esta
+        // trava, cada ciclo avançado gravaria por cima da partida real de quem
+        // estiver jogando neste computador — rodar o teste não pode custar o
+        // save do autor.
+        SaveSystem.AutosaveSuspenso = true;
     }
 
     void OnDestroy()
     {
         Application.logMessageReceived -= OnLog;
+        SaveSystem.AutosaveSuspenso = false;
     }
 
     /// <summary>
@@ -229,6 +275,9 @@ public class PlayModeProbe : MonoBehaviour
 
         Section("A RUN (Fase 3)");
         yield return TestRun();
+
+        Section("SAVE E MENUS");
+        yield return TestSaveAndMenus();
 
         Section("ERROS CAPTURADOS");
         if (ignoredErrors.Count > 0)
@@ -571,6 +620,413 @@ public class PlayModeProbe : MonoBehaviour
 
         if (tela != null && tela.panel != null) tela.panel.SetActive(false);
     }
+
+    #region Save e menus
+
+    /// <summary>Slot só deste teste. Os slots do jogador não são tocados.</summary>
+    const string SlotDeTeste = "__probe";
+
+    /// <summary>
+    /// O save guarda o que o jogo tem, e as telas de menu existem e respondem?
+    ///
+    /// O teste que importa aqui é a **ida e volta**: fotografar o estado, mexer
+    /// no jogo, recarregar e conferir que voltou exatamente. Um save que grava
+    /// tudo e restaura errado passa em qualquer verificação de campo — é o mesmo
+    /// erro das fases anteriores, em que o dado estava certo e ninguém o exibia.
+    ///
+    /// O perfil do jogador (relíquias e destraves) é fotografado antes e reposto
+    /// no fim: testar uma compra não pode custar as relíquias de quem programa.
+    /// </summary>
+    IEnumerator TestSaveAndMenus()
+    {
+        var guilda = GuildManager.Instance;
+        if (guilda == null)
+        {
+            Line("pulada: GuildManager ausente");
+            yield break;
+        }
+
+        Line($"pasta dos saves: {SaveSystem.Pasta}");
+        Line($"autosave suspenso durante o teste: {SaveSystem.AutosaveSuspenso}");
+
+        // --- Ida e volta ---------------------------------------------------
+        int ouroAntes = guilda.gold;
+        int reputacaoAntes = guilda.reputation;
+        int heroisAntes = guilda.roster.Count;
+        int cicloAntes = RunManager.Instance.Cycle;
+        float corrupcaoAntes = RunManager.Instance.Corruption;
+
+        var assinaturaAntes = AssinaturaDoRoster();
+        int missoesAntes = QuestManager.Instance != null ? QuestManager.Instance.GetQuests().Count : 0;
+
+        bool gravou = SaveSystem.Escrever(SlotDeTeste, GameStateIO.Capturar());
+        Line($"gravação: {(gravou ? "ok" : "FALHA — " + SaveSystem.UltimoErro)}");
+
+        if (!gravou) yield break;
+
+        // Estraga tudo de propósito: se o carregamento não desfizer isto, o save
+        // não está restaurando coisa nenhuma.
+        guilda.gold = 999999;
+        guilda.reputation = 7;
+        guilda.roster.Clear();
+        RunManager.Instance.Restaurar(99, 99f, RunState.Running, RunEndReason.None, 99);
+
+        SaveGame lido = SaveSystem.Ler(SlotDeTeste);
+        Line($"leitura: {(lido != null ? "ok" : "FALHA — " + SaveSystem.UltimoErro)}");
+
+        if (lido == null) yield break;
+
+        bool aplicou = GameStateIO.Aplicar(lido);
+        Line($"aplicação: {(aplicou ? "ok" : "FALHA")}");
+
+        yield return null;
+
+        Conferir("ouro", ouroAntes, guilda.gold);
+        Conferir("reputação", reputacaoAntes, guilda.reputation);
+        Conferir("heróis no roster", heroisAntes, guilda.roster.Count);
+        Conferir("ciclo", cicloAntes, RunManager.Instance.Cycle);
+        Conferir("corrupção", Mathf.RoundToInt(corrupcaoAntes),
+                 Mathf.RoundToInt(RunManager.Instance.Corruption));
+
+        if (QuestManager.Instance != null)
+            Conferir("missões no quadro", missoesAntes, QuestManager.Instance.GetQuests().Count);
+
+        string assinaturaDepois = AssinaturaDoRoster();
+        if (assinaturaAntes == assinaturaDepois)
+            Line($"roster idêntico após recarregar ({heroisAntes} heróis, id/HP/XP/estresse conferem)");
+        else
+            Line($"FALHA: roster mudou.\n  antes: {assinaturaAntes}\n  depois: {assinaturaDepois}");
+
+        // O deck do herói é o que mais depende do id sobreviver à volta.
+        if (guilda.roster.Count > 0)
+        {
+            HeroData primeiro = guilda.roster[0];
+            DeckData deck = DeckRepository.GetDeck(primeiro);
+            Line($"deck de {primeiro.heroName} após recarregar: "
+               + $"{(deck != null ? deck.cards.Count + " cartas" : "NULO")}");
+
+            if (deck == null || deck.cards.Count == 0)
+                Line("FALHA: o herói voltou do save sem baralho.");
+        }
+
+        SaveSystem.Apagar(SlotDeTeste);
+        Line($"slot de teste removido: {!SaveSystem.Existe(SlotDeTeste)}");
+
+        // --- Cabeçalho do slot, que é o que a tela de carregar mostra --------
+        SaveSystem.Escrever(SlotDeTeste, GameStateIO.Capturar());
+        SaveHeader cabecalho = SaveSystem.LerCabecalho(SlotDeTeste);
+        Line($"cabeçalho: existe={cabecalho.exists} corrompido={cabecalho.corrupted} "
+           + $"ciclo={cabecalho.cycle} vivos={cabecalho.heroesAlive} ouro={cabecalho.gold}");
+
+        if (!cabecalho.exists || cabecalho.corrupted)
+            Line("FALHA: o cabeçalho não descreve o save recém-gravado.");
+
+        // Arquivo quebrado tem que aparecer como quebrado, não derrubar a tela.
+        System.IO.File.WriteAllText(SaveSystem.CaminhoDe(SlotDeTeste), "{ isto não é um save");
+        SaveHeader quebrado = SaveSystem.LerCabecalho(SlotDeTeste);
+        Line($"save corrompido detectado: {quebrado.corrupted}");
+
+        if (!quebrado.corrupted)
+            Line("FALHA: um arquivo ilegível passou por save válido.");
+
+        SaveSystem.Apagar(SlotDeTeste);
+
+        // --- A guarda que impede salvar no meio da estrada -------------------
+        bool podeNaGuilda = SaveSystem.PodeSalvarAgora(out string motivoGuilda);
+        Line($"pode salvar na guilda: {podeNaGuilda}"
+           + (podeNaGuilda ? "" : $" (motivo: {motivoGuilda})"));
+
+        if (!podeNaGuilda)
+            Line("FALHA: a guilda entre jornadas é o ponto de save e ele está bloqueado.");
+
+        var jm = JourneyManager.Instance;
+        Line($"jornada em curso agora: {(jm != null ? jm.EmJornada.ToString() : "sem JourneyManager")}");
+
+        // --- Os painéis existem e respondem? ---------------------------------
+        yield return TestPauseMenu();
+        TestMenuAssets();
+        TestShrine();
+
+        // Por último, porque destrói a cena do jogo.
+        yield return TestMainMenuScene();
+    }
+
+    /// <summary>
+    /// A cena de título e a volta dela para o jogo.
+    ///
+    /// É o caminho que nenhum teste cobria e onde mora o erro mais fácil de
+    /// cometer: os managers são <c>DontDestroyOnLoad</c>, então "voltar ao título
+    /// e fundar outra guilda" herdaria a partida anterior inteira se o descarte
+    /// falhasse — e o sintoma seria a segunda partida da sessão nascer com o ouro
+    /// e o ciclo da primeira, que ninguém repara olhando só a primeira.
+    /// </summary>
+    IEnumerator TestMainMenuScene()
+    {
+        SceneFlow.VoltarAoTitulo();
+        yield return null;
+        yield return new WaitForSeconds(0.6f);
+
+        Line($"cena ativa após voltar ao título: {SceneManager.GetActiveScene().name}");
+
+        Line($"managers descartados: guilda={(GuildManager.Instance == null)}"
+           + $" quadro={(QuestManager.Instance == null)} ui={(UIManager.Instance == null)}");
+
+        if (GuildManager.Instance != null)
+            Line("FALHA: o GuildManager da partida anterior sobreviveu ao título.");
+
+        var menu = FindObjectOfType<MainMenuUI>();
+        if (menu == null)
+        {
+            Line("FALHA: MainMenuUI ausente na cena de título.");
+            yield break;
+        }
+
+        AuditInspector(menu);
+
+        Line($"título: '{StripTags(menu.titleText != null ? menu.titleText.text : "")}'");
+        Line($"meta: '{StripTags(menu.metaText != null ? menu.metaText.text : "")}'");
+        Line($"dica do continuar: '{StripTags(menu.continueHintText != null ? menu.continueHintText.text : "")}'");
+        Line($"botão continuar habilitado: {(menu.continueButton != null && menu.continueButton.interactable)}"
+           + $" (há autosave: {SaveSystem.TemPartidaEmAndamento()})");
+
+        if (menu.newGameButton != null) ReportarAlcancavel(menu.newGameButton);
+
+        yield return Capture("menu_principal");
+
+        // As sub-telas abrem de verdade? É aqui que o painel que se desliga
+        // sozinho aparece — o componente mora no próprio painel.
+        if (menu.options != null)
+        {
+            menu.options.Abrir(null);
+            yield return new WaitForSeconds(0.3f);
+
+            bool aberto = menu.options.panel != null && menu.options.panel.activeInHierarchy;
+            Line($"opções abertas: {aberto}"
+               + $" | música {(menu.options.musicSlider != null ? menu.options.musicSlider.value.ToString("F2") : "?")}"
+               + $" | resolução '{StripTags(menu.options.resolutionText != null ? menu.options.resolutionText.text : "")}'");
+
+            if (!aberto) Line("FALHA: a tela de opções não abriu.");
+            else yield return Capture("menu_opcoes");
+
+            menu.options.panel.SetActive(false);
+        }
+
+        if (menu.shrine != null)
+        {
+            menu.shrine.Abrir(null);
+            yield return new WaitForSeconds(0.3f);
+
+            bool aberto = menu.shrine.panel != null && menu.shrine.panel.activeInHierarchy;
+            int linhas = menu.shrine.unlockContainer != null
+                ? CountRows(menu.shrine.unlockContainer) : 0;
+
+            Line($"santuário aberto: {aberto} | destraves listados: {linhas}"
+               + $" (catálogo: {MetaProgression.Catalogo.Length})");
+
+            if (!aberto) Line("FALHA: o Santuário não abriu.");
+            else if (linhas != MetaProgression.Catalogo.Length)
+                Line("FALHA: a lista do Santuário não bate com o catálogo.");
+            else yield return Capture("menu_santuario");
+
+            menu.shrine.panel.SetActive(false);
+        }
+
+        if (menu.saveSlots != null)
+        {
+            menu.saveSlots.Abrir(SaveSlotsUI.Modo.Carregar, null);
+            yield return new WaitForSeconds(0.3f);
+
+            bool aberto = menu.saveSlots.panel != null && menu.saveSlots.panel.activeInHierarchy;
+            int linhas = menu.saveSlots.slotContainer != null
+                ? CountRows(menu.saveSlots.slotContainer) : 0;
+
+            Line($"slots abertos: {aberto} | linhas: {linhas} (esperado 4: automático + 3)");
+
+            if (!aberto) Line("FALHA: a tela de slots não abriu.");
+            else if (linhas != 4) Line("FALHA: a lista de slots não tem uma linha por slot.");
+            else yield return Capture("menu_slots");
+
+            menu.saveSlots.panel.SetActive(false);
+        }
+
+        // --- E a volta: fundar uma guilda nova a partir do título ------------
+        SceneFlow.NovaPartida();
+        yield return null;
+        yield return new WaitForSeconds(1.2f);
+
+        Line($"cena ativa após 'nova guilda': {SceneManager.GetActiveScene().name}");
+
+        var guilda = GuildManager.Instance;
+        if (guilda == null)
+        {
+            Line("FALHA: a guilda nova não nasceu ao voltar do título.");
+            yield break;
+        }
+
+        int esperado = MetaProgression.OuroBasePorRun + MetaProgression.StartingGoldBonus();
+
+        Line($"guilda nova: {guilda.roster.Count} heróis | {guilda.gold} de ouro"
+           + $" (esperado {esperado}) | reputação {guilda.reputation}"
+           + $" | ciclo {(RunManager.Existe ? RunManager.Instance.Cycle : -1)}");
+
+        if (guilda.roster.Count != 4)
+            Line($"FALHA: guilda nova deveria ter 4 heróis e tem {guilda.roster.Count}.");
+
+        if (guilda.gold != esperado)
+            Line("FALHA: a guilda nova herdou o ouro da partida anterior.");
+
+        if (RunManager.Existe && RunManager.Instance.Cycle != 0)
+            Line("FALHA: o relógio da run não voltou ao ciclo 0.");
+
+        yield return Capture("menu_nova_guilda");
+    }
+
+    /// <summary>Cada herói reduzido a uma linha comparável antes e depois do save.</summary>
+    string AssinaturaDoRoster()
+    {
+        var guilda = GuildManager.Instance;
+        if (guilda == null) return "";
+
+        return string.Join(" | ", guilda.roster
+            .Where(h => h != null)
+            .OrderBy(h => h.GetId())
+            .Select(h => $"{h.GetId().Substring(0, 6)}:{h.heroName}:Nv{h.level}"
+                       + $":{h.currentHp}/{h.maxHp}:xp{h.xp}:st{Mathf.RoundToInt(h.stress)}"
+                       + $":{(h.isDead ? "morto" : h.isInjured ? "ferido" : "ok")}"));
+    }
+
+    void Conferir(string oQue, int esperado, int obtido)
+    {
+        if (esperado == obtido) Line($"  {oQue}: {obtido} ✓");
+        else Line($"  FALHA: {oQue} esperava {esperado} e voltou {obtido}");
+    }
+
+    IEnumerator TestPauseMenu()
+    {
+        var pausa = PauseMenuUI.Instance;
+        if (pausa == null)
+        {
+            Line("FALHA: PauseMenuUI ausente na cena — rode 'Montar Cena'.");
+            yield break;
+        }
+
+        AuditInspector(pausa);
+
+        pausa.Abrir();
+        yield return new WaitForSeconds(0.25f);
+
+        Line($"pausa aberta: {pausa.Aberto}");
+        if (!pausa.Aberto) Line("FALHA: a pausa não abriu.");
+
+        if (pausa.panel != null)
+            Line($"  ordem entre irmãos: {pausa.panel.transform.GetSiblingIndex() + 1} de "
+               + $"{pausa.panel.transform.parent.childCount}");
+
+        if (pausa.resumeButton != null) ReportarAlcancavel(pausa.resumeButton);
+
+        Line($"  botão de salvar habilitado: {(pausa.saveButton != null && pausa.saveButton.interactable)}");
+        if (pausa.statusText != null) Line($"  estado: '{StripTags(pausa.statusText.text)}'");
+
+        yield return Capture("menu_pausa");
+
+        pausa.Fechar();
+        yield return new WaitForSeconds(0.15f);
+
+        Line($"pausa fechada: {!pausa.Aberto}");
+    }
+
+    /// <summary>A cena de título existe, está na build e é a primeira?</summary>
+    void TestMenuAssets()
+    {
+        int cenas = SceneManager.sceneCountInBuildSettings;
+        Line($"cenas na build: {cenas}");
+
+        if (cenas == 0)
+        {
+            Line("FALHA: nenhuma cena registrada na build — rode 'Montar Menus'.");
+            return;
+        }
+
+        string primeira = SceneUtility.GetScenePathByBuildIndex(0);
+        Line($"cena 0 (a que abre a build): {primeira}");
+
+        if (!primeira.EndsWith("MainMenu.unity"))
+            Line("FALHA: a build não começa pelo menu principal.");
+
+        bool jogoNaBuild = false;
+        for (int i = 0; i < cenas; i++)
+            if (SceneUtility.GetScenePathByBuildIndex(i).EndsWith("SampleScene.unity"))
+                jogoNaBuild = true;
+
+        Line($"cena do jogo na build: {jogoNaBuild}");
+        if (!jogoNaBuild) Line("FALHA: SampleScene fora da build — 'Continuar' não teria para onde ir.");
+    }
+
+    /// <summary>
+    /// O Santuário cobra o que promete? O perfil é reposto no fim — testar uma
+    /// compra não pode custar as relíquias de quem está programando.
+    /// </summary>
+    void TestShrine()
+    {
+        int relicasAntes = MetaProgression.Relics;
+        var niveisAntes = MetaProgression.Catalogo
+            .ToDictionary(u => u.id, u => MetaProgression.NivelDe(u.id));
+
+        Line($"relíquias do perfil: {relicasAntes} | destraves: "
+           + string.Join(", ", niveisAntes.Select(p => $"{p.Key} {p.Value}")));
+
+        Unlock alvo = MetaProgression.Catalogo[0];
+        int nivelInicial = MetaProgression.NivelDe(alvo.id);
+
+        if (alvo.NoTeto(nivelInicial))
+        {
+            Line($"  '{alvo.nome}' já está no teto; compra não testada");
+        }
+        else
+        {
+            int custo = alvo.CustoDoNivel(nivelInicial + 1);
+
+            // Sem saldo, a compra tem que recusar.
+            PlayerProfile.Dados.relics = 0;
+            bool semSaldo = MetaProgression.Comprar(alvo.id);
+            Line($"  compra sem saldo recusada: {!semSaldo}");
+            if (semSaldo) Line("FALHA: comprou destrave sem relíquias.");
+
+            // Com saldo exato, compra e desconta.
+            PlayerProfile.Dados.relics = custo;
+            bool comprou = MetaProgression.Comprar(alvo.id);
+
+            Line($"  compra de '{alvo.nome}' por {custo}: {comprou}"
+               + $" | nível {nivelInicial} → {MetaProgression.NivelDe(alvo.id)}"
+               + $" | saldo restante {MetaProgression.Relics}");
+
+            if (!comprou) Line("FALHA: compra com saldo exato recusada.");
+            if (MetaProgression.Relics != 0) Line("FALHA: o custo não foi descontado.");
+        }
+
+        // O destrave chega à guilda?
+        Line($"  ouro inicial: {MetaProgression.OuroBasePorRun} + {MetaProgression.StartingGoldBonus()}"
+           + $" | reputação: {MetaProgression.ReputacaoBasePorRun} + {MetaProgression.StartingReputationBonus()}"
+           + $" | vagas: {GuildManager.BaseRosterSize} + {MetaProgression.ExtraRosterSlots()}"
+           + $" | quadro: {(QuestManager.Instance != null ? QuestManager.Instance.TamanhoDoQuadro : 0)}");
+
+        // Repõe o perfil como estava.
+        PlayerProfile.Dados.relics = relicasAntes;
+        PlayerProfile.Dados.unlocks.Clear();
+        foreach (var par in niveisAntes)
+            if (par.Value > 0)
+                PlayerProfile.Dados.unlocks.Add(new UnlockSave { id = par.Key, level = par.Value });
+
+        PlayerProfile.Salvar();
+
+        bool reposto = MetaProgression.Relics == relicasAntes
+                    && MetaProgression.Catalogo.All(u => MetaProgression.NivelDe(u.id) == niveisAntes[u.id]);
+
+        Line($"  perfil do autor reposto: {reposto}");
+        if (!reposto) Line("FALHA: o teste alterou o perfil do jogador e não o restaurou.");
+    }
+
+    #endregion
 
     IEnumerator TestLocationInfo(UIManager ui)
     {

@@ -44,6 +44,19 @@ public class HeroData : ScriptableObject
         return heroId;
     }
 
+    /// <summary>
+    /// Devolve a um herói reconstruído do save a identidade que ele tinha.
+    ///
+    /// Sem isto, carregar uma partida daria a cada herói um id novo, e o deck
+    /// dele — que é indexado por id — ficaria órfão: todo mundo voltaria da
+    /// gaveta com um baralho gerado na hora, apagando em silêncio o que o
+    /// jogador tivesse montado.
+    /// </summary>
+    public void AtribuirId(string id)
+    {
+        if (!string.IsNullOrEmpty(id)) heroId = id;
+    }
+
     public bool IsAlive => !isDead;
 
     #region Aptidão para a estrada

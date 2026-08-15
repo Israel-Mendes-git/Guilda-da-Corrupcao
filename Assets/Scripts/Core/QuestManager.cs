@@ -8,6 +8,14 @@ public class QuestManager : MonoBehaviour
     [Header("Configuração")]
     public int questBoardSize = 3;
 
+    /// <summary>
+    /// Vagas no quadro, já contando o destrave "Contatos na estrada".
+    ///
+    /// Todo lugar que repunha missões usava o campo cru, então o destrave
+    /// comprado no Santuário não teria efeito nenhum depois do primeiro ciclo.
+    /// </summary>
+    public int TamanhoDoQuadro => questBoardSize + MetaProgression.ExtraQuestSlots();
+
     private List<QuestData> currentQuests = new List<QuestData>();
     private bool hasQuests = false;
 
@@ -39,7 +47,7 @@ public class QuestManager : MonoBehaviour
         if (!hasQuests || currentQuests == null || currentQuests.Count == 0)
         {
             Debug.Log("QuestManager: Nenhuma quest armazenada, gerando novas...");
-            currentQuests = QuestGenerator.GenerateQuests(questBoardSize, GetPlayerAverageLevel());
+            currentQuests = QuestGenerator.GenerateQuests(TamanhoDoQuadro, GetPlayerAverageLevel());
             hasQuests = true;
         }
 
@@ -56,7 +64,7 @@ public class QuestManager : MonoBehaviour
 
         currentQuests.Remove(quest);
 
-        int missing = questBoardSize - currentQuests.Count;
+        int missing = TamanhoDoQuadro - currentQuests.Count;
         if (missing > 0)
             currentQuests.AddRange(QuestGenerator.GenerateQuests(missing, GetPlayerAverageLevel()));
 
@@ -87,7 +95,7 @@ public class QuestManager : MonoBehaviour
 
         currentQuests.RemoveAll(q => q == null || !q.isFinalBoss);
 
-        int faltando = questBoardSize - currentQuests.Count;
+        int faltando = TamanhoDoQuadro - currentQuests.Count;
         if (faltando > 0)
             currentQuests.AddRange(QuestGenerator.GenerateQuests(faltando, GetPlayerAverageLevel()));
 

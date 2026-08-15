@@ -43,6 +43,13 @@ public class RunManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Já existe um relógio? Perguntar por <see cref="Instance"/> o criaria — e
+    /// quem só quer saber se há run em andamento (o menu, o save) não deveria
+    /// fundar uma ao perguntar.
+    /// </summary>
+    public static bool Existe => instance != null;
+
     // --- Régua da run -------------------------------------------------------
     //
     // Com +6 por ciclo a partir de 10, a Corrupção leva ~15 jornadas para tomar
@@ -176,6 +183,23 @@ public class RunManager : MonoBehaviour
         Fallen = 0;
         State = RunState.Running;
         EndReason = RunEndReason.None;
+    }
+
+    /// <summary>
+    /// Devolve o relógio ao ponto em que o save o deixou.
+    ///
+    /// Separado do <see cref="StartNewRun"/> de propósito: um restaura, o outro
+    /// zera, e confundir os dois é como um save carrega a partida certa com o
+    /// mundo no ciclo 1. Não dispara <c>onCycleAdvanced</c> — carregar não é
+    /// avançar, e o quadro de missões vem do próprio save.
+    /// </summary>
+    public void Restaurar(int ciclo, float corrupcao, RunState estado, RunEndReason motivo, int caidos)
+    {
+        Cycle = Mathf.Max(0, ciclo);
+        Corruption = Mathf.Clamp(corrupcao, 0f, CorruptionMax);
+        State = estado;
+        EndReason = motivo;
+        Fallen = Mathf.Max(0, caidos);
     }
 
     /// <summary>Texto do motivo, na língua do jogador.</summary>
