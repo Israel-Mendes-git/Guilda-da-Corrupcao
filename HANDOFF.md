@@ -1,4 +1,4 @@
-# Handoff — Guilda da Corrupção: menus, save e Santuário (2026-08-15, sessão 2)
+# Handoff — Guilda da Corrupção: menus, save e campo de batalha (2026-08-15, sessão 2)
 
 ## Objetivo
 
@@ -14,17 +14,22 @@ assets em **[`ASSETS.md`](ASSETS.md)**. Leia os três — este handoff só cobre
 
 ## Estado atual
 
-**Árvore limpa. 14 commits locais**, nenhum enviado a remoto (2 desta sessão: `d62326c` e `8bd844d`).
+**Árvore limpa. 16 commits locais**, nenhum enviado a remoto (4 desta sessão, de `d62326c` a
+`df27c7d`).
 
-**Validado agora:** `PLAY MODE OK — nenhum erro capturado`, **0 falhas**, incluindo a seção nova
-`SAVE E MENUS`. As seis capturas de menu foram conferidas a olho.
+**Validado agora:** `PLAY MODE OK — nenhum erro capturado`, **0 falhas**, incluindo as seções novas
+`SAVE E MENUS` e a trava da ordem do round. As sete capturas novas foram conferidas a olho.
 
-### ✅ Fases 0, 1, 2, 2.5, 3 e **3.5** concluídas
+### ✅ Fases 0, 1, 2, 2.5, 3, **3.5** e **3.6** concluídas
 
-A **Fase 3.5 (menus e save)** foi construída e testada nesta sessão. O jogo deixou de abrir direto na
-guilda: tem tela de título, pausa no ESC, opções de áudio e vídeo, save em arquivo (autosave + 3
-slots) e o Santuário das Relíquias. Detalhes, decisões e a régua medida estão no `ROADMAP.md`,
-seção **Fase 3.5**.
+Duas frentes nesta sessão, ambas com detalhes, decisões e régua medida no `ROADMAP.md`:
+
+- **Fase 3.5 — menus e save.** O jogo deixou de abrir direto na guilda: tem tela de título, pausa no
+  ESC, opções de áudio e vídeo, save em arquivo (autosave + 3 slots) e o Santuário das Relíquias.
+- **Fase 3.6 — o campo de batalha.** O combate ficou frente a frente como o de *Darkest Dungeon*:
+  party à esquerda com a posição 1 encostada nos inimigos, inimigos à direita com corpo e intenção
+  acima da cabeça, e a barra de ordem do round no alto. **A regra do combate não mudou** — escolha do
+  autor: o grupo continua agindo junto com 5 de energia, e a barra é informativa.
 
 ### 🔄 Pendências desta sessão
 
@@ -88,6 +93,26 @@ Da sessão anterior, dois dos cinco blocos continuam de pé:
 
 ## Pegadinhas / lições
 
+### O "Montar Cena" pode rodar na cena errada — e rodou
+
+O teste de Play Mode agora passa pelo título, e ao sair do Play Mode o Editor fica com a `MainMenu`
+aberta. O gatilho `RunSceneSetup` monta **na cena ativa**, e como há Canvas nas duas, nada falhou: o
+comando construiu o jogo inteiro dentro da cena de título, que engordou de 250 KB para 800 KB em
+silêncio. Foi preciso `git checkout` na cena para desfazer.
+
+**Corrigido em dois lugares** e vale saber que existem: o gatilho **abre a cena do jogo** antes de
+montar, e o `GuildSceneSetup` **recusa** rodar em qualquer outra, dizendo qual esperava e qual achou.
+
+### Três armadilhas de UI que voltam sempre
+
+1. **Pivô depois do rect move o retângulo.** Trocar o pivô mantém a `anchoredPosition`, então o
+   elemento anda meia altura — foi o vazio de 80px entre o retrato e o nome, sem erro nenhum.
+   **Pivô antes do rect.**
+2. **Quem nasce depois é desenhado por cima.** A criatura ampliada cobria a intenção do inimigo.
+   Terceira vez que ordem de irmãos custa tempo neste projeto.
+3. **`preserveAspect` encaixa o quadro inteiro**, com toda a transparência em volta da criatura — por
+   isso existe `EnemyData.portraitScale`. Sem ela o esqueleto virava um boneco de 50px num card de 370.
+
 ### A que mais custou tempo nesta sessão: gatilho consumido antes de o Unity recompilar
 
 O watcher de gatilhos roda no `EditorApplication.update` e **pode consumir o arquivo antes de o Unity
@@ -109,11 +134,16 @@ travado parecer uma ferramenta quebrada.
 
 ### O padrão que se repete: dado certo, exibição ausente
 
-Já são **sete** ocorrências ao longo do projeto. As desta sessão, todas com o relatório em 0 falhas:
+Já são **onze** ocorrências ao longo do projeto. As desta sessão, todas com o relatório em 0 falhas:
 
 1. Painéis de overlay translúcidos (alfa 0,98) — o texto de baixo atravessava o de cima.
 2. O glifo **✦** não existe na fonte e virava caixinha, em cinco lugares.
 3. A dica do "Continuar" colada no subtítulo, lida como parte da frase de abertura.
+4. O retrato do combate deslocado meia altura pelo pivô.
+5. Inimigos desenhados a 50px dentro de um card de 370.
+6. A intenção do inimigo coberta pela própria criatura.
+7. O popup "Prepare-se com cartas…" da jornada plantado no meio do campo de batalha — **anterior a
+   esta sessão**, e visível em toda captura de combate desde que o popup existe.
 
 **Sempre olhe `Assets/Screenshots/*.png` depois de rodar o Play Mode.** Repetindo pela terceira
 sessão seguida porque continua sendo verdade.
@@ -193,14 +223,17 @@ erro volta** (commit `d7ef2c4`).
 
 ### Gatilhos (arquivo vazio na raiz + trazer o Unity à frente)
 
-`RunPlayModeTest` · `RunSmokeTest` · `RunSceneSetup` · **`RunMenuSetup`** · `RunBarSkin` ·
-`RunCardArt` · `RunPortraitCatalog` · `RunBiomeArt` · `RunUiSkinPrefabs` · `RunHeroPanelSkin` ·
-`RunPartyCardSkin` · `RunCardFrameSkin` · `RunAudioCatalog` — todos `.trigger`, todos no `.gitignore`
-(agora por curinga `*.trigger`).
+`RunPlayModeTest` · `RunSmokeTest` · `RunSceneSetup` · **`RunMenuSetup`** · **`RunEnemyArt`** ·
+`RunBarSkin` · `RunCardArt` · `RunPortraitCatalog` · `RunBiomeArt` · `RunUiSkinPrefabs` ·
+`RunHeroPanelSkin` · `RunPartyCardSkin` · `RunCardFrameSkin` · `RunAudioCatalog` — todos `.trigger`,
+todos no `.gitignore` (agora por curinga `*.trigger`).
 
 **Depois de mexer na cena**, rode nesta ordem: `RunSceneSetup` → `RunMenuSetup` → `RunBarSkin` →
 `RunPlayModeTest`. O `Montar Cena` recria objetos, o `Montar Menus` refaz a cena de título e a lista
 da build, e o `BarSkin` repõe os sprites das barras.
+
+**O `RunEnemyArt` sobrescreve** a arte dos inimigos (o menu do Editor, não: ele respeita escolha
+feita à mão). Rode só quando mudar a tabela do `EnemyArt.cs`.
 
 ### Disparar gatilho com a compilação assentada (obrigatório — ver Pegadinhas)
 
@@ -260,10 +293,13 @@ Set-Location $root
 
 - **Rodar o smoke test** (interrompido nesta sessão; a causa da quebra já foi corrigida).
 - **Deserto e Vulcão sem arte de bioma** — nenhum pacote importado cobre.
-- **Retratos de inimigo** (`EnemyData.portrait`, 11 vazios) e **ilustração de evento**
-  (`EventData.eventImage`, 25 vazios) continuam sem arte.
+- **Lobo, aranha e golem de pedra** — três dos onze inimigos usam arte que não os representa
+  (goblin, olho voador e esqueleto tingido). Tabela e razões em `ASSETS.md`.
+- **Ilustração de evento** (`EventData.eventImage`, 25 vazios) continua sem arte.
+- **Animação dos inimigos** — os spritesheets já trazem Idle, Attack, Take Hit e Death; hoje só o
+  primeiro quadro do Idle é usado. Foi decisão de escopo do autor, não limitação de material.
 - **Git LFS** — 763 MB de binários no histórico.
-- **Push** — 14 commits só no repositório local.
+- **Push** — 16 commits só no repositório local.
 - **Conflito de estilo**: retratos em pixel art, ícones e UI pintados.
 - **O `GDD.md` está atrás do código** em pontos que esta sessão não tocou: as tabelas de status ainda
   dão as Fases 2, 2.5 e 3 como pendentes. Nesta sessão só foram corrigidas as linhas que o trabalho
