@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Acampamento Noturno
-  m_EditorClassIdentifier:
-  eventTitle: '🔥 Acampamento Noturno'
-  description: 'A luz morre cedo aqui. O grupo precisa decidir como passar a noite, e nenhuma escolha sai de graça.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F525 Acampamento Noturno"
+  description: "A luz morre cedo aqui. O grupo precisa decidir como passar a noite,
+    e nenhuma escolha sai de gra\xE7a."
   eventImage: {fileID: 0}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '🔥 Fogueira alta e vigília dobrada'
+  - optionText: "\U0001F525 Fogueira alta e vig\xEDlia dobrada"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -29,7 +30,14 @@ MonoBehaviour:
         moraleChange: 12
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🌑 Acampamento frio, sem fogo'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F311 Acampamento frio, sem fogo"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -39,7 +47,14 @@ MonoBehaviour:
         moraleChange: -10
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🚶 Marchar a noite toda'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F6B6 Marchar a noite toda"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -51,5 +66,33 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F3B5 Puxar uma can\xE7\xE3o e levantar o grupo"
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: 10
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 11
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 4
   isBossEvent: 0

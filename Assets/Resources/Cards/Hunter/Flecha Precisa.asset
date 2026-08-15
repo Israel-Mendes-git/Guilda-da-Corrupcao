@@ -18,9 +18,9 @@ MonoBehaviour:
   rarity: 0
   requiredClass: 5
   energyCost: 1
-  journeyEffect: 0
+  journeyEffect: 1
   journeyEffectValue: 0
-  journeyEffectDescription: Atravessa rios e cavernas facilmente.
+  journeyEffectDescription: 'Acerta o ponto exato: abre passagem por rios e cavernas.'
   combatEffect: 1
   combatDamage: 6
   combatBlock: 0

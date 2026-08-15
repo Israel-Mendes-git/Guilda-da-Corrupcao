@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Mercador Errante
-  m_EditorClassIdentifier:
-  eventTitle: '🛒 Mercador Errante'
-  description: 'Um homem magro empurra uma carroça coberta. Ele sorri antes de vocês falarem, como se já soubesse do que precisam.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F6D2 Mercador Errante"
+  description: "Um homem magro empurra uma carro\xE7a coberta. Ele sorri antes de
+    voc\xEAs falarem, como se j\xE1 soubesse do que precisam."
   eventImage: {fileID: 0}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 2
   outcomes:
-  - optionText: '💰 Comprar mantimentos (-40 ouro)'
+  - optionText: "\U0001F4B0 Comprar mantimentos (-40 ouro)"
     consequences:
       goldChange: -40
       reputationChange: 0
@@ -29,7 +30,14 @@ MonoBehaviour:
         moraleChange: 8
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🗡️ Tomar a carroça à força'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F5E1\uFE0F Tomar a carro\xE7a \xE0 for\xE7a"
     consequences:
       goldChange: 60
       reputationChange: -10
@@ -43,7 +51,14 @@ MonoBehaviour:
         moraleChange: -12
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🚶 Recusar e seguir'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F6B6 Recusar e seguir"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -51,5 +66,29 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F620 Pressionar por um pre\xE7o honesto"
+    consequences:
+      goldChange: 60
+      reputationChange: -5
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 7
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 5
   isBossEvent: 0

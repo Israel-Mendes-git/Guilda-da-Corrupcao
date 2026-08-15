@@ -11,9 +11,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
   m_Name: CHEFE - A Coisa da Mata
-  m_EditorClassIdentifier:
-  enemyName: 'A Coisa da Mata'
-  description: 'Galhos no lugar dos braços e rostos humanos usados como casca.'
+  m_EditorClassIdentifier: 
+  enemyName: A Coisa da Mata
+  description: "Galhos no lugar dos bra\xE7os e rostos humanos usados como casca."
   portrait: {fileID: 0}
   biome: 1
   isBoss: 1
@@ -25,4 +25,4 @@ MonoBehaviour:
   defendWeight: 15
   stressWeight: 25
   attackAllWeight: 15
-  goldReward: 140
+  goldReward: 280

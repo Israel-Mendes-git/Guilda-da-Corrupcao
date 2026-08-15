@@ -11,21 +11,22 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: CHEFE - O Afogado
-  m_EditorClassIdentifier:
-  eventTitle: '🌊 O AFOGADO'
-  description: 'Ele emerge do lodo ainda vestindo a armadura da guarda que se perdeu aqui. A água escorre dele sem parar, e não há água por perto.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F30A O AFOGADO"
+  description: "Ele emerge do lodo ainda vestindo a armadura da guarda que se perdeu
+    aqui. A \xE1gua escorre dele sem parar, e n\xE3o h\xE1 \xE1gua por perto."
   eventImage: {fileID: 0}
   biome: 3
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '⚔️ Enfrentá-lo no seco'
+  - optionText: "\u2694\uFE0F Enfrent\xE1-lo no seco"
     consequences:
-      goldChange: 210
+      goldChange: 84
       reputationChange: 15
       heroEffects:
       - heroName: All
-        hpChange: -13
+        hpChange: -18
         addInjury: 0
         addTrait: 0
       moraleChanges:
@@ -33,9 +34,16 @@ MonoBehaviour:
         moraleChange: -10
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '⚰️ Devolver o brasão da guarda ao corpo'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u26B0\uFE0F Devolver o bras\xE3o da guarda ao corpo"
     consequences:
-      goldChange: 90
+      goldChange: 54
       reputationChange: 25
       heroEffects: []
       moraleChanges:
@@ -43,17 +51,31 @@ MonoBehaviour:
         moraleChange: 20
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🔥 Incendiar o pântano inteiro'
+    requiredEffect: 8
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: A carta certa abre esse caminho.
+  - optionText: "\U0001F525 Incendiar o p\xE2ntano inteiro"
     consequences:
-      goldChange: 160
+      goldChange: 64
       reputationChange: -15
       heroEffects:
       - heroName: Random
-        hpChange: -25
+        hpChange: -35
         addInjury: 1
         addTrait: 0
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 1
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 1
   isBossEvent: 1

@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Altar Afundado
-  m_EditorClassIdentifier:
-  eventTitle: '🛐 Altar Afundado'
-  description: 'Metade de um templo submerso na água parada. Moedas antigas cobrem o fundo, e algo se move devagar entre elas.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F6D0 Altar Afundado"
+  description: "Metade de um templo submerso na \xE1gua parada. Moedas antigas cobrem
+    o fundo, e algo se move devagar entre elas."
   eventImage: {fileID: 0}
   biome: 3
   minCorruptionToAppear: 20
   minDay: 2
   outcomes:
-  - optionText: '💰 Recolher as oferendas'
+  - optionText: "\U0001F4B0 Recolher as oferendas"
     consequences:
       goldChange: 130
       reputationChange: -5
@@ -31,7 +32,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 1
-  - optionText: '🕯️ Rezar e deixar uma moeda'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F56F\uFE0F Rezar e deixar uma moeda"
     consequences:
       goldChange: -15
       reputationChange: 5
@@ -41,7 +49,14 @@ MonoBehaviour:
         moraleChange: 14
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🔨 Destruir o altar'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F528 Destruir o altar"
     consequences:
       goldChange: 40
       reputationChange: 0
@@ -55,5 +70,29 @@ MonoBehaviour:
         moraleChange: -12
     extraDays: 0
     triggersCorruption: 1
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u2728 Purificar o altar antes de toc\xE1-lo"
+    consequences:
+      goldChange: 90
+      reputationChange: 10
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 8
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 2
   isBossEvent: 0

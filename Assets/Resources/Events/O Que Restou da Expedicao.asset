@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: O Que Restou da Expedicao
-  m_EditorClassIdentifier:
-  eventTitle: '💀 O Que Restou da Expedição'
-  description: 'Barracas rasgadas, uma fogueira apagada há dias e pegadas que entram na mata mas nunca voltam. As mochilas continuam cheias.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F480 O Que Restou da Expedi\xE7\xE3o"
+  description: "Barracas rasgadas, uma fogueira apagada h\xE1 dias e pegadas que
+    entram na mata mas nunca voltam. As mochilas continuam cheias."
   eventImage: {fileID: 0}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 3
   outcomes:
-  - optionText: '🎒 Saquear tudo o que puderem carregar'
+  - optionText: "\U0001F392 Saquear tudo o que puderem carregar"
     consequences:
       goldChange: 85
       reputationChange: 0
@@ -29,7 +30,14 @@ MonoBehaviour:
         moraleChange: -14
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '⚰️ Enterrar os mortos primeiro'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u26B0\uFE0F Enterrar os mortos primeiro"
     consequences:
       goldChange: 30
       reputationChange: 8
@@ -39,7 +47,14 @@ MonoBehaviour:
         moraleChange: 10
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🚶 Não tocar em nada'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F6B6 N\xE3o tocar em nada"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -47,5 +62,29 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u2695\uFE0F Tratar quem ainda respira entre os corpos"
+    consequences:
+      goldChange: 40
+      reputationChange: 10
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 2
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 2
   isBossEvent: 0

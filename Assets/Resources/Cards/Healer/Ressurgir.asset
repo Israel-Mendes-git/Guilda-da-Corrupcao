@@ -18,9 +18,10 @@ MonoBehaviour:
   rarity: 2
   requiredClass: 2
   energyCost: 4
-  journeyEffect: 0
+  journeyEffect: 13
   journeyEffectValue: 0
-  journeyEffectDescription: "Revive um her\xF3i morto (1 por jornada)."
+  journeyEffectDescription: "Traz um her\xF3i de volta da beira da morte e devolve
+    metade da vida."
   combatEffect: 5
   combatDamage: 0
   combatBlock: 0

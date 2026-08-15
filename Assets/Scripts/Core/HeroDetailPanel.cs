@@ -57,6 +57,10 @@ public class HeroDetailPanel : MonoBehaviour
     public TMP_Text mentalStateText;
     public TMP_Text equipmentText;
 
+    [Header("Opcionais — se nulos, o XP entra no texto de nível")]
+    public TMP_Text xpText;
+    public Image xpBar;
+
     [Header("Buttons")]
     public Button closeButton;
     public Button dismissButton;  // Opcional: botão para demitir herói
@@ -112,7 +116,17 @@ public class HeroDetailPanel : MonoBehaviour
         // Informações básicas
         if (heroNameText != null) heroNameText.text = hero.heroName;
         if (heroClassText != null) heroClassText.text = GetClassName(hero.heroClass);
-        if (levelText != null) levelText.text = $"Nível: {hero.level}";
+        // O nível só significa alguma coisa quando o jogador vê o quanto falta
+        // para o próximo. Sem campo próprio na cena, o XP acompanha o nível.
+        string progressoXp = $"⭐ {hero.xp}/{hero.XpMetaAtual} XP";
+
+        if (levelText != null)
+            levelText.text = xpText != null
+                ? $"Nível: {hero.level}"
+                : $"Nível: {hero.level}   <size=80%>{progressoXp}</size>";
+
+        if (xpText != null) xpText.text = progressoXp;
+        if (xpBar != null) xpBar.fillAmount = hero.XpProgress;
 
         // Vida
         if (hpText != null) hpText.text = $"{hero.currentHp} / {hero.maxHp}";

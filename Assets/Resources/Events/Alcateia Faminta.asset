@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Alcateia Faminta
-  m_EditorClassIdentifier:
-  eventTitle: '🐺 Alcateia Faminta'
-  description: 'Os olhos aparecem primeiro, dezenas deles, baixos entre os troncos. O inverno os deixou ousados.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F43A Alcateia Faminta"
+  description: Os olhos aparecem primeiro, dezenas deles, baixos entre os troncos.
+    O inverno os deixou ousados.
   eventImage: {fileID: 0}
   biome: 1
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '⚔️ Formar círculo e enfrentá-los'
+  - optionText: "\u2694\uFE0F Formar c\xEDrculo e enfrent\xE1-los"
     consequences:
       goldChange: 35
       reputationChange: 0
@@ -31,7 +32,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🔥 Espantá-los com tochas'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F525 Espant\xE1-los com tochas"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -39,7 +47,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🥩 Jogar as rações e correr'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F969 Jogar as ra\xE7\xF5es e correr"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -49,5 +64,29 @@ MonoBehaviour:
         moraleChange: -8
     extraDays: 1
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F5E3\uFE0F Encarar a alcateia e enxot\xE1-la"
+    consequences:
+      goldChange: 20
+      reputationChange: 5
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 7
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 1
   isBossEvent: 0

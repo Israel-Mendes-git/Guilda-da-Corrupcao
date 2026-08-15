@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Tempestade de Areia
-  m_EditorClassIdentifier:
-  eventTitle: '🏜️ Tempestade de Areia'
-  description: 'A parede amarela cobre o horizonte inteiro e vem rápido. Não há pedra grande o bastante para abrigar todo mundo.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F3DC\uFE0F Tempestade de Areia"
+  description: "A parede amarela cobre o horizonte inteiro e vem r\xE1pido. N\xE3o
+    h\xE1 pedra grande o bastante para abrigar todo mundo."
   eventImage: {fileID: 0}
   biome: 4
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '⛺ Enterrar-se e esperar passar'
+  - optionText: "\u26FA Enterrar-se e esperar passar"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -29,7 +30,14 @@ MonoBehaviour:
         moraleChange: -8
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🧭 Avançar às cegas na direção certa'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F9ED Avan\xE7ar \xE0s cegas na dire\xE7\xE3o certa"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -41,7 +49,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🐫 Abrigar-se nas ruínas que a areia revelou'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F42B Abrigar-se nas ru\xEDnas que a areia revelou"
     consequences:
       goldChange: 70
       reputationChange: 0
@@ -53,5 +68,33 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 1
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u26FA Abrigar o grupo at\xE9 a areia baixar"
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: 6
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 10
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 0
   isBossEvent: 0

@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Ponte Quebrada
-  m_EditorClassIdentifier:
-  eventTitle: '🌉 Ponte Quebrada'
-  description: 'A ponte de madeira desabou faz tempo. O rio corre gelado e rápido logo abaixo, cheio de galhos afiados.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F309 Ponte Quebrada"
+  description: "A ponte de madeira desabou faz tempo. O rio corre gelado e r\xE1pido
+    logo abaixo, cheio de galhos afiados."
   eventImage: {fileID: 0}
   biome: 1
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '🌊 Atravessar a nado'
+  - optionText: "\U0001F30A Atravessar a nado"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -31,7 +32,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🔨 Erguer uma passagem improvisada'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F528 Erguer uma passagem improvisada"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -39,7 +47,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🏔️ Contornar pelas encostas'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F3D4\uFE0F Contornar pelas encostas"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -49,5 +64,29 @@ MonoBehaviour:
         moraleChange: -5
     extraDays: 2
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001FA93 Derrubar uma \xE1rvore e fazer a travessia"
+    consequences:
+      goldChange: 30
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 1
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 0
   isBossEvent: 0

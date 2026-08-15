@@ -108,12 +108,21 @@ public class PlayModeProbe : MonoBehaviour
 {
     private readonly StringBuilder report = new StringBuilder();
     private readonly List<string> errors = new List<string>();
+
+    // Ruído de pacote de terceiros: registrado, mas fora da conta que decide se
+    // a run passou. Ver RuidoConhecido.
+    private readonly List<string> ignoredErrors = new List<string>();
     private int eventsResolved;
     private int combatTurns;
     private int routeChoices;
     private int cardsPlayed;
     private int combatOffers;
     private bool popupInvisibleReported;
+
+    // A tela de balanço é a saída da jornada; registrada uma vez só, para o
+    // relatório dizer como a jornada terminou sem repetir a linha a cada clique.
+    private bool balancoVistoNaJornada;
+    private bool balancoSemSaidaReportado;
 
     // De onde vem o desgaste. Sem separar combate de jornada, um relatório com a
     // party morta não diz se a culpa foi das lutas, da fome ou dos eventos.
@@ -131,13 +140,29 @@ public class PlayModeProbe : MonoBehaviour
         Application.logMessageReceived -= OnLog;
     }
 
+    /// <summary>
+    /// Erros que não são do jogo e se repetem toda sessão. Contá-los no cabeçalho
+    /// faz o relatório abrir com "PLAY MODE COM 2 ERRO(S)" mesmo quando nada
+    /// quebrou — e um alarme que toca sempre para de ser ouvido.
+    /// </summary>
+    static readonly string[] RuidoConhecido =
+    {
+        // Pacote de terceiros que traz a mesma DLL em duas pastas.
+        "Multiple plugins with the same name",
+    };
+
     void OnLog(string message, string stackTrace, LogType type)
     {
-        if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
-        {
-            string first = stackTrace?.Split('\n').FirstOrDefault() ?? "";
-            errors.Add($"[{type}] {message} | {first}");
-        }
+        if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert)
+            return;
+
+        string first = stackTrace?.Split('\n').FirstOrDefault() ?? "";
+        string linha = $"[{type}] {message} | {first}";
+
+        if (RuidoConhecido.Any(padrao => message.Contains(padrao)))
+            ignoredErrors.Add(linha);
+        else
+            errors.Add(linha);
     }
 
     IEnumerator Start()
@@ -154,8 +179,8 @@ public class PlayModeProbe : MonoBehaviour
         ReportSingleton("CombatManager", CombatManager.Instance);
         ReportSingleton("MapRoomManager", MapRoomManager.Instance);
         ReportSingleton("JourneyMapUI", JourneyMapUI.Instance);
-        ReportSingleton("TavernManager", TavernManager.Instance);
-        ReportSingleton("DeckManager", DeckManager.Instance);
+        ReportSingleton<TavernManager>("TavernManager", TavernManager.Instance);
+        ReportSingleton<DeckManager>("DeckManager", DeckManager.Instance);
 
         Section("REFERENCIAS NAO LIGADAS NO INSPECTOR");
         AuditInspector(JourneyManager.Instance);
@@ -203,6 +228,9 @@ public class PlayModeProbe : MonoBehaviour
             Line("pulada: JourneyManager ausente na cena");
 
         Section("ERROS CAPTURADOS");
+        if (ignoredErrors.Count > 0)
+            Line($"({ignoredErrors.Count} erro(s) de pacote de terceiros ignorados — ver RuidoConhecido)");
+
         if (errors.Count == 0)
         {
             Line("nenhum erro ou exceção durante o teste");
@@ -344,6 +372,7 @@ public class PlayModeProbe : MonoBehaviour
         yield return TestTavern(ui);
         yield return TestLibrary(ui);
         yield return TestMapRoom(ui);
+        yield return TestLocationInfo(ui);
         yield return TestDeckManager(ui);
         yield return TestHeroDetail(ui);
         yield return TestFormationScreen(ui);
@@ -437,6 +466,68 @@ public class PlayModeProbe : MonoBehaviour
         ui.CloseLibrary();
         yield return new WaitForSeconds(0.2f);
         Line($"após fechar: guilda visível={(ui.guildPanel != null && ui.guildPanel.activeInHierarchy)}");
+    }
+
+    /// <summary>
+    /// O painel que descreve a sala antes de entrar, aberto duas vezes com uma
+    /// visita no meio.
+    ///
+    /// É o caminho em que ele sumia: o painel é irmão do GuildMap dentro de
+    /// "Background" e nasce num índice anterior; ao voltar de qualquer sala,
+    /// ShowGuildScreen manda o mapa para o fim da lista de irmãos e ele passa a
+    /// cobrir o painel, engolindo os cliques. A primeira abertura funcionava, a
+    /// segunda não — por isso um teste que abre só uma vez não pegava.
+    /// </summary>
+    IEnumerator TestLocationInfo(UIManager ui)
+    {
+        var mm = Resources.FindObjectsOfTypeAll<MapManager>()
+                          .FirstOrDefault(m => m != null && m.gameObject.scene.rootCount > 0);
+
+        if (mm == null || mm.locationInfoPanel == null || mm.enterButton == null)
+        {
+            Line("pulada: MapManager sem painel de informação ou sem botão de entrar");
+            yield break;
+        }
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.35f);
+
+        Transform painel = mm.locationInfoPanel.transform;
+        int irmaos = painel.parent != null ? painel.parent.childCount - 1 : 0;
+
+        // ── Primeira abertura ──
+        if (mm.tavernButton != null) mm.tavernButton.onClick.Invoke();
+        yield return null;
+
+        Line($"1ª abertura: visível={mm.locationInfoPanel.activeInHierarchy}"
+           + $" | ordem entre irmãos: {painel.GetSiblingIndex()} de {irmaos}");
+        ReportarAlcancavel(mm.enterButton);
+
+        // ── Entra na sala e volta para o mapa ──
+        mm.enterButton.onClick.Invoke();
+        yield return new WaitForSeconds(0.45f);
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.45f);
+
+        // ── Segunda abertura: é aqui que o painel sumia ──
+        if (mm.libraryButton != null) mm.libraryButton.onClick.Invoke();
+        yield return null;
+
+        int ordemDepois = painel.GetSiblingIndex();
+        bool porCima = painel.parent == null || ordemDepois == irmaos;
+
+        Line($"2ª abertura (após visitar uma sala): visível={mm.locationInfoPanel.activeInHierarchy}"
+           + $" | ordem entre irmãos: {ordemDepois} de {irmaos}"
+           + (porCima ? " — na frente" : " — ATRÁS de alguém"));
+
+        ReportarAlcancavel(mm.enterButton);
+
+        if (!porCima)
+            Line("FALHA: o painel de informação da sala ficou atrás e não recebe cliques");
+
+        mm.CloseLocationInfo();
+        yield return new WaitForSeconds(0.2f);
     }
 
     IEnumerator TestMapRoom(UIManager ui)
@@ -945,6 +1036,55 @@ public class PlayModeProbe : MonoBehaviour
     /// O desfecho é forçado por reflexão em vez de jogado até o fim: o que se quer
     /// medir é a saída da tela, não a rota até ela.
     /// </summary>
+    /// <summary>
+    /// O que a tela de balanço mostrou, e se a escolha de despojo funciona.
+    ///
+    /// A escolha trava o botão de voltar de propósito: sem ela, o jogador
+    /// passaria batido pela decisão. Se o clique não a destravar, ele fica preso
+    /// na tela de vitória — daí o teste clicar de verdade em uma das opções.
+    /// </summary>
+    IEnumerator RelatarBalanco(JourneyResultUI balanco)
+    {
+        int linhas = balanco.heroContainer != null ? balanco.heroContainer.childCount : 0;
+        Line($"  linhas de herói no balanço: {linhas}");
+
+        if (balanco.titleText != null)
+            Line($"  título: '{StripTags(balanco.titleText.text)}'");
+        if (balanco.subtitleText != null)
+            Line($"  subtítulo: '{StripTags(balanco.subtitleText.text)}'");
+        if (balanco.rewardText != null)
+            Line($"  recompensa: '{StripTags(balanco.rewardText.text).Replace("\n", " · ")}'");
+
+        int escolhas = balanco.rewardContainer != null ? balanco.rewardContainer.childCount : 0;
+        Line($"  opções de despojo oferecidas: {escolhas}");
+
+        bool travadoAntes = balanco.continueButton != null && !balanco.continueButton.interactable;
+        Line($"  botão de voltar travado até escolher: {travadoAntes}");
+
+        if (escolhas > 0)
+        {
+            Button opcao = balanco.rewardContainer.GetChild(0).GetComponent<Button>();
+            if (opcao != null)
+            {
+                ReportarAlcancavel(opcao);
+
+                int ouroAntes = GuildManager.Instance != null ? GuildManager.Instance.gold : 0;
+                opcao.onClick.Invoke();
+                yield return new WaitForSeconds(0.25f);
+
+                bool liberou = balanco.continueButton != null && balanco.continueButton.interactable;
+                Line($"  após escolher: opções restantes={balanco.rewardContainer.childCount}"
+                   + $" | botão liberado={liberou}"
+                   + (GuildManager.Instance != null ? $" | ouro {ouroAntes} → {GuildManager.Instance.gold}" : ""));
+
+                if (!liberou)
+                    Line("FALHA: escolher o despojo não liberou a saída — jogador preso na tela de vitória");
+            }
+        }
+
+        yield return Capture("fim_jornada_balanco");
+    }
+
     IEnumerator TestVictoryExit()
     {
         var jm = JourneyManager.Instance;
@@ -1011,23 +1151,43 @@ public class PlayModeProbe : MonoBehaviour
         endJourney.Invoke(jm, new object[] { true });
         yield return new WaitForSeconds(0.6f);
 
+        // A saída da jornada passou a ser a tela de balanço; o popup de texto só
+        // continua respondendo em cenas montadas antes dela existir. O teste
+        // aceita as duas, mas exige que UMA apareça — sem saída, o jogador fica
+        // preso na jornada vencida.
+        var balanco = JourneyResultUI.Instance;
+        bool telaVisivel = balanco != null && balanco.panel != null && balanco.panel.activeInHierarchy;
+
         GameObject popup = ui.resultPopup;
         bool popupVisivel = popup != null && popup.activeInHierarchy;
-        Line($"popup de resultado visível após vencer: {popupVisivel}");
 
-        if (popup != null)
+        Button fechar;
+
+        if (telaVisivel)
         {
-            Line($"  escala do popup: {popup.transform.localScale.x:0.00} (0 = invisível na prática)");
-            var cg = popup.GetComponent<CanvasGroup>();
-            if (cg != null) Line($"  alpha={cg.alpha:0.00} blocksRaycasts={cg.blocksRaycasts}");
+            Line("saída após vencer: TELA DE BALANÇO");
+            yield return RelatarBalanco(balanco);
+            fechar = balanco.continueButton;
+        }
+        else
+        {
+            Line($"saída após vencer: popup de resultado (visível={popupVisivel})");
+
+            if (popup != null)
+            {
+                Line($"  escala do popup: {popup.transform.localScale.x:0.00} (0 = invisível na prática)");
+                var cg = popup.GetComponent<CanvasGroup>();
+                if (cg != null) Line($"  alpha={cg.alpha:0.00} blocksRaycasts={cg.blocksRaycasts}");
+            }
+
+            fechar = ui.resultCloseButton;
         }
 
-        Button fechar = ui.resultCloseButton;
-        Line($"botão de fechar: {(fechar == null ? "SEM REFERÊNCIA" : fechar.name)}"
+        Line($"botão de saída: {(fechar == null ? "SEM REFERÊNCIA" : fechar.name)}"
            + (fechar != null ? $" interativo={fechar.interactable} ativo={fechar.gameObject.activeInHierarchy}" : ""));
 
-        if (!popupVisivel)
-            Line("FALHA: venceu a jornada e o popup de resultado não apareceu — jogador fica sem saída");
+        if (!telaVisivel && !popupVisivel)
+            Line("FALHA: venceu a jornada e nenhuma tela de resultado apareceu — jogador fica sem saída");
 
         // Estar ativo não é estar clicável: o popup nasce dentro de "Background",
         // que é desenhado antes das telas de jornada e combate, e o fundo delas
@@ -1141,6 +1301,10 @@ public class PlayModeProbe : MonoBehaviour
         Line("formação:");
         foreach (var h in party)
             Line($"  {StripTags(PartyFormation.DescribePlacement(h, party))}");
+
+        // Foto do nível e da experiência antes de partir: sem ela, "Nv.3" no fim
+        // não diz se o herói progrediu ou se já saiu de casa assim.
+        var xpAntes = party.ToDictionary(h => h, h => new Vector2Int(h.level, h.xp));
 
         if (SemFormacao)
         {
@@ -1262,10 +1426,15 @@ public class PlayModeProbe : MonoBehaviour
             }
 
             // Sem UI de escolhas, o botão de turno é a saída prevista no código.
+            // Conta como ação sem progresso: EndTurn é um no-op quando a jornada
+            // não está esperando escolha (ou quando o grupo já descansou neste
+            // trecho), e sem contar aqui o laço girava até o limite de segurança
+            // sem nunca acusar o travamento.
             if (jm.endTurnButton != null && jm.endTurnButton.interactable)
             {
                 jm.endTurnButton.onClick.Invoke();
                 eventsResolved++;
+                clicksSemProgresso++;
                 yield return new WaitForSeconds(0.15f);
                 continue;
             }
@@ -1296,9 +1465,17 @@ public class PlayModeProbe : MonoBehaviour
         Section("ESTADO DOS HEROIS APOS A JORNADA");
         foreach (var h in party)
         {
+            Vector2Int antes = xpAntes.TryGetValue(h, out var v) ? v : new Vector2Int(h.level, h.xp);
+
+            string progresso = h.isDead
+                ? "sem XP (morreu)"
+                : antes.x != h.level
+                    ? $"SUBIU Nv.{antes.x} → Nv.{h.level} ({h.xp}/{h.XpMetaAtual} XP)"
+                    : $"Nv.{h.level} | XP {antes.y} → {h.xp}/{h.XpMetaAtual}";
+
             Line($"  {h.heroName}: HP {h.currentHp}/{h.maxHp} | estresse {Mathf.RoundToInt(h.stress)} " +
                  $"| {(h.isDead ? "MORTO" : h.isOnDeathsDoor ? "beira da morte" : "vivo")} " +
-                 $"| {MentalStateUtil.GetLabel(h.mentalState)}");
+                 $"| {MentalStateUtil.GetLabel(h.mentalState)} | {progresso}");
         }
 
         if (GuildManager.Instance != null)
@@ -1318,6 +1495,47 @@ public class PlayModeProbe : MonoBehaviour
     /// </summary>
     bool ClickPopupButton()
     {
+        // A saída da jornada deixou de ser o popup de texto e passou a ser a tela
+        // de balanço. Sem tratá-la aqui, o laço da jornada girava até o limite de
+        // segurança: a jornada já tinha terminado, mas nada na tela respondia ao
+        // que o laço sabia clicar.
+        var balanco = JourneyResultUI.Instance;
+        if (balanco != null && balanco.panel != null && balanco.panel.activeInHierarchy)
+        {
+            bool travado = balanco.continueButton != null && !balanco.continueButton.interactable;
+
+            // O botão de voltar só destrava depois do despojo escolhido.
+            if (travado && balanco.rewardContainer != null && balanco.rewardContainer.childCount > 0)
+            {
+                Button opcao = balanco.rewardContainer.GetChild(0).GetComponent<Button>();
+                if (opcao != null)
+                {
+                    opcao.onClick.Invoke();
+                    return true;
+                }
+            }
+
+            if (balanco.continueButton != null && balanco.continueButton.interactable)
+            {
+                if (!balancoVistoNaJornada)
+                {
+                    balancoVistoNaJornada = true;
+                    string titulo = balanco.titleText != null ? StripTags(balanco.titleText.text) : "(sem título)";
+                    Line($"jornada encerrada pela tela de balanço: '{titulo}'");
+                }
+
+                balanco.continueButton.onClick.Invoke();
+                return true;
+            }
+
+            // Tela aberta e sem saída utilizável: isso, sim, prenderia o jogador.
+            if (!balancoSemSaidaReportado)
+            {
+                balancoSemSaidaReportado = true;
+                Line("BUG: tela de balanço aberta sem botão de continuar utilizável — o jogador ficaria preso.");
+            }
+        }
+
         var ui = UIManager.Instance;
         if (ui == null) return false;
 
@@ -1343,15 +1561,70 @@ public class PlayModeProbe : MonoBehaviour
 
     void DumpStuckState(JourneyManager jm)
     {
-        int botoes = 0;
+        int botoes = 0, interativos = 0;
         if (jm.choiceContainer != null)
-            foreach (Transform c in jm.choiceContainer) botoes++;
+            foreach (Transform c in jm.choiceContainer)
+            {
+                botoes++;
+                var b = c.GetComponent<Button>();
+                if (b != null && b.interactable && c.gameObject.activeInHierarchy) interativos++;
+            }
 
-        Line($"         botões no choiceContainer: {botoes}");
+        Line($"         botões no choiceContainer: {botoes} (interativos: {interativos})");
+
+        // A máquina de estados da jornada é privada, mas é ela que diz de quem o
+        // fluxo está esperando — sem isto o travamento fica sem causa.
+        Line("         estado da jornada: "
+           + $"esperandoEscolha={PrivField<bool>(jm, "isWaitingForChoice")}"
+           + $" | escolhendoRota={PrivField<bool>(jm, "isChoosingRoute")}"
+           + $" | jornadaEncerrada={PrivField<bool>(jm, "journeyEnded")}"
+           + $" | dia={PrivField<int>(jm, "currentDay")}/{PrivField<int>(jm, "totalDays")}");
+
+        var ev = PrivField<EventData>(jm, "currentEvent");
+        Line($"         evento atual: {(ev != null ? ev.eventTitle : "(nenhum)")}"
+           + $" | tipo={(ev != null ? ev.eventType.ToString() : "-")}"
+           + $" | chefe={(ev != null && ev.isBossEvent)}");
+
+        var mapa = PrivField<JourneyMap>(jm, "journeyMap");
+        if (mapa != null)
+        {
+            var escolhas = mapa.GetChoices();
+            Line($"         mapa: nóAtual={(mapa.Current != null ? mapa.Current.id.ToString() : "-")}"
+               + $" camada={mapa.CurrentLayer}/{mapa.LayerCount}"
+               + $" | noFim={mapa.IsAtEnd} | rotas disponíveis={escolhas.Count}");
+        }
+
+        var mapUI = JourneyMapUI.Instance;
+        if (mapUI != null && mapUI.nodeContainer != null)
+        {
+            int nos = 0, nosClicaveis = 0;
+            foreach (Transform c in mapUI.nodeContainer)
+            {
+                if (!c.name.StartsWith("Node_")) continue;
+                nos++;
+                var b = c.GetComponent<Button>();
+                if (b != null && b.interactable && c.gameObject.activeInHierarchy) nosClicaveis++;
+            }
+            Line($"         nós desenhados no mapa: {nos} (clicáveis: {nosClicaveis})");
+        }
+
+        if (jm.endTurnButton != null)
+            Line($"         endTurnButton: interativo={jm.endTurnButton.interactable}");
+
+        Line($"         combate aberto: {IsCombatOpen()}");
 
         var ui = UIManager.Instance;
         if (ui != null && ui.resultPopup != null)
             Line($"         resultPopup activeSelf={ui.resultPopup.activeSelf} inHierarchy={ui.resultPopup.activeInHierarchy}");
+    }
+
+    /// <summary>Lê um campo privado — a jornada guarda seu estado fora do alcance público.</summary>
+    static T PrivField<T>(object alvo, string nome)
+    {
+        FieldInfo f = alvo.GetType().GetField(nome, BindingFlags.NonPublic | BindingFlags.Instance);
+        if (f == null) return default(T);
+        object v = f.GetValue(alvo);
+        return v is T ? (T)v : default(T);
     }
 
     /// <summary>
@@ -1497,12 +1770,60 @@ public class PlayModeProbe : MonoBehaviour
         return ok;
     }
 
+    /// <summary>
+    /// Igual à anterior, mas olha também objetos inativos.
+    ///
+    /// Alguns managers moram em painéis que nascem desligados: o <c>Awake</c>
+    /// nunca rodou e o singleton está nulo mesmo com o componente na cena. O
+    /// relatório vinha acusando "AUSENTE TavernManager" enquanto a taverna
+    /// abria, contratava e renovava candidatos duas seções abaixo — e um alarme
+    /// falso ensina a ignorar o alarme.
+    ///
+    /// O retorno continua sendo "o singleton está utilizável agora", que é o que
+    /// decide se o resto do teste pode rodar; a distinção fica no texto.
+    /// </summary>
+    bool ReportSingleton<T>(string name, UnityEngine.Object instance) where T : MonoBehaviour
+    {
+        if (instance != null)
+        {
+            Line($"ok   {name}");
+            return true;
+        }
+
+        T naCena = Resources.FindObjectsOfTypeAll<T>()
+            .FirstOrDefault(c => c != null && c.gameObject.scene.rootCount > 0);
+
+        Line(naCena != null
+            ? $"ok   {name} (na cena, em painel inativo — singleton nulo até abrir)"
+            : $"AUSENTE {name}");
+
+        return false;
+    }
+
+    /// <summary>
+    /// Campos que podem ficar vazios de propósito. Sem esta lista o relatório
+    /// acusava como falha o que é decisão de design, e uma linha que sempre
+    /// aparece deixa de ser lida — inclusive quando passa a apontar algo real.
+    /// </summary>
+    static readonly HashSet<string> ReferenciasOpcionais = new HashSet<string>
+    {
+        // Sem prefab, a aresta e o item de lista são desenhados em runtime.
+        "JourneyMapUI.edgePrefab",
+        "MapRoomManager.revealedEventPrefab",
+
+        // Depende de arte de bioma que ainda não existe; QuestData.biomeIcon
+        // também é nulo, então ligar o Image não mudaria nada na tela.
+        "JourneyManager.biomeIcon",
+    };
+
     /// <summary>Lista campos públicos de referência que ficaram nulos no Inspector.</summary>
     void AuditInspector(MonoBehaviour target)
     {
         if (target == null) return;
 
+        string tipo = target.GetType().Name;
         var missing = new List<string>();
+        var opcionais = new List<string>();
         FieldInfo[] fields = target.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
 
         foreach (var f in fields)
@@ -1510,14 +1831,22 @@ public class PlayModeProbe : MonoBehaviour
             if (!typeof(UnityEngine.Object).IsAssignableFrom(f.FieldType)) continue;
 
             var value = f.GetValue(target) as UnityEngine.Object;
-            if (value == null)
+            if (value != null) continue;
+
+            if (ReferenciasOpcionais.Contains($"{tipo}.{f.Name}"))
+                opcionais.Add(f.Name);
+            else
                 missing.Add(f.Name);
         }
 
+        string cauda = opcionais.Count > 0
+            ? $" (opcionais vazios: {string.Join(", ", opcionais)})"
+            : "";
+
         if (missing.Count == 0)
-            Line($"ok   {target.GetType().Name}: todas as referências ligadas");
+            Line($"ok   {tipo}: todas as referências ligadas{cauda}");
         else
-            Line($"     {target.GetType().Name}: {missing.Count} nulas → {string.Join(", ", missing)}");
+            Line($"     {tipo}: {missing.Count} nulas → {string.Join(", ", missing)}{cauda}");
     }
 
     #endregion

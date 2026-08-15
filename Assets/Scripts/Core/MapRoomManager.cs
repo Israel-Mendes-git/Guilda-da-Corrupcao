@@ -201,14 +201,42 @@ public class MapRoomManager : MonoBehaviour
         if (emptyStateText != null)
             emptyStateText.gameObject.SetActive(known.Count == 0);
 
-        if (known.Count == 0 || revealedEventPrefab == null) return;
+        if (known.Count == 0) return;
 
         foreach (string title in known)
+            CriarItemRevelado(title);
+    }
+
+    /// <summary>
+    /// Uma linha da lista de eventos revelados.
+    ///
+    /// O prefab é opcional de propósito: sem ele, a sala simplesmente não
+    /// mostrava nada — o jogador pagava pelos batedores e voltava para uma lista
+    /// vazia, sem erro no console. Um rótulo criado na hora é feio, mas honesto.
+    /// </summary>
+    void CriarItemRevelado(string title)
+    {
+        if (revealedEventPrefab != null)
         {
             GameObject item = Instantiate(revealedEventPrefab, revealedEventsContainer);
             TMP_Text label = item.GetComponentInChildren<TMP_Text>(true);
             if (label != null) label.text = title;
+            return;
         }
+
+        var go = new GameObject("EventoRevelado", typeof(RectTransform));
+        go.transform.SetParent(revealedEventsContainer, false);
+
+        var texto = go.AddComponent<TextMeshProUGUI>();
+        texto.text = $"🔮 {title}";
+        texto.fontSize = 18;
+        texto.color = new Color(0.86f, 0.82f, 0.72f);
+        texto.alignment = TextAlignmentOptions.Left;
+
+        // Sem altura mínima o item colapsa dentro de um VerticalLayoutGroup.
+        var layout = go.AddComponent<LayoutElement>();
+        layout.minHeight = 26;
+        layout.preferredHeight = 26;
     }
 
     #endregion

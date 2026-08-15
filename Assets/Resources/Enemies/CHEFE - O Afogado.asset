@@ -11,9 +11,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
   m_Name: CHEFE - O Afogado
-  m_EditorClassIdentifier:
-  enemyName: 'O Afogado'
-  description: 'A água escorre dele sem parar, e não há água por perto.'
+  m_EditorClassIdentifier: 
+  enemyName: O Afogado
+  description: "A \xE1gua escorre dele sem parar, e n\xE3o h\xE1 \xE1gua por perto."
   portrait: {fileID: 0}
   biome: 3
   isBoss: 1
@@ -25,4 +25,4 @@ MonoBehaviour:
   defendWeight: 10
   stressWeight: 35
   attackAllWeight: 15
-  goldReward: 145
+  goldReward: 290

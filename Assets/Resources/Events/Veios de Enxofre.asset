@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Veios de Enxofre
-  m_EditorClassIdentifier:
-  eventTitle: '🌋 Veios de Enxofre'
-  description: 'O chão queima através das botas e o ar arde nos pulmões. Entre as fissuras, cristais amarelos valem uma fortuna em qualquer cidade.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F30B Veios de Enxofre"
+  description: "O ch\xE3o queima atrav\xE9s das botas e o ar arde nos pulm\xF5es.
+    Entre as fissuras, cristais amarelos valem uma fortuna em qualquer cidade."
   eventImage: {fileID: 0}
   biome: 6
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '⛏️ Extrair os cristais das fissuras'
+  - optionText: "\u26CF\uFE0F Extrair os cristais das fissuras"
     consequences:
       goldChange: 140
       reputationChange: 0
@@ -31,7 +32,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🏃 Atravessar rápido e sem parar'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F3C3 Atravessar r\xE1pido e sem parar"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -43,7 +51,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🧭 Esperar a noite esfriar a rocha'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F9ED Esperar a noite esfriar a rocha"
     consequences:
       goldChange: 60
       reputationChange: 0
@@ -51,5 +66,29 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 1
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u26CF\uFE0F Abrir a rocha e colher o veio inteiro"
+    consequences:
+      goldChange: 110
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 1
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 2
   isBossEvent: 0

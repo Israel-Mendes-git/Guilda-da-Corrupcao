@@ -69,6 +69,30 @@ public class JourneyManager : MonoBehaviour
     // sozinho enchia a barra de estresse e levava 26% dos heróis à aflição.
     public float darknessStress = 5f;
 
+    [Header("Experiência")]
+    [Tooltip("XP por concluir a missão, antes dos ajustes.")]
+    public int xpBaseDaJornada = 60;
+
+    [Tooltip("XP somado por trecho percorrido.")]
+    public int xpPorDia = 8;
+
+    [Tooltip("Quanto a corrupção da região soma ao XP, no máximo (0,5 = +50% em corrupção 100).")]
+    public float xpBonusMaximoDeCorrupcao = 0.5f;
+
+    [Tooltip("Fração do XP recebida quando a jornada fracassa.")]
+    [Range(0f, 1f)] public float xpDoFracasso = 0.4f;
+
+    [Tooltip("Fração do XP recebida pelos heróis além dos quatro primeiros da formação.")]
+    [Range(0f, 1f)] public float xpDosHeroisExtras = 0.5f;
+
+    [Header("Retorno")]
+    [Tooltip("Estresse aliviado por jornada nos heróis que ficaram na guilda.")]
+    public float descansoNaGuilda = 20f;
+
+    /// <summary>Tamanho de grupo em que o XP começa a render menos — o mesmo
+    /// limite a partir do qual a party passa a comer uma ração a mais por dia.</summary>
+    private const int PartySemPenalidade = 4;
+
     private QuestData currentQuest;
     private List<HeroData> currentParty;
     private JourneyMap journeyMap;
@@ -91,8 +115,17 @@ public class JourneyManager : MonoBehaviour
     private float currentMitigation = 0f;
     private const float MaxMitigation = 0.75f;
 
+    /// <summary>
+    /// Efeitos de carta jogados neste trecho. É o que destrava as opções com
+    /// requisito — a ponte entre o baralho e a decisão.
+    /// </summary>
+    private readonly HashSet<JourneyEffectType> playedThisEvent = new HashSet<JourneyEffectType>();
+
     // Baixas desta jornada, para o relatório final.
     private List<HeroData> journeyCasualties = new List<HeroData>();
+
+    // Ouro tirado dos inimigos, separado do pagamento do contrato.
+    private int combatGold = 0;
 
     // Um descanso por evento, para o botão não virar fonte infinita de energia.
     private bool hasRestedThisEvent = false;
@@ -180,6 +213,7 @@ public class JourneyManager : MonoBehaviour
         totalDays = quest.GetActualDuration();
         currentEnergy = maxEnergy;
         journeyCasualties.Clear();
+        combatGold = 0;
         currentMitigation = 0f;
         journeyEnded = false;
         isChoosingRoute = false;
@@ -340,6 +374,7 @@ public class JourneyManager : MonoBehaviour
         isWaitingForChoice = true;
         currentMitigation = 0f;
         hasRestedThisEvent = false;
+        playedThisEvent.Clear();
 
         if (dayText != null)
             dayText.text = $"Dia {currentDay} / {(journeyMap != null ? journeyMap.LayerCount : totalDays)}";
@@ -393,7 +428,35 @@ public class JourneyManager : MonoBehaviour
         foreach (var outcome in outcomes)
         {
             EventOutcome captured = outcome; // evita capturar a variável do laço
-            CreateChoiceButton(outcome.optionText, () => ChooseOutcome(captured));
+
+            if (!captured.RequiresCard)
+            {
+                CreateChoiceButton(captured.optionText, () => ChooseOutcome(captured));
+                continue;
+            }
+
+            bool destravada = playedThisEvent.Contains(captured.requiredEffect);
+            string requisito = JourneyEffectUtil.GetLabel(captured.requiredEffect);
+
+            if (destravada)
+            {
+                string rotulo = $"<color=#D9B85A>✦</color> {captured.optionText}";
+                if (!string.IsNullOrEmpty(captured.empoweredText))
+                    rotulo += $"\n<size=80%><color=#D9B85A>{captured.empoweredText}</color></size>";
+
+                CreateChoiceButton(rotulo, () => ChooseOutcome(captured));
+            }
+            else
+            {
+                // A opção travada não some: o jogador precisa ver o que perdeu
+                // por não ter trazido a carta certa. É o que faz a preparação
+                // pesar na próxima jornada.
+                string rotulo = $"<color=#7A756B>🔒 {captured.optionText}\n"
+                              + $"<size=80%>Precisa de uma carta capaz de {requisito}</size></color>";
+
+                CreateChoiceButton(rotulo, () => UIManager.Instance?.ShowMessage(
+                    $"Sem uma carta capaz de {requisito}, esse caminho está fechado.", 2.5f), false);
+            }
         }
 
         // O layout só redistribui a altura no frame seguinte; sem forçar agora,
@@ -404,7 +467,11 @@ public class JourneyManager : MonoBehaviour
             LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
     }
 
-    void CreateChoiceButton(string label, UnityEngine.Events.UnityAction action)
+    /// <param name="habilitada">
+    /// Opções travadas continuam clicáveis de propósito: o clique explica o que
+    /// falta, em vez de o botão ficar cinza e mudo.
+    /// </param>
+    void CreateChoiceButton(string label, UnityEngine.Events.UnityAction action, bool habilitada = true)
     {
         GameObject btnObj = Instantiate(choiceButtonPrefab, choiceContainer);
 
@@ -417,6 +484,14 @@ public class JourneyManager : MonoBehaviour
         {
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(action);
+
+            if (!habilitada)
+            {
+                var cores = btn.colors;
+                cores.normalColor = new Color(0.16f, 0.15f, 0.14f);
+                cores.highlightedColor = new Color(0.20f, 0.19f, 0.17f);
+                btn.colors = cores;
+            }
         }
     }
 
@@ -455,6 +530,11 @@ public class JourneyManager : MonoBehaviour
 
     void OnCombatFinished(bool victory)
     {
+        // Espólio das lutas, para o balanço final poder discriminá-lo do
+        // pagamento do contrato.
+        if (victory && CombatManager.Instance != null)
+            combatGold += CombatManager.Instance.LastCombatReward;
+
         // Quem morreu no combate entra no relatório da jornada.
         foreach (var hero in currentParty)
         {
@@ -488,9 +568,21 @@ public class JourneyManager : MonoBehaviour
     void ChooseOutcome(EventOutcome outcome)
     {
         if (!isWaitingForChoice) return;
+
+        // Guarda contra o botão travado: a opção com requisito só resolve se a
+        // carta tiver sido jogada.
+        if (outcome.RequiresCard && !playedThisEvent.Contains(outcome.requiredEffect))
+        {
+            UIManager.Instance?.ShowMessage(
+                $"Sem uma carta capaz de {JourneyEffectUtil.GetLabel(outcome.requiredEffect)}, "
+                + "esse caminho está fechado.", 2.5f);
+            return;
+        }
+
         isWaitingForChoice = false;
 
-        EventResolver.Resolution resolution = EventResolver.Resolve(outcome, currentParty, currentMitigation);
+        EventOutcome aplicado = ComDesfechoReforcado(outcome);
+        EventResolver.Resolution resolution = EventResolver.Resolve(aplicado, currentParty, currentMitigation);
 
         // Desvios de rota custam dias — e dias custam mantimentos.
         for (int i = 0; i < resolution.extraDays; i++)
@@ -520,6 +612,30 @@ public class JourneyManager : MonoBehaviour
         }
 
         StartCoroutine(DelayedNextEvent());
+    }
+
+    /// <summary>
+    /// Troca as consequências pelo desfecho reforçado quando a carta exigida foi
+    /// jogada. Devolve o próprio desfecho quando não há versão reforçada — a
+    /// carta então apenas destrava a opção, sem melhorá-la.
+    /// </summary>
+    EventOutcome ComDesfechoReforcado(EventOutcome outcome)
+    {
+        if (outcome == null || !outcome.RequiresCard) return outcome;
+        if (outcome.empoweredConsequences == null) return outcome;
+        if (!playedThisEvent.Contains(outcome.requiredEffect)) return outcome;
+
+        // Cópia rasa: o asset do evento não pode ser alterado em runtime, ou a
+        // mudança gruda no ScriptableObject e vaza para a próxima jornada.
+        return new EventOutcome
+        {
+            optionText = outcome.optionText,
+            consequences = outcome.empoweredConsequences,
+            extraDays = outcome.extraDays,
+            triggersCorruption = outcome.triggersCorruption,
+            requiredEffect = outcome.requiredEffect,
+            empoweredText = outcome.empoweredText
+        };
     }
 
     void ClearChoices()
@@ -732,6 +848,32 @@ public class JourneyManager : MonoBehaviour
                 UIManager.Instance?.ShowMessage($"Encontrou rações extras! +5 comida", 2f);
                 break;
 
+            case JourneyEffectType.Revive:
+            {
+                // Prioridade para quem está na Beira da Morte: é lá que a carta
+                // decide se alguém volta para casa. Sem ninguém à beira, socorre
+                // o mais ferido.
+                HeroData alvo = currentParty.FirstOrDefault(h => h.IsAlive && h.isOnDeathsDoor)
+                             ?? currentParty.Where(h => h.IsAlive)
+                                            .OrderBy(h => h.currentHp / (float)Mathf.Max(1, h.maxHp))
+                                            .FirstOrDefault();
+
+                if (alvo == null) break;
+
+                bool estavaNaBeira = alvo.isOnDeathsDoor;
+                int cura = Mathf.Max(1, Mathf.RoundToInt(alvo.maxHp * 0.5f));
+
+                alvo.isOnDeathsDoor = false;
+                alvo.currentHp = Mathf.Min(alvo.maxHp, alvo.currentHp + cura);
+                alvo.stress = Mathf.Max(0f, alvo.stress - 20f);
+
+                UIManager.Instance?.ShowMessage(
+                    estavaNaBeira
+                        ? $"{alvo.heroName} foi trazido de volta da beira da morte!"
+                        : $"{alvo.heroName} recupera o fôlego (+{cura} HP).", 2.5f);
+                break;
+            }
+
             default:
                 UIManager.Instance?.ShowMessage($"{card.cardName} usado com sucesso!", 2f);
                 break;
@@ -850,16 +992,34 @@ public class JourneyManager : MonoBehaviour
         ApplyCardEffectOnJourney(card);
         currentMitigation = Mathf.Min(MaxMitigation, currentMitigation + GetMitigationFor(card));
 
+        // O que foi jogado pode destravar uma opção do evento, então as escolhas
+        // são redesenhadas: é aqui que o baralho entra na decisão.
+        bool destravouAlgo = playedThisEvent.Add(card.journeyEffect);
+
         cardManager.PlayCard(card);
 
         UpdatePartyStatus();
         UpdateCardUI();
         UpdateResourceUI();
+
+        if (destravouAlgo && currentEvent != null)
+            BuildChoices(currentEvent);
     }
 
-    /// <summary>Quanto cada tipo de carta protege o grupo do desfecho do evento.</summary>
-    float GetMitigationFor(CardData card)
+    /// <summary>Teto de preparo acumulável antes de decidir.</summary>
+    public static float MaxMitigationValue => MaxMitigation;
+
+    /// <summary>
+    /// Quanto cada tipo de carta protege o grupo do desfecho do evento.
+    ///
+    /// Estático e público para o simulador de balanceamento chamar esta regra em
+    /// vez de manter uma cópia: foi exatamente esse tipo de duplicata que fez o
+    /// simulador de combate medir um jogo que não existia.
+    /// </summary>
+    public static float GetMitigationFor(CardData card)
     {
+        if (card == null) return 0f;
+
         switch (card.journeyEffect)
         {
             case JourneyEffectType.RemoveObstacle:
@@ -870,6 +1030,7 @@ public class JourneyManager : MonoBehaviour
             case JourneyEffectType.Purify:
             case JourneyEffectType.HealInjury:
             case JourneyEffectType.Teleport:
+            case JourneyEffectType.Revive:
                 return 0.20f;
 
             default:
@@ -918,11 +1079,17 @@ public class JourneyManager : MonoBehaviour
         UIManager.Instance?.ShowMessage("O grupo descansa: ⚡+2 e uma carta — ao custo de mantimentos.", 2.5f);
     }
 
-    /// <summary>Primeira opção do evento, ou uma saída neutra se ele não tiver nenhuma.</summary>
+    /// <summary>
+    /// Primeira opção SEM requisito de carta, ou uma saída neutra. A saída de
+    /// emergência não pode escolher um caminho que o jogador não destravou.
+    /// </summary>
     EventOutcome GetFallbackOutcome(EventData eventData)
     {
-        if (eventData != null && eventData.outcomes != null && eventData.outcomes.Length > 0)
-            return eventData.outcomes[0];
+        if (eventData != null && eventData.outcomes != null)
+        {
+            EventOutcome livre = eventData.outcomes.FirstOrDefault(o => o != null && !o.RequiresCard);
+            if (livre != null) return livre;
+        }
 
         return new EventOutcome { optionText = "Seguir em frente", consequences = new EventConsequences() };
     }
@@ -1063,13 +1230,17 @@ public class JourneyManager : MonoBehaviour
         isChoosingRoute = false;
 
         int survivors = currentParty.Count(h => !h.isDead);
-        int reward = success ? currentQuest.GetTotalReward(totalDays) : currentQuest.baseReward / 2;
-        reward += survivors * 25;
+        int contrato = success ? currentQuest.GetTotalReward(totalDays) : currentQuest.baseReward / 2;
+        int porSobreviventes = survivors * 25;
+
+        int reward = contrato + porSobreviventes;
+        int bonusBiblioteca = 0;
 
         // Aplica bônus de ouro da biblioteca
         if (goldBonus > 0)
         {
             int bonusReward = Mathf.RoundToInt(reward * goldBonus);
+            bonusBiblioteca = bonusReward;
             reward += bonusReward;
             UIManager.Instance?.ShowMessage($"Bônus da Biblioteca: +{bonusReward} ouro!", 2f);
         }
@@ -1077,24 +1248,107 @@ public class JourneyManager : MonoBehaviour
         GuildManager.Instance.AddGold(reward);
         GuildManager.Instance.AddReputation(success ? 10 : -5);
 
-        foreach (var hero in currentParty)
+        int xpDaJornada = CalcularXpDaJornada(success);
+        var promovidos = new List<string>();
+
+        // O balanço é montado aqui porque é o último instante em que a party
+        // ainda existe inteira: logo abaixo os mortos saem do roster.
+        var report = new JourneyReport
         {
+            success = success,
+            questName = currentQuest != null ? currentQuest.questName : "Jornada",
+            daysTraveled = currentDay,
+            sobreviventes = survivors,
+            mortos = currentParty.Count(h => h.isDead),
+            recompensaBase = contrato,
+            recompensaSobreviventes = porSobreviventes,
+            recompensaCombates = combatGold,
+            recompensaBonus = bonusBiblioteca,
+            recompensaTotal = reward + combatGold,
+            reputacao = success ? 10 : -5
+        };
+
+        for (int i = 0; i < currentParty.Count; i++)
+        {
+            HeroData hero = currentParty[i];
+
+            var linha = new JourneyReport.HeroLine
+            {
+                nome = hero.heroName,
+                maxHp = hero.maxHp,
+                nivelAntes = hero.level,
+                morreu = hero.isDead
+            };
+
             if (hero.isDead)
             {
+                linha.nivelDepois = hero.level;
+                linha.estadoMental = MentalStateUtil.GetLabel(hero.mentalState);
+                report.herois.Add(linha);
+
                 GuildManager.Instance.RegisterDeath(hero);
                 continue;
             }
 
-            // O retorno alivia o corpo, mas não apaga o que a jornada deixou na cabeça.
+            // O retorno alivia o corpo, mas não apaga o que a jornada deixou na
+            // cabeça. Quem voltou melhor que 60% não é rebaixado a 60%: o descanso
+            // é piso de recuperação, não teto.
             hero.isOnDeathsDoor = false;
-            hero.currentHp = Mathf.Max(1, Mathf.RoundToInt(hero.maxHp * 0.6f));
+            hero.currentHp = Mathf.Clamp(
+                Mathf.Max(hero.currentHp, Mathf.RoundToInt(hero.maxHp * 0.6f)),
+                1, hero.maxHp);
             hero.stress = Mathf.Max(0f, hero.stress - 15f);
             hero.morale = Mathf.Min(hero.morale + (success ? 20f : 5f), 100f);
 
-            // Ferimentos leves saram sozinhos; os demais exigem cuidado posterior.
-            if (hero.isInjured && (hero.trait == Trait.FastHealer || Random.value < 0.4f))
+            // Ferimento não sara mais por sorteio. Quem tem Recuperação Rápida se
+            // vira sozinho; o resto volta ferido e precisa de bandagem no Mercado.
+            // Antes, 40% de chance apagava o ferimento no caminho de volta — o
+            // machucado sumia sem que ninguém cuidasse dele, e a Forja e o
+            // Mercado ficavam sem razão de existir entre uma jornada e outra.
+            if (hero.isInjured && hero.trait == Trait.FastHealer)
                 hero.isInjured = false;
+
+            // Luto: quem viu companheiro cair volta pior do que os números de
+            // combate sozinhos explicariam.
+            if (journeyCasualties.Count > 0)
+            {
+                hero.morale = Mathf.Max(0f, hero.morale - journeyCasualties.Count * 8f);
+                EventResolver.AddStress(hero, journeyCasualties.Count * 6f,
+                                        new EventResolver.Resolution());
+            }
+
+            // A ordem da party é a formação: os quatro primeiros são a expedição
+            // de fato, e quem vai além disso divide a experiência com a multidão.
+            int xpDoHeroi = i < PartySemPenalidade
+                ? xpDaJornada
+                : Mathf.RoundToInt(xpDaJornada * xpDosHeroisExtras);
+
+            int niveis = hero.AddXp(xpDoHeroi);
+            if (niveis > 0)
+                promovidos.Add($"{hero.heroName} → Nv.{hero.level}");
+
+            linha.hp = hero.currentHp;
+            linha.maxHp = hero.maxHp;
+            linha.estresse = Mathf.RoundToInt(hero.stress);
+            linha.ferido = hero.isInjured;
+            linha.nivelDepois = hero.level;
+            linha.xpGanho = xpDoHeroi;
+            linha.xpAtual = hero.xp;
+            linha.xpMeta = hero.XpMetaAtual;
+            linha.xpProgresso = hero.XpProgress;
+            linha.estadoMental = MentalStateUtil.GetLabel(hero.mentalState);
+            linha.aflicao = MentalStateUtil.IsAffliction(hero.mentalState);
+            linha.virtude = MentalStateUtil.IsVirtue(hero.mentalState);
+
+            report.herois.Add(linha);
         }
+
+        // Quem ficou na guilda descansou enquanto os outros apanhavam.
+        //
+        // Sem isto, o esgotamento seria um beco sem saída: o herói acima do
+        // limite não pode partir, e só partir aliviava o estresse. A guilda
+        // trabalhando é o que faz o tempo passar para quem está em casa.
+        DescansarQuemFicou();
 
         // A missão sai do quadro e o quadro se repõe.
         if (QuestManager.Instance != null)
@@ -1125,17 +1379,156 @@ public class JourneyManager : MonoBehaviour
                 resultMessage += $"\n• {hero.heroName} — {MentalStateUtil.GetLabel(hero.mentalState)}";
         }
 
-        UIManager.Instance?.ShowResult(
-            success ? "🏆 Vitória!" : "💀 Derrota",
-            resultMessage,
-            () => {
-                journeyPanel.SetActive(false);
-                UIManager.Instance?.ShowGuildScreen();
-            }
-        );
+        if (promovidos.Count > 0)
+        {
+            resultMessage += "\n\n📈 <color=#60A060>Subiram de nível:</color>";
+            foreach (var promocao in promovidos)
+                resultMessage += $"\n• {promocao}";
+        }
+
+        if (success)
+            MontarRecompensas(report, reward);
+
+        System.Action voltarParaGuilda = () =>
+        {
+            if (journeyPanel != null) journeyPanel.SetActive(false);
+            UIManager.Instance?.ShowGuildScreen();
+        };
+
+        // A tela de balanço é a saída preferida; o popup de texto continua como
+        // rede de segurança para cenas montadas antes dela existir.
+        if (JourneyResultUI.Instance != null)
+            JourneyResultUI.Instance.Mostrar(report, voltarParaGuilda);
+        else
+            UIManager.Instance?.ShowResult(
+                success ? "🏆 Vitória!" : "💀 Derrota",
+                resultMessage,
+                voltarParaGuilda);
 
         OnJourneyComplete?.Invoke(success, reward);
        // LibraryManager.Instance?.ClearAllKnowledges();
+    }
+
+    /// <summary>
+    /// O despojo que o jogador escolhe ao voltar.
+    ///
+    /// Cada opção conversa com um sistema que já existe e cobra caro em outro
+    /// lugar: ouro é o que compra tudo; o descanso é o que o vinho do Mercado
+    /// vende a 55 por herói; o tratamento é a bandagem a 90. Escolher uma é
+    /// dizer qual dívida da jornada dói mais — e é isso que faz a decisão pesar.
+    /// </summary>
+    void MontarRecompensas(JourneyReport report, int ouroDaMissao)
+    {
+        var sobreviventes = currentParty.Where(h => h.IsAlive).ToList();
+        if (sobreviventes.Count == 0) return;
+
+        // 1. Bolso cheio: sempre disponível, é a régua contra a qual as outras
+        //    opções são medidas.
+        int extra = Mathf.Max(40, Mathf.RoundToInt(ouroDaMissao * 0.35f));
+        report.recompensas.Add(new JourneyReport.Reward
+        {
+            titulo = $"💰 Espólio extra (+{extra})",
+            descricao = "Vender o que deu para carregar.",
+            confirmacao = $"A guilda leva mais {extra} de ouro.",
+            aplicar = () => GuildManager.Instance?.AddGold(extra)
+        });
+
+        // 2. Descanso: vale mais quanto pior o grupo voltou.
+        int estressados = sobreviventes.Count(h => h.stress >= 40f);
+        if (estressados > 0)
+        {
+            const float alivio = 30f;
+            report.recompensas.Add(new JourneyReport.Reward
+            {
+                titulo = $"🍷 Noite na taverna (−{Mathf.RoundToInt(alivio)} de estresse)",
+                descricao = estressados == 1
+                    ? "Um herói bebe até esquecer."
+                    : $"Alivia {estressados} heróis abalados.",
+                confirmacao = "A bebida corre solta — e a estrada fica para amanhã.",
+                aplicar = () =>
+                {
+                    foreach (var h in sobreviventes)
+                        h.stress = Mathf.Max(0f, h.stress - alivio);
+                }
+            });
+        }
+
+        // 3. Tratamento: só aparece se alguém precisa, e é a única coisa que
+        //    apaga um ferimento de graça agora que ele não sara sozinho.
+        var feridos = sobreviventes.Where(h => h.isInjured).ToList();
+        if (feridos.Count > 0)
+        {
+            report.recompensas.Add(new JourneyReport.Reward
+            {
+                titulo = $"⚕️ Cuidados do curandeiro ({feridos.Count} ferido(s))",
+                descricao = "Trata os ferimentos que voltaram da estrada.",
+                confirmacao = "Os ferimentos foram tratados.",
+                aplicar = () =>
+                {
+                    foreach (var h in feridos)
+                    {
+                        h.isInjured = false;
+                        h.currentHp = Mathf.Min(h.maxHp, h.currentHp + Mathf.RoundToInt(h.maxHp * 0.25f));
+                    }
+                }
+            });
+        }
+
+        // 4. Reputação: o caminho lento, para quem pensa na guilda e não na bolsa.
+        report.recompensas.Add(new JourneyReport.Reward
+        {
+            titulo = "⭐ Contar a história (+15 de reputação)",
+            descricao = "O feito corre as tavernas do reino.",
+            confirmacao = "A fama da guilda cresce.",
+            aplicar = () => GuildManager.Instance?.AddReputation(15)
+        });
+    }
+
+    /// <summary>
+    /// Alívio para os heróis do roster que não foram nesta jornada.
+    ///
+    /// Descansar em casa cura menos que o cuidado pago do Mercado ou a vigília
+    /// do Cemitério — a diferença é que é de graça e sempre acontece. É a
+    /// válvula que impede a guilda de travar com todo mundo esgotado.
+    /// </summary>
+    void DescansarQuemFicou()
+    {
+        if (GuildManager.Instance == null) return;
+
+        foreach (var hero in GuildManager.Instance.roster)
+        {
+            if (hero == null || hero.isDead) continue;
+            if (currentParty != null && currentParty.Contains(hero)) continue;
+
+            hero.stress = Mathf.Max(0f, hero.stress - descansoNaGuilda);
+            hero.morale = Mathf.Min(100f, hero.morale + 5f);
+
+            // Ferimento tratado com tempo, não com sorte: só cicatriza quem
+            // passou uma jornada inteira fora da estrada.
+            if (hero.isInjured && hero.stress < 40f && Random.value < 0.5f)
+                hero.isInjured = false;
+        }
+    }
+
+    /// <summary>
+    /// Experiência que a jornada rende a cada sobrevivente da linha de frente.
+    ///
+    /// Paga pelo que foi enfrentado, não pelo relógio: cada trecho percorrido
+    /// conta, e a corrupção da região multiplica o total — é ela que separa uma
+    /// caminhada tranquila de uma expedição ao coração da praga. Fracassar ainda
+    /// ensina alguma coisa, só que pouco.
+    /// </summary>
+    int CalcularXpDaJornada(bool success)
+    {
+        float total = xpBaseDaJornada + currentDay * xpPorDia;
+
+        int corrupcao = currentQuest != null ? currentQuest.corruptionLevel : 0;
+        total *= 1f + (Mathf.Clamp01(corrupcao / 100f) * xpBonusMaximoDeCorrupcao);
+
+        if (!success)
+            total *= xpDoFracasso;
+
+        return Mathf.Max(1, Mathf.RoundToInt(total));
     }
 
     void ConfirmAbortJourney()

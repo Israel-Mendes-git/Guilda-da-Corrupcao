@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Mina Abandonada
-  m_EditorClassIdentifier:
-  eventTitle: '⛏️ Mina Abandonada'
-  description: 'A entrada foi tapada por dentro. Quem fez isso queria manter alguma coisa lá no fundo, e o veio de prata brilha logo depois da barricada.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\u26CF\uFE0F Mina Abandonada"
+  description: "A entrada foi tapada por dentro. Quem fez isso queria manter alguma
+    coisa l\xE1 no fundo, e o veio de prata brilha logo depois da barricada."
   eventImage: {fileID: 0}
   biome: 2
   minCorruptionToAppear: 0
   minDay: 2
   outcomes:
-  - optionText: '💎 Abrir a barricada e extrair o veio'
+  - optionText: "\U0001F48E Abrir a barricada e extrair o veio"
     consequences:
       goldChange: 120
       reputationChange: 0
@@ -33,7 +34,14 @@ MonoBehaviour:
         moraleChange: -10
     extraDays: 1
     triggersCorruption: 1
-  - optionText: '🔦 Recolher só o que está à vista'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F526 Recolher s\xF3 o que est\xE1 \xE0 vista"
     consequences:
       goldChange: 45
       reputationChange: 0
@@ -41,7 +49,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🚶 Respeitar o aviso e seguir'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F6B6 Respeitar o aviso e seguir"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -51,5 +66,29 @@ MonoBehaviour:
         moraleChange: 5
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F526 Mapear os t\xFAneis antes de descer"
+    consequences:
+      goldChange: 70
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 5
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 2
   isBossEvent: 0
