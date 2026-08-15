@@ -1585,6 +1585,18 @@ public class JourneyManager : MonoBehaviour
         Image stressBar = card.transform.Find("StressBar/Fill")?.GetComponent<Image>();
         TMP_Text stateText = card.transform.Find("State")?.GetComponent<TMP_Text>();
 
+        // O rosto de quem está na estrada, atrás dos números e translúcido: o card
+        // é pequeno e a informação vem primeiro. Morto esmaece — a fileira é o
+        // elenco, e a baixa precisa saltar aos olhos sem depender de ler o texto.
+        Image retrato = card.transform.Find("Portrait")?.GetComponent<Image>();
+        if (retrato != null && hero.portrait != null)
+        {
+            retrato.sprite = hero.portrait;
+            retrato.color = hero.isDead
+                ? new Color(0.45f, 0.35f, 0.35f, 0.20f)
+                : new Color(1f, 1f, 1f, 0.34f);
+        }
+
         // A posição na formação acompanha o grupo pela jornada inteira: é a mesma
         // ordem que o combate vai usar, e o jogador precisa vê-la antes da luta.
         if (nameText != null)
