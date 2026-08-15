@@ -140,12 +140,30 @@ A run termina quando **[PLANEJADO]**:
 - A reputação chega a 0 (guilda dissolvida), **ou**
 - O medidor global de Corrupção atinge o máximo.
 
-### 4.4 Meta-progressão entre runs **[PLANEJADO]**
-Moeda persistente (ex.: "Relíquias" ou reputação acumulada) ganha conforme o desempenho da run, gasta entre runs para destravar:
-- Novas cartas no pool da Biblioteca.
-- Heróis iniciais/classes melhores (incl. **Ladino** e **Bardo**, hoje sem cartas).
-- Upgrades permanentes de guilda (locais já esboçados: Forja, Mercado, etc.).
-- Modificadores de início de run.
+### 4.4 Meta-progressão entre runs
+**Relíquias** são a moeda persistente: `ciclo × 3`, mais 25 por vencer a run. Sobrevivem à queda da
+guilda no perfil do jogador (`PlayerProfile`), fora dos slots de save.
+
+Gastam-se no **Santuário das Relíquias**, no menu de título, e o que for comprado vale para a
+**próxima guilda fundada** — não para a run em andamento:
+
+| Destrave | Efeito por nível | Níveis | Custo |
+|---|---|---|---|
+| Cofre da guilda | +120 de ouro inicial | 3 | 8 · 16 · 28 |
+| Renome antigo | +25 de reputação inicial | 2 | 10 · 20 |
+| Alojamentos | +1 vaga no roster | 2 | 12 · 24 |
+| Contatos na estrada | +1 missão no quadro | 1 | 20 |
+
+> **Decisão de design:** na Fase 3 as relíquias viravam ouro sozinhas (`relíquias × 5`, com teto).
+> Isso dava efeito à meta-progressão mas **nenhuma decisão** — e as duas coisas não podem coexistir,
+> porque um bônus automático que também é moeda pune o jogador por comprar qualquer coisa. Hoje o
+> bônus de ouro é um destrave entre outros.
+
+Cada destrave cai num ponto que já existia no jogo. É deliberado: um destrave que exigisse sistema
+novo seria design a fazer, não meta-progressão a ligar.
+
+**Ainda planejado:** novas cartas no pool da Biblioteca, e as classes **Ladino** e **Bardo** — as duas
+dependem de conteúdo que não existe (§14).
 
 ### 4.5 Condição de "vitória" de uma run **[PLANEJADO]**
 Derrotar o **Chefe Supremo** (`GenerateBossQuest`: duração 10–15 dias, corrupção 90, risco Alto, recompensa 300 + nível×30) encerra a run com vitória e bônus máximo de meta-progressão.
@@ -594,9 +612,9 @@ Dark fantasy ilustrado: paleta dessaturada com acentos de "corrupção" (roxo/ve
 | Classes Ladino/Bardo (cartas) | ❌ Sem cartas |
 | Estrutura de **run** + fim de jogo | ❌ Planejado (hoje é sandbox infinito) |
 | Corrupção global como relógio | ❌ Planejado |
-| Meta-progressão entre runs | ❌ Planejado |
+| Meta-progressão entre runs | ✅ Relíquias + Santuário (§4.4); cartas e classes ainda não |
 | Chefe Supremo plugado ao fluxo | ⚠️ `GenerateBossQuest` existe, não é chamado |
-| Persistência entre sessões | ⚠️ Só os decks (PlayerPrefs) |
+| Persistência entre sessões | ✅ Save em JSON, autosave + 3 slots, menu de título |
 | Arte e áudio | ❌ Placeholder / inexistente |
 
 ---

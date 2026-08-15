@@ -1,4 +1,4 @@
-# Handoff — Guilda da Corrupção: arte, áudio, UI e a Fase 3 (2026-08-15)
+# Handoff — Guilda da Corrupção: menus, save e Santuário (2026-08-15, sessão 2)
 
 ## Objetivo
 
@@ -7,177 +7,219 @@ guilda, mistura declarada de *Darkest Dungeon* com *Slay the Spire*.
 
 Projeto: `C:\Users\Israel\Documents\GitHub\Guilda-da-Corrupcao`.
 
-Plano completo em **[`ROADMAP.md`](ROADMAP.md)**, design em **[`GDD.md`](GDD.md)** (v1.1), inventário
-dos assets importados em **[`ASSETS.md`](ASSETS.md)**. Leia os três — este handoff só cobre o que
-eles não contam.
+Plano completo em **[`ROADMAP.md`](ROADMAP.md)**, design em **[`GDD.md`](GDD.md)**, inventário dos
+assets em **[`ASSETS.md`](ASSETS.md)**. Leia os três — este handoff só cobre o que eles não contam.
 
 ---
 
 ## Estado atual
 
-**Árvore limpa. 12 commits nesta sessão** (de `915ebe4` a `c7b2a76`), nenhum enviado a remoto.
+**Árvore limpa. 14 commits locais**, nenhum enviado a remoto (2 desta sessão: `d62326c` e `8bd844d`).
 
-**Validado agora:** `PLAY MODE OK — nenhum erro capturado` e `SMOKE TEST OK — 41 verificações,
-0 falhas`.
+**Validado agora:** `PLAY MODE OK — nenhum erro capturado`, **0 falhas**, incluindo a seção nova
+`SAVE E MENUS`. As seis capturas de menu foram conferidas a olho.
 
-### ✅ Fases 0, 1, 2, 2.5 e **3** concluídas e verificadas
+### ✅ Fases 0, 1, 2, 2.5, 3 e **3.5** concluídas
 
-A **Fase 3 (a run)** foi implementada e testada nesta sessão. O jogo deixou de ser sandbox infinito:
-tem relógio (Corrupção global), Chefe Supremo alcançável, três condições de derrota, tela de fim de
-run e meta-progressão. Detalhes e a régua medida estão no `ROADMAP.md`.
+A **Fase 3.5 (menus e save)** foi construída e testada nesta sessão. O jogo deixou de abrir direto na
+guilda: tem tela de título, pausa no ESC, opções de áudio e vídeo, save em arquivo (autosave + 3
+slots) e o Santuário das Relíquias. Detalhes, decisões e a régua medida estão no `ROADMAP.md`,
+seção **Fase 3.5**.
 
-### ✅ Arte, áudio e UI (Fase 5, parcial)
+### 🔄 Pendências desta sessão
 
-| Área | Estado |
+| O quê | Situação |
 |---|---|
-| Ícones das 17 cartas | ✅ todas preenchidas, aparecendo na tela |
-| Retratos de herói | ✅ 500 catalogados; aparecem na taverna e como fundo do card do grupo |
-| Barras HP/estresse/XP | ✅ vestidas com o kit Bloodlines |
-| Molduras de carta | ✅ frente com o kit; sleeve reservado ao verso |
-| Biomas | ✅ 5 dos 7 (falta Deserto e Vulcão — sem arte em nenhum pacote) |
-| Áudio | ✅ trilha por contexto + SFX; o jogo era **totalmente mudo** |
-| UI prefab a prefab | 🔄 **2 de 12** (`HeroPanel`, `PartyStatusPrefab`) |
+| **Smoke test não foi re-executado** | O autor interrompeu a chamada. Ele estava quebrando por um bug de áudio em edit mode que **já foi corrigido** (`GameAudio` mudo fora do Play Mode); falta só rodar `RunSmokeTest.trigger` e conferir as 41 verificações |
+| UI prefab a prefab | 🔄 **2 de 12** — inalterado desde a sessão anterior |
+| Clareza e ritmo | Continua pendente do pedido do autor (ver abaixo) |
 
-### 🔄 Não feito — pedido explícito do autor que ficou pendente
+### 🔄 Não feito — pedido explícito do autor que segue pendente
 
-O autor pediu cinco blocos; três foram entregues. **Faltam:**
+Da sessão anterior, dois dos cinco blocos continuam de pé:
 
 1. **Etapas da jornada** e **posições das coisas na jornada** — ajuste fino de layout.
 2. **Clareza: o jogador saber o que fazer** — destacar a ação principal, indicar o que está pronto.
-
-Ele marcou os quatro eixos de "fluxo" (clareza, ritmo, estrutura, feedback). **Estrutura** (Fase 3) e
-**feedback** (áudio) foram feitos; **clareza** e **ritmo** não.
+   O ponto mais visível segue lá: em `Assets/Screenshots/sala_taverna.png` há um botão genérico
+   escrito **"Button"** no topo da tela.
 
 ---
 
 ## Próximos passos
 
-1. **Clareza e ritmo** (o que o autor pediu e não foi feito). O ponto mais visível: na captura
-   `Assets/Screenshots/sala_taverna.png` há um botão genérico escrito **"Button"** no topo da tela —
-   sobrou de algum layout e não faz nada de óbvio.
-2. **Continuar a UI prefab a prefab.** Faltam 10. Por retorno visual: `CardPurchasePrefab`
-   (biblioteca), `QuestItemPrefab` (quadro de missões), `PartyMemberSelectPrefab` (preparação) —
-   as três aparecem a cada ciclo. **Receita que funciona** na seção "Pegadinhas".
-3. **Ajuste fino pendente no `HeroPanel`:** nome, classe e nível ficam sobrepostos ao retrato. É
-   reposicionamento dentro do prefab.
-4. **Fase 4** (`ROADMAP.md`): dar efeito a `corruptionExposure`, traços e personalidades — tudo já
-   acumula e ninguém lê.
+1. **Rodar o smoke test** e confirmar `41 verificações, 0 falhas`. É a única prova que faltou nesta
+   sessão.
+2. **Clareza e ritmo** (o que o autor pediu e nunca foi feito).
+3. **Continuar a UI prefab a prefab.** Faltam 10. Por retorno visual: `CardPurchasePrefab`,
+   `QuestItemPrefab`, `PartyMemberSelectPrefab`. Receita na seção "Pegadinhas" abaixo.
+4. **Ajuste fino no `HeroPanel`:** nome, classe e nível sobrepostos ao retrato.
+5. **Fase 4** (`ROADMAP.md`): dar efeito a `corruptionExposure`, traços e personalidades.
 
 ---
 
-## Decisões tomadas (e por quê)
+## Decisões tomadas nesta sessão (e por quê)
 
-- **Sleeves só no verso** (escolha do autor). A frente da carta usa o kit Bloodlines; os dois versos
-  do `Card_Shirts_Lite` são madeira e metal alaranjados, e puxariam a carta para longe da paleta
-  dessaturada. **Rejeitado:** usar Card_Shirts na frente.
-- **Retrato do herói sai do NOME, não de sorteio** — assim o mesmo herói mantém a cara entre
-  execuções, e o elenco vira reconhecível. É o efeito Darkest Dungeon.
-- **Catálogos guardam referências, não cópias** (`PortraitCatalog`, `BiomeArtCatalog`,
-  `AudioCatalog`). **Rejeitado:** copiar 500 retratos para `Resources` — duplicaria 10 MB e criaria
-  duas cópias para manter em sincronia.
-- **Meta-progressão em `PlayerPrefs`, não ESave.** O ESave está no projeto e **nunca foi confirmado**
-  pelo autor como o save oficial. `MetaProgression` é o único ponto a trocar quando for.
-- **"Sem heróis" sozinho não encerra a run** — enquanto houver ouro para recrutar, a guilda tem
-  saída. É o que torna o ouro uma reserva de vida.
-- **Barra de vida é sangue** — o código tingia o preenchimento de verde/amarelo/vermelho por faixa de
-  HP, o que pintava de verde um sprite que é vermelho. Agora só a Beira da Morte escurece.
-- **763 MB de binários entraram no histórico do git** (decisão do autor de commitar). Funciona, mas
-  não sai fácil depois — vale considerar Git LFS antes que cresça.
-- Mantidas: alvo de letalidade 0,33–0,67 mortes/jornada; KPI de combate é **mortes por combate**, não
-  taxa de vitória; energia 5 / mão 6; acrescentar valor de enum **só no fim**; `-batchmode` rejeitado.
+- **Save próprio em JSON, não ESave nem Bench.** Escolha do autor entre as três opções. Um arquivo
+  por slot em `Application.persistentDataPath/saves/`. Os dois pacotes continuam no disco,
+  importados e **não integrados** — a pendência de "confirmar o ESave" está encerrada.
+- **Autosave + 3 slots manuais.** O autosave é do jogo (o botão "Salvar" não escreve nele à mão);
+  os três são do jogador.
+- **`MainMenu.unity` como cena separada e cena 0 da build.** Sem isso a build continuaria abrindo na
+  guilda com o menu inalcançável.
+- **O perfil do jogador vive fora dos slots** (`PlayerProfile` → `profile.json`): relíquias,
+  destraves, recordes e opções. Apagar um save não apaga o que as runs custaram a conquistar.
+- **Não se salva no meio da estrada.** O estado interno da jornada não é serializado por ninguém e
+  reconstruí-lo seria um projeto à parte. O botão da pausa aparece desligado **com o motivo escrito**.
+- **As relíquias deixaram de virar ouro sozinhas** (era `relíquias × 5`, com teto) e agora são gastas
+  no Santuário. Um bônus automático que também é moeda pune quem compra qualquer coisa. O ouro extra
+  virou o destrave "Cofre da guilda".
+- **Os quatro destraves caem em pontos que já existiam** (ouro inicial, reputação inicial,
+  `maxRosterSize`, `questBoardSize`). Um destrave que exigisse sistema novo seria design a fazer.
+- **`Time.timeScale` não é tocado na pausa.** O jogo é de turnos por clique: nada avança sozinho, e
+  zerar a escala congelaria as corrotinas de transição — algumas responsáveis por avançar o fluxo.
+- **A cena de título escala com a tela** (`ScaleWithScreenSize`, 1920×1080); a cena do jogo continua
+  em pixels fixos, que é como ela sempre esteve.
+- **O menu usa a trilha do hub.** Acrescentar `MusicContext.Menu` exigiria remontar o catálogo de
+  áudio inteiro por um clipe que ainda não existe.
+- Mantidas: alvo de letalidade 0,33–0,67 mortes/jornada; KPI de combate é **mortes por combate**;
+  energia 5 / mão 6; acrescentar valor de enum **só no fim**; `-batchmode` rejeitado.
 
 ---
 
-## Pegadinhas / lições desta sessão
+## Pegadinhas / lições
 
-### O padrão que mais custou tempo: dado certo, exibição ausente
+### A que mais custou tempo nesta sessão: gatilho consumido antes de o Unity recompilar
 
-**Quatro vezes** nesta sessão o dado estava correto e não havia quem o mostrasse. Em todos os casos o
-`PlayModeReport` dizia "0 erros" — **só a captura de tela denunciou**:
+O watcher de gatilhos roda no `EditorApplication.update` e **pode consumir o arquivo antes de o Unity
+perceber que os scripts mudaram**. Duas consequências, as duas vividas hoje:
 
-1. As 17 cartas tinham `cardImage` preenchido e nada aparecia (faltava quem exibisse).
-2. A barra de estresse mostrava 100 para um herói com 0 — bug que existia **antes** desta sessão.
-3. `biomeIcon` tinha campo e nunca foi montado na cena.
-4. O `ApplyKit` existia e não pegava quase nada.
+1. O gatilho executa a **versão velha** do código, e o resultado parece um bug do que você acabou de
+   escrever. (O `Montar Cena` rodou duas vezes com código antigo e o painel de pausa não aparecia.)
+2. Pior: se o gatilho for o de Play Mode, o Unity recompila **já dentro do Play Mode**, faz domain
+   reload e **mata a corrotina do probe no meio**. Nenhum relatório é gravado, e o Editor pode ficar
+   preso num reload que não termina — sem recompilar, sem consumir gatilho, sem erro no console.
 
-**Sempre olhe `Assets/Screenshots/*.png` depois de rodar o Play Mode.** O relatório de texto não
-substitui isso.
+**A receita:** antes de criar qualquer gatilho, espere a `Library/ScriptAssemblies/Assembly-CSharp.dll`
+ficar **mais nova que o `.cs` mais recente**, e só então dispare — mantendo o foco na janela o tempo
+todo, dentro do mesmo comando. O script que faz isso está descrito em "Arquivos e comandos".
+
+O `PlayModeTriggerWatcher` agora **avisa quando um gatilho está esperando há mais de 10 segundos, e
+por quê** (`isCompiling`, `isUpdating`, `isPlaying`…). Era exatamente esse silêncio que fez o Editor
+travado parecer uma ferramenta quebrada.
+
+### O padrão que se repete: dado certo, exibição ausente
+
+Já são **sete** ocorrências ao longo do projeto. As desta sessão, todas com o relatório em 0 falhas:
+
+1. Painéis de overlay translúcidos (alfa 0,98) — o texto de baixo atravessava o de cima.
+2. O glifo **✦** não existe na fonte e virava caixinha, em cinco lugares.
+3. A dica do "Continuar" colada no subtítulo, lida como parte da frase de abertura.
+
+**Sempre olhe `Assets/Screenshots/*.png` depois de rodar o Play Mode.** Repetindo pela terceira
+sessão seguida porque continua sendo verdade.
+
+**Glifos que a fonte tem:** `◆ ◇ · → ⚔️ 🏆 💰 ⭐ ❄️ 🌲` e os demais emoji (há fallback de emoji).
+**Não tem:** `✦`. Na dúvida, capture e olhe.
+
+### O componente que mora no painel que ele controla
+
+Quatro telas nasceram com `Awake` chamando `panel.SetActive(false)`. Como o componente **é filho do
+painel**, ligar o painel roda o `Awake` — que o desliga no mesmo frame. Sintoma: `pausa aberta: False`
+sem erro nenhum. **Quem nasce fechado é a cena**, montada assim pelo setup.
+
+E se o componente precisa de `Update` (o ESC da pausa), ele **não pode morar no painel**: `Update` só
+roda em objeto ativo, então a tecla só funcionaria depois de a tela já estar aberta. Daí o objeto
+`PauseMenu`, sempre ativo, ao lado do painel.
+
+### Singleton `DontDestroyOnLoad` + troca de cena = a segunda partida herda a primeira
+
+`GuildManager`, `QuestManager` e `UIManager` sobrevivem à troca de cena. O `Awake` da instância nova
+vê que já existe uma e **se autodestrói**, deixando a antiga viva com o estado da partida anterior e
+escrevendo em UI já destruída. É a mesma família do painel das salas da Fase 2.5: **a primeira vez
+funciona, a segunda não**, e nenhum teste percebe porque todos testam a primeira.
+
+Quem resolve é `SceneFlow.DescartarMundo`. **Se algum manager novo virar `DontDestroyOnLoad`, ele
+precisa entrar nessa lista.**
+
+### O teste não pode custar o save do autor
+
+O probe joga jornadas e termina runs de propósito — cada ciclo dispararia o autosave por cima da
+partida real de quem estiver jogando na máquina. Daí `SaveSystem.AutosaveSuspenso`, ligado no `Awake`
+do probe, respeitado pelo `Autosave()` e pelo `DescartarAutosave()`. O teste do Santuário também
+fotografa e repõe o perfil do autor, e confere que repôs.
 
 ### UI: a ordem de irmãos manda, e varredura genérica não funciona
 
-Duas tentativas de vestir as caixas brancas por regra genérica foram **revertidas por piorarem**:
-
-- Vestir o fundo com a pedra do kit **apagou o texto** — em vários prefabs o fundo não é o pai dos
-  textos, e sim um irmão desenhado **depois** deles.
-- Só pintar de `BoxColor` deixou **texto escuro sobre fundo escuro**, porque a cor do texto vem do
-  prefab e não acompanha.
-
-**A receita que funciona** (usada em `HeroPanelSkin.cs` e `PartyCardSkin.cs`): extrair a hierarquia do
-prefab **com a ordem de irmãos**, vestir o fundo **pelo nome** (nunca por tamanho), e clarear o texto
-**no mesmo passo**. Arte grande sempre entra **atrás** e, em card pequeno, **translúcida** — retrato
-em tamanho cheio no card do grupo ficou ilegível e virou fundo a 34%.
-
-### Fase 3: medir o efeito, não o mecanismo
-
-O `RunManager` estava certo desde o começo e o teste passou em tudo — menos numa linha:
-`corrupção das missões: 1–39 (global 61)`. O relógio andava e o quadro de missões ficava parado, então
-o mundo piorar **não mudava nada do que o jogador via**. Corrigido com `RenovarQuadro()` a cada ciclo.
+Da sessão anterior, segue valendo. **A receita que funciona** (`HeroPanelSkin.cs`, `PartyCardSkin.cs`):
+extrair a hierarquia do prefab **com a ordem de irmãos**, vestir o fundo **pelo nome** (nunca por
+tamanho), e clarear o texto **no mesmo passo**. Arte grande entra **atrás** e, em card pequeno,
+**translúcida**.
 
 ### Erro de compilação que trava tudo
 
-O pacote **Dark Knight** foi escrito para Unity 6 e usava `Rigidbody2D.linearVelocity`, que não existe
-no 2022.3. As 3 ocorrências **travavam o `Assembly-CSharp` inteiro** — o código do jogo não compilava
-por causa de um asset de terceiros. **Se o pacote for reimportado, o erro volta** (commit `d7ef2c4`).
+O pacote **Dark Knight** foi escrito para Unity 6 e usava `Rigidbody2D.linearVelocity`, inexistente
+no 2022.3. As 3 ocorrências travavam o `Assembly-CSharp` inteiro. **Se o pacote for reimportado, o
+erro volta** (commit `d7ef2c4`).
 
-### Automação sem o MCP do Unity
+### Outras, da sessão anterior
 
-O **MCP do Unity não estava conectado** nesta sessão. Todo o trabalho foi feito por **gatilhos de
-arquivo** + foco de janela. Ver "Arquivos e comandos".
-
-- **O Unity não recompila sem foco**, e perde o foco assim que outro comando roda. O que funciona é
-  trazer a janela à frente **e esperar dentro do mesmo comando**, em laço, até a
-  `Library/ScriptAssemblies/Assembly-CSharp.dll` ficar mais nova que o `.cs`. Foco e espera em
-  comandos separados **falham**.
-- **O Unity foi reiniciado por fora** no meio da sessão (pid mudou). Scripts que guardam o pid dão
-  "não recompilou" falso — sempre redescubra o processo.
+- **O Unity não recompila sem foco**, e perde o foco assim que outro comando roda.
+- **O Unity foi reiniciado por fora** numa sessão passada (pid mudou) — sempre redescubra o processo.
 - **Compilar por fora**: o script precisa incluir as `<ProjectReference>` do `.csproj`, não só as
   `<HintPath>`. Sem isso o ESave dá 7 erros falsos.
-- `Remove-Item` na mesma chamada PowerShell que um caminho em `C:\Program Files` é **bloqueado** pelo
-  sandbox. Separe em dois comandos.
+- `Remove-Item` na mesma chamada PowerShell que um caminho em `C:\Program Files` é **bloqueado**.
 - Mensagem de commit com aspas quebra a here-string do PowerShell. Use `git commit -F arquivo.txt`.
-- `git add <pasta>` **não inclui o `.meta` da própria pasta**. Sem ele o Unity regenera GUIDs em
-  qualquer clone e quebra todas as referências.
+- `git add <pasta>` **não inclui o `.meta` da própria pasta**.
 
 ---
 
 ## Arquivos e comandos relevantes
 
-**Documentação** — `ROADMAP.md` (plano e resultados medidos), `GDD.md` (design), `ASSETS.md` (o que
-cada pacote traz e onde entra).
+**Documentação** — `ROADMAP.md` (plano e resultados medidos), `GDD.md` (design), `ASSETS.md`.
 
-### Ferramentas criadas nesta sessão (todas em `Assets/Scripts/Core/`)
+### O save, em cinco arquivos (`Assets/Scripts/Save/`)
 
 | Arquivo | O que faz |
 |---|---|
-| `BarSkin.cs` | veste as barras **e hospeda o watcher de todos os gatilhos** |
-| `CardArt.cs` | preenche `cardImage` das 17 cartas |
-| `PortraitCatalogBuilder.cs` / `Data/PortraitCatalog.cs` | catálogo dos 500 retratos |
-| `BiomeArtBuilder.cs` / `Data/BiomeArtCatalog.cs` | arte por bioma |
-| `AudioCatalogBuilder.cs` / `Data/AudioCatalog.cs` | trilhas e SFX + import settings |
-| `GameAudio.cs` | tocador (música com fade + efeitos) |
-| `RunManager.cs`, `RunFlow.cs`, `MetaProgression.cs`, `UI/RunEndUI.cs` | a Fase 3 |
-| `HeroPanelSkin.cs`, `PartyCardSkin.cs`, `CardFrameSkin.cs`, `UiSkinPrefabs.cs` | UI |
+| `SaveData.cs` | os DTOs do arquivo (campo novo **só no fim** da classe) |
+| `SaveSystem.cs` | slots, escrita atômica, cabeçalhos, `AutosaveSuspenso` |
+| `GameStateIO.cs` | a ponte entre os managers vivos e o arquivo |
+| `PlayerProfile.cs` | perfil fora dos slots: relíquias, destraves, recordes, opções |
+| `GameSettings.cs` | aplica áudio e vídeo |
+| `SceneFlow.cs` | título ⇄ jogo, e o descarte do mundo anterior |
+
+**Telas** (`Assets/Scripts/UI/`): `MainMenuUI`, `PauseMenuUI`, `OptionsUI`, `SaveSlotsUI`,
+`RelicShrineUI`. **Montagem** (`Assets/Scripts/Core/`): `MenuSceneSetup.cs`.
 
 ### Gatilhos (arquivo vazio na raiz + trazer o Unity à frente)
 
-`RunPlayModeTest.trigger` · `RunSmokeTest.trigger` · `RunSceneSetup.trigger` · `RunBarSkin.trigger` ·
-`RunCardArt.trigger` · `RunPortraitCatalog.trigger` · `RunBiomeArt.trigger` · `RunUiSkinPrefabs.trigger` ·
-`RunHeroPanelSkin.trigger` · `RunPartyCardSkin.trigger` · `RunCardFrameSkin.trigger` · `RunAudioCatalog.trigger`
+`RunPlayModeTest` · `RunSmokeTest` · `RunSceneSetup` · **`RunMenuSetup`** · `RunBarSkin` ·
+`RunCardArt` · `RunPortraitCatalog` · `RunBiomeArt` · `RunUiSkinPrefabs` · `RunHeroPanelSkin` ·
+`RunPartyCardSkin` · `RunCardFrameSkin` · `RunAudioCatalog` — todos `.trigger`, todos no `.gitignore`
+(agora por curinga `*.trigger`).
 
-Todos no `.gitignore`. Relatórios: `PlayModeReport.txt` e `SmokeTestReport.txt` (também ignorados).
+**Depois de mexer na cena**, rode nesta ordem: `RunSceneSetup` → `RunMenuSetup` → `RunBarSkin` →
+`RunPlayModeTest`. O `Montar Cena` recria objetos, o `Montar Menus` refaz a cena de título e a lista
+da build, e o `BarSkin` repõe os sprites das barras.
 
-**Depois de mexer na cena**, rode nesta ordem: `RunSceneSetup` → `RunBarSkin` → `RunPlayModeTest`.
-O `Montar Cena` recria objetos e o `BarSkin` repõe os sprites das barras.
+### Disparar gatilho com a compilação assentada (obrigatório — ver Pegadinhas)
+
+O script usado nesta sessão ficou no scratchpad e vale recriar. O laço essencial:
+
+```powershell
+# 1. esperar a DLL ficar mais nova que o .cs mais recente, mantendo o foco
+$dll = "$root\Library\ScriptAssemblies\Assembly-CSharp.dll"
+$cs  = Get-ChildItem "$root\Assets\Scripts" -Recurse -Filter *.cs |
+       Sort-Object LastWriteTime -Descending | Select-Object -First 1
+while ((Get-Item $dll).LastWriteTime -le $cs.LastWriteTime) {
+  [void][WinRun]::SetForegroundWindow($unity.MainWindowHandle); Start-Sleep -Milliseconds 900
+}
+# 2. folga de ~6s para o domain reload terminar e os watchers se reinscreverem
+# 3. só então criar o .trigger, e esperar o RELATÓRIO mudar (não só o gatilho sumir)
+```
+
+Foco e espera **em comandos separados falham**. `SetForegroundWindow` vem de `user32.dll` via
+`Add-Type`.
 
 ### Compilar sem abrir o Editor (segundos)
 
@@ -207,17 +249,24 @@ Set-Location $root
   "C:\Program Files\Unity\Hub\Editor\2022.3.62f3\Editor\Data\DotNetSdkRoslyn\csc.dll" "@$out/build.rsp"
 ```
 
+### Onde ficam os saves em execução
+
+`C:\Users\Israel\AppData\LocalLow\Rapadura Atômica\Guilda da Corrupção\` — `saves\*.json` e
+`profile.json`. Dá para apagar à mão para testar o jogo do zero.
+
 ---
 
 ## Pendências que dependem do usuário
 
-- **Confirmar o ESave** como save oficial. Está em `Assets/Esper/ESave`, commitado e **não
-  integrado**. A meta-progressão usa `PlayerPrefs` até lá.
-- **Deserto e Vulcão sem arte de bioma** — nenhum pacote importado cobre. Precisa de compra ou
-  encomenda.
+- **Rodar o smoke test** (interrompido nesta sessão; a causa da quebra já foi corrigida).
+- **Deserto e Vulcão sem arte de bioma** — nenhum pacote importado cobre.
 - **Retratos de inimigo** (`EnemyData.portrait`, 11 vazios) e **ilustração de evento**
   (`EventData.eventImage`, 25 vazios) continuam sem arte.
 - **Git LFS** — 763 MB de binários no histórico.
-- **Push** — 12 commits só no repositório local.
-- **Conflito de estilo**: os retratos são **pixel art**, os ícones de carta e a UI são **pintados**.
-  Funciona (retrato em moldura), mas é uma escolha estética que o autor pode querer revisar.
+- **Push** — 14 commits só no repositório local.
+- **Conflito de estilo**: retratos em pixel art, ícones e UI pintados.
+- **O `GDD.md` está atrás do código** em pontos que esta sessão não tocou: as tabelas de status ainda
+  dão as Fases 2, 2.5 e 3 como pendentes. Nesta sessão só foram corrigidas as linhas que o trabalho
+  de menus e save tornou falsas (§4.4, meta-progressão e persistência). Vale uma passada de auditoria.
+- **ESave e Bench**: importados, commitados e agora oficialmente **não usados**. Removê-los
+  economizaria repositório — decisão do autor.
