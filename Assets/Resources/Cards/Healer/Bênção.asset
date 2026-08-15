@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: "B\xEAn\xE7\xE3o"
   cardDescription: "B\xEAn\xE7\xE3o"
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: feb8709f10385a94095b55fe8d0f625c, type: 3}
   rarity: 0
   requiredClass: 2
   energyCost: 2
