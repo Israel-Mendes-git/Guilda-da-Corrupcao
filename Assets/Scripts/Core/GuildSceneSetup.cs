@@ -156,6 +156,19 @@ public static class GuildSceneSetup
         var mapRow = EnsureFreeArea(panel.transform, "MapNodes", new Vector2(0, 1), new Vector2(1, 1),
             new Vector2(20, -280), new Vector2(-20, -100));
 
+        // Fundo do bioma: atrás de tudo e discreto, porque a tela é de leitura —
+        // a arte serve para o jogador sentir onde está, não para competir com o
+        // texto do evento. Fica como primeiro irmão para não cobrir nada.
+        var biomeBg = EnsureFreeArea(panel.transform, "BiomeBackground",
+            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var biomeImg = biomeBg.GetComponent<Image>();
+        if (biomeImg == null) biomeImg = Undo.AddComponent<Image>(biomeBg);
+        biomeImg.color = new Color(1f, 1f, 1f, 0.22f);
+        biomeImg.preserveAspect = false;
+        biomeImg.raycastTarget = false;
+        biomeImg.enabled = false; // ligado em runtime, só quando há arte do bioma
+        biomeBg.transform.SetAsFirstSibling();
+
         var evTitle = EnsureText(panel.transform, "Txt_EventTitle", "Evento", 26,
             new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -330), new Vector2(-20, -285));
 
@@ -227,6 +240,7 @@ public static class GuildSceneSetup
         jm.questNameText = questName;
         jm.dayText = day;
         jm.biomeText = biome;
+        jm.biomeIcon = biomeImg;
         jm.eventTitleText = evTitle;
         jm.eventDescriptionText = evDesc;
         jm.resolutionLogText = log;
@@ -803,15 +817,35 @@ public static class GuildSceneSetup
     /// </summary>
     static void ApplyKit(Canvas canvas)
     {
-        Sprite painel = AssetDatabase.LoadAssetAtPath<Sprite>(PanelSpritePath);
+        if (!AplicarKitEm(canvas.gameObject)) return;
+
         Sprite moldura = AssetDatabase.LoadAssetAtPath<Sprite>(OutlineSpritePath);
+        if (moldura != null)
+            foreach (var img in canvas.GetComponentsInChildren<Image>(true))
+                if (img.color == BoxColor && img.GetComponent<Button>() == null)
+                    EnsureOutline(img.rectTransform, moldura);
+
+        ApplyTitleFont(canvas);
+    }
+
+    /// <summary>
+    /// Veste uma hierarquia qualquer com o kit — a cena ou um prefab.
+    ///
+    /// Precisa valer para prefabs porque metade da UI do jogo é instanciada em
+    /// runtime: os candidatos da taverna, as cartas, os nós do mapa. Vestir só a
+    /// cena deixava justamente essas telas brancas, e era o que acontecia.
+    /// </summary>
+    /// <returns>false quando o kit não está no projeto.</returns>
+    public static bool AplicarKitEm(GameObject raiz)
+    {
+        Sprite painel = AssetDatabase.LoadAssetAtPath<Sprite>(PanelSpritePath);
         Sprite botao = AssetDatabase.LoadAssetAtPath<Sprite>(ButtonDefaultPath);
         Sprite marca = AssetDatabase.LoadAssetAtPath<Sprite>(CheckmarkSpritePath);
 
         if (painel == null || botao == null)
         {
-            Debug.LogWarning("Montar Cena: kit Bloodlines UI não encontrado — visual do kit não aplicado.");
-            return;
+            Debug.LogWarning("Kit visual: Bloodlines UI não encontrado — nada aplicado.");
+            return false;
         }
 
         var estados = new SpriteState
@@ -821,7 +855,7 @@ public static class GuildSceneSetup
             disabledSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ButtonDisabledPath)
         };
 
-        foreach (var img in canvas.GetComponentsInChildren<Image>(true))
+        foreach (var img in raiz.GetComponentsInChildren<Image>(true))
         {
             // A marca de seleção primeiro: ela é um caso à parte de um Toggle.
             if (img.gameObject.name == "Checkmark" && marca != null)
@@ -835,7 +869,7 @@ public static class GuildSceneSetup
                 continue;
             }
 
-            if (img.sprite != null) continue;
+            if (!PrecisaDeSkin(img)) continue;
 
             var button = img.GetComponent<Button>();
             if (button != null)
@@ -862,15 +896,50 @@ public static class GuildSceneSetup
                 img.type = Image.Type.Sliced;
                 img.color = PanelTint;
                 EditorUtility.SetDirty(img);
+                continue;
             }
+
+            // Caixa comum (nem botão, nem tela cheia) fica como está — de
+            // propósito, e a tentativa de melhorar isso custou duas regressões
+            // que valem ficar registradas:
+            //
+            // 1. Vestir com a pedra do kit apagou o texto. Em vários prefabs o
+            //    fundo não é o pai dos textos, e sim um irmão desenhado DEPOIS
+            //    deles: o sprite passa por cima do nome e dos atributos.
+            // 2. Só pintar de BoxColor deixou texto escuro sobre fundo escuro,
+            //    porque a cor do texto vem do prefab e não acompanha.
+            //
+            // As duas são piores que o branco embutido do Unity, que ao menos é
+            // legível. Fazer isso direito é ajustar fundo E texto em cada prefab,
+            // não uma regra genérica de tamanho.
         }
 
-        if (moldura != null)
-            foreach (var img in canvas.GetComponentsInChildren<Image>(true))
-                if (img.color == BoxColor && img.GetComponent<Button>() == null)
-                    EnsureOutline(img.rectTransform, moldura);
+        return true;
+    }
 
-        ApplyTitleFont(canvas);
+    /// <summary>
+    /// Vale a pena vestir esta imagem?
+    ///
+    /// A checagem era só <c>sprite == null</c>, e por isso o kit não pegava quase
+    /// nada: um Image criado por código nasce com o sprite embutido do Unity
+    /// ("UISprite" / "Background"), que não é nulo. O resultado era uma tela de
+    /// caixas brancas chapadas com o kit aplicado só a meia dúzia de objetos.
+    ///
+    /// Sprite escolhido de propósito — a arte de uma carta, uma barra de vida
+    /// vestida pelo BarSkin — continua intocado, que é o que preserva o ajuste
+    /// feito à mão entre duas montagens da cena.
+    /// </summary>
+    static bool PrecisaDeSkin(Image img)
+    {
+        // O fundo do bioma nasce sem sprite e do tamanho da tela: seria lido como
+        // painel e receberia a pedra por cima, apagando a arte da região que só
+        // é escolhida em runtime.
+        if (img.gameObject.name == "BiomeBackground") return false;
+
+        if (img.sprite == null) return true;
+
+        string nome = img.sprite.name;
+        return nome == "UISprite" || nome == "Background" || nome == "UIMask" || nome == "Knob";
     }
 
     /// <summary>Ocupa a tela quase inteira — é fundo, não widget.</summary>
