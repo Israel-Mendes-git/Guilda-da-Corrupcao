@@ -309,7 +309,14 @@ public static class EventResolver
             hero.corruptionExposure = Mathf.Clamp(hero.corruptionExposure + Random.Range(5, 15), 0, 100);
             AddStress(hero, 10f, result);
         }
-        result.lines.Add("🌑 A corrupção da região se infiltra no grupo.");
+
+        // A escolha custa ao MUNDO, não só ao grupo: o medidor global avança e
+        // aproxima o fim da run. Sem isto, triggersCorruption era um campo que
+        // estressava a party e não significava nada além disso.
+        if (RunManager.Instance != null)
+            RunManager.Instance.AddCorruption(RunManager.CorruptionPerEvent);
+
+        result.lines.Add("🌑 A corrupção da região se infiltra no grupo — e no mundo.");
     }
 
     /// <summary>Converte estresse máximo em Aflição (comum) ou Virtude (rara).</summary>

@@ -19,6 +19,15 @@ public class QuestData : ScriptableObject
     public QuestRisk risk;
     public string objective; // Adicione este campo
     public bool isCorrupted => corruptionLevel >= 50;
+
+    /// <summary>
+    /// A missão do Chefe Supremo — a única vitória possível de uma run.
+    ///
+    /// Campo no fim da classe de propósito: os assets guardam a ordem, e há
+    /// missões geradas em runtime que precisam continuar carregando.
+    /// </summary>
+    public bool isFinalBoss;
+
     public List<ClassRequirement> requirements;
 
     public int GetActualDuration()

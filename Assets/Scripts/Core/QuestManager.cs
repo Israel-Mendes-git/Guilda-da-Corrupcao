@@ -60,8 +60,59 @@ public class QuestManager : MonoBehaviour
         if (missing > 0)
             currentQuests.AddRange(QuestGenerator.GenerateQuests(missing, GetPlayerAverageLevel()));
 
+        // Quando a Corrupção passa do limiar, o Chefe Supremo entra no quadro e
+        // fica. GenerateBossQuest existia desde sempre e nunca era chamada — era
+        // a vitória do jogo escrita e inalcançável.
+        GarantirChefeSupremo();
+
         hasQuests = currentQuests.Count > 0;
         onQuestsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Troca as missões do quadro por outras, feitas para a Corrupção de agora.
+    ///
+    /// Sem isto o relógio da run andava e o quadro ficava parado: as missões
+    /// geradas no ciclo 1 continuavam com corrupção de ciclo 1 no ciclo 8, e o
+    /// mundo piorar não mudava nada do que o jogador tinha para escolher. O GDD
+    /// pede o contrário — "a cada ciclo, novas missões com corrupção e risco
+    /// crescentes".
+    ///
+    /// O Chefe Supremo sobrevive à renovação: ele é o alvo da run, não uma oferta
+    /// da semana.
+    /// </summary>
+    public void RenovarQuadro()
+    {
+        if (currentQuests == null) return;
+
+        currentQuests.RemoveAll(q => q == null || !q.isFinalBoss);
+
+        int faltando = questBoardSize - currentQuests.Count;
+        if (faltando > 0)
+            currentQuests.AddRange(QuestGenerator.GenerateQuests(faltando, GetPlayerAverageLevel()));
+
+        GarantirChefeSupremo();
+
+        hasQuests = currentQuests.Count > 0;
+        onQuestsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Põe o Chefe Supremo no quadro quando o mundo está podre o bastante, e só
+    /// uma vez: duas missões finais ao mesmo tempo tirariam o peso da decisão.
+    /// </summary>
+    public void GarantirChefeSupremo()
+    {
+        var run = RunManager.Instance;
+        if (run == null || !run.BossAvailable) return;
+
+        if (currentQuests.Exists(q => q != null && q.isFinalBoss)) return;
+
+        QuestData chefe = QuestGenerator.GenerateBossQuest(GetPlayerAverageLevel());
+        if (chefe == null) return;
+
+        chefe.isFinalBoss = true;
+        currentQuests.Add(chefe);
     }
 
     public bool HasQuests()

@@ -82,6 +82,7 @@ public static class GuildSceneSetup
         GameObject journeyPanel = BuildJourney(canvas, choiceBtn, mapNode, partyStatus, cardPrefab);
         GameObject combatPanel = BuildCombat(canvas, enemyCard, partyStatus, cardPrefab);
         BuildJourneyResult(canvas);
+        BuildRunEnd(canvas);
         GameObject mapRoomPanel = BuildMapRoom(canvas);
         GameObject marketPanel = BuildMarket(canvas);
         GameObject cemeteryPanel = BuildCemetery(canvas);
@@ -1589,6 +1590,53 @@ public static class GuildSceneSetup
     /// prefab em disco: o setup não precisa gravar asset novo, e o molde
     /// acompanha o painel se alguém mover a hierarquia.
     /// </summary>
+    /// <summary>
+    /// A tela de fim de run — vitória ou queda da guilda.
+    ///
+    /// Não existia porque o jogo não tinha fim: era um sandbox infinito. É a tela
+    /// em que a run vira história, e a única que mostra o que atravessa para a
+    /// próxima tentativa.
+    /// </summary>
+    static GameObject BuildRunEnd(Canvas canvas)
+    {
+        GameObject panel = FindOrCreatePanel(canvas, "Panel_RunEnd");
+
+        var titulo = EnsureText(panel.transform, "Txt_Title", "", 46,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(40, -220), new Vector2(-40, -140));
+        titulo.alignment = TextAlignmentOptions.Center;
+
+        var motivo = EnsureText(panel.transform, "Txt_Reason", "", 24,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(120, -320), new Vector2(-120, -235));
+        motivo.alignment = TextAlignmentOptions.Center;
+        motivo.color = SubtleTextColor;
+
+        var stats = EnsureText(panel.transform, "Txt_Stats", "", 26,
+            new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(80, -40), new Vector2(-80, 90));
+        stats.alignment = TextAlignmentOptions.Center;
+
+        var meta = EnsureText(panel.transform, "Txt_Meta", "", 24,
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(80, 260), new Vector2(-80, 340));
+        meta.alignment = TextAlignmentOptions.Center;
+
+        var novaRun = EnsureButton(panel.transform, "Btn_NewRun", "Fundar uma nova guilda",
+            new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-200, 140), new Vector2(200, 210));
+
+        var ui = panel.GetComponent<RunEndUI>();
+        if (ui == null) ui = Undo.AddComponent<RunEndUI>(panel);
+
+        Undo.RecordObject(ui, "Montar Cena");
+        ui.panel = panel;
+        ui.titleText = titulo;
+        ui.reasonText = motivo;
+        ui.statsText = stats;
+        ui.metaText = meta;
+        ui.newRunButton = novaRun;
+        EditorUtility.SetDirty(ui);
+
+        panel.SetActive(false);
+        return panel;
+    }
+
     static GameObject BuildJourneyResult(Canvas canvas)
     {
         GameObject panel = FindOrCreatePanel(canvas, "Panel_JourneyResult");
