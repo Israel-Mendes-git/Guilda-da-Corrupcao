@@ -168,6 +168,8 @@ public static class SceneToolsTriggerWatcher
     const string UiPrefabsTrigger = "RunUiSkinPrefabs.trigger";
     const string HeroPanelTrigger = "RunHeroPanelSkin.trigger";
     const string AudioTrigger = "RunAudioCatalog.trigger";
+    const string PartyCardTrigger = "RunPartyCardSkin.trigger";
+    const string CardFrameTrigger = "RunCardFrameSkin.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -199,6 +201,8 @@ public static class SceneToolsTriggerWatcher
         Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);
         Consumir(HeroPanelTrigger, HeroPanelSkin.Vestir);
         Consumir(AudioTrigger, AudioCatalogBuilder.Montar);
+        Consumir(PartyCardTrigger, PartyCardSkin.Vestir);
+        Consumir(CardFrameTrigger, CardFrameSkin.Vestir);
     }
 
     static void Consumir(string arquivo, System.Action acao)

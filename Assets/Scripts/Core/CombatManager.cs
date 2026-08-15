@@ -1200,6 +1200,18 @@ public class CombatManager : MonoBehaviour
                               : hero.isOnDeathsDoor ? "<color=#E04B44>☠️ BEIRA DA MORTE</color>"
                               : $"{hero.currentHp}/{hero.maxHp}");
 
+            // O rosto de quem está lutando, atrás dos números e translúcido: no
+            // combate a informação manda, e o card é pequeno. A Beira da Morte
+            // puxa o rosto para o vermelho — aviso que se capta sem parar para ler.
+            Image retrato = view.transform.Find("Portrait")?.GetComponent<Image>();
+            if (retrato != null && hero.portrait != null)
+            {
+                retrato.sprite = hero.portrait;
+                retrato.color = hero.isDead ? new Color(0.45f, 0.35f, 0.35f, 0.20f)
+                              : hero.isOnDeathsDoor ? new Color(1f, 0.55f, 0.55f, 0.42f)
+                                                    : new Color(1f, 1f, 1f, 0.34f);
+            }
+
             // Estresse alto é o que antecede uma Aflição: precisa saltar aos olhos.
             int stress = Mathf.RoundToInt(hero.stress);
             SetText(view, "Stress", stress >= 75 ? $"<color=#D9B85A>🧠 {stress}</color>" : $"🧠 {stress}");
