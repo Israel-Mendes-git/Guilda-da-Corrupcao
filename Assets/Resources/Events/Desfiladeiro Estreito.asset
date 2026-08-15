@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Desfiladeiro Estreito
-  m_EditorClassIdentifier:
-  eventTitle: '⛰️ Desfiladeiro Estreito'
-  description: 'A trilha se afina até caber um homem por vez. Lá embaixo, a neblina esconde o fundo. Pedras soltas caem quando ninguém pisa nelas.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\u26F0\uFE0F Desfiladeiro Estreito"
+  description: "A trilha se afina at\xE9 caber um homem por vez. L\xE1 embaixo, a
+    neblina esconde o fundo. Pedras soltas caem quando ningu\xE9m pisa nelas."
   eventImage: {fileID: 0}
   biome: 2
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '🧗 Atravessar amarrados uns aos outros'
+  - optionText: "\U0001F9D7 Atravessar amarrados uns aos outros"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -31,7 +32,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🐐 Seguir a trilha das cabras, mais longa'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F410 Seguir a trilha das cabras, mais longa"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -39,7 +47,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 2
     triggersCorruption: 0
-  - optionText: '🏃 Correr um por um, sem corda'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F3C3 Correr um por um, sem corda"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -53,5 +68,33 @@ MonoBehaviour:
         moraleChange: -10
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u26FA Fincar abrigo e esperar a passagem abrir"
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: 4
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 10
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 3
   isBossEvent: 0

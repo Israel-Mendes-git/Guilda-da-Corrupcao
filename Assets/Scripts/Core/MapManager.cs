@@ -1,7 +1,10 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// O mapa da guilda: cada local mostra o que faz antes de o jogador entrar.
+/// </summary>
 public class MapManager : MonoBehaviour
 {
     [Header("Botões do Mapa")]
@@ -18,11 +21,15 @@ public class MapManager : MonoBehaviour
     public GameObject locationInfoPanel;
     public TMP_Text locationNameText;
     public TMP_Text locationDescText;
+
+    /// <summary>
+    /// Prometia "Melhorar {local} custa 500 ouro" e não fazia nada. Quem melhora
+    /// de verdade é cada sala, no próprio botão: <see cref="LibraryManager"/> e
+    /// <see cref="MapRoomManager"/> já cobram e sobem de nível lá dentro. O campo
+    /// segue aqui só para o painel poder esconder o botão herdado da cena.
+    /// </summary>
     public Button upgradeButton;
     public Button enterButton;
-
-    [Header("Debug")]
-    public bool showDebugLogs = true;
 
     private string currentLocationName;
     private string currentLocationAction;
@@ -35,7 +42,6 @@ public class MapManager : MonoBehaviour
 
     void ConnectMapButtons()
     {
-        // Taverna - AGORA MOSTRA INFO PRIMEIRO
         if (tavernButton != null)
         {
             tavernButton.onClick.RemoveAllListeners();
@@ -44,71 +50,61 @@ public class MapManager : MonoBehaviour
                 "Contrate novos aventureiros para sua guilda.\n\n" +
                 "Deseja entrar na taverna?",
                 "Tavern"));
-            if (showDebugLogs) Debug.Log("Botão da Taverna conectado");
         }
 
-        // Biblioteca
         if (libraryButton != null)
             libraryButton.onClick.AddListener(() => ShowLocationInfo(
                 "📚 Biblioteca",
-                "Desbloqueia conhecimento sobre biomas.\n\n" +
-                "• Revela eventos futuros\n" +
-                "• Aumenta chance de encontrar tesouros\n" +
-                "• Heróis ganham mais XP\n\n" +
+                "Compre cartas e aprofunde o conhecimento da guilda.\n\n" +
+                "• Vende cartas conforme o nível da Biblioteca\n" +
+                "• Revela eventos futuros na jornada\n" +
+                "• Melhora o retorno em ouro das missões\n\n" +
                 "Deseja entrar na biblioteca?",
                 "Library"));
 
-        // Sala de Mapas
         if (mapRoomButton != null)
             mapRoomButton.onClick.AddListener(() => ShowLocationInfo(
                 "🗺️ Sala de Mapas",
                 "Planeje melhor sua jornada.\n\n" +
-                "• Mostra rotas alternativas\n" +
-                "• Reduz chance de se perder\n" +
-                "• Revela locais de interesse\n\n" +
+                "• Contrata batedores que revelam o percurso\n" +
+                "• Compra desvios para recusar um evento\n" +
+                "• Sobe de nível para revelar mais\n\n" +
                 "Deseja entrar na sala de mapas?",
                 "MapRoom"));
 
-        // Forja
         if (forgeButton != null)
             forgeButton.onClick.AddListener(() => ShowLocationInfo(
                 "⚔️ Forja",
                 "Melhore o equipamento dos seus heróis.\n\n" +
-                "• Heróis começam com itens melhores\n" +
-                "• Aumenta dano base\n" +
-                "• Reduz custo de manutenção\n\n" +
+                "• Arma: mais dano nas cartas daquele herói\n" +
+                "• Armadura: mais HP máximo\n\n" +
                 "Deseja entrar na forja?",
                 "Forge"));
 
-        // Cemitério
         if (cemeteryButton != null)
             cemeteryButton.onClick.AddListener(() => ShowLocationInfo(
                 "⚰️ Cemitério",
                 "Honre seus heróis caídos.\n\n" +
-                "• Heróis mortos deixam itens\n" +
-                "• Reduz chance de morte permanente\n" +
-                "• Reza por bênçãos\n\n" +
+                "• Monumentos devolvem parte da reputação perdida\n" +
+                "• A vigília alivia o estresse de quem ficou\n\n" +
                 "Deseja entrar no cemitério?",
                 "Cemetery"));
 
-        // Mercado
         if (marketButton != null)
             marketButton.onClick.AddListener(() => ShowLocationInfo(
                 "🛒 Mercado",
                 "Compre recursos para suas missões.\n\n" +
-                "• Poções de cura\n" +
-                "• Rações para viagem\n" +
-                "• Mapas e ferramentas\n\n" +
+                "• Rações e tochas para a estrada\n" +
+                "• Poções, bandagens e vinho para o roster\n\n" +
                 "Deseja entrar no mercado?",
                 "Market"));
 
-        // Jornada
         if (journeyButton != null)
             journeyButton.onClick.AddListener(() => ShowLocationInfo(
                 "⚔️ Jornada",
                 "Comece sua jornada em busca de recursos e glória!\n\n" +
                 "• Selecione uma missão\n" +
-                "• Escolha seus heróis\n" +
+                "• Escolha seus heróis e a formação\n" +
                 "• Enfrente eventos e desafios\n\n" +
                 "Deseja iniciar uma jornada?",
                 "Journey"));
@@ -118,8 +114,6 @@ public class MapManager : MonoBehaviour
                 CloseLocationInfo();
                 UIManager.Instance?.ShowDeckManager();
             });
-
-
     }
 
     void InitializeLocationInfoPanel()
@@ -130,97 +124,94 @@ public class MapManager : MonoBehaviour
         if (enterButton != null)
             enterButton.onClick.AddListener(OnEnterButtonClick);
 
+        // Melhorar é assunto de dentro de cada sala; aqui o botão só mentia.
         if (upgradeButton != null)
-            upgradeButton.onClick.AddListener(OnUpgradeButtonClick);
+            upgradeButton.gameObject.SetActive(false);
     }
 
     void ShowLocationInfo(string name, string description, string action)
     {
-        if (showDebugLogs) Debug.Log($"MapManager: Mostrando info - {name}");
-
-        if (locationInfoPanel != null)
+        if (locationInfoPanel == null)
         {
-            currentLocationName = name;
-            currentLocationAction = action;
-
-            if (locationNameText != null)
-                locationNameText.text = name;
-            else
-                Debug.LogError("locationNameText não está atribuído!");
-
-            if (locationDescText != null)
-                locationDescText.text = description;
-            else
-                Debug.LogError("locationDescText não está atribuído!");
-
-            locationInfoPanel.SetActive(true);
+            Debug.LogError("MapManager: locationInfoPanel não está atribuído!");
+            return;
         }
+
+        currentLocationName = name;
+        currentLocationAction = action;
+
+        if (locationNameText != null)
+            locationNameText.text = name;
         else
-        {
-            Debug.LogError("locationInfoPanel não está atribuído!");
-        }
+            Debug.LogError("MapManager: locationNameText não está atribuído!");
+
+        if (locationDescText != null)
+            locationDescText.text = description;
+        else
+            Debug.LogError("MapManager: locationDescText não está atribuído!");
+
+        locationInfoPanel.SetActive(true);
+
+        // Sem isto, o painel some atrás do mapa depois da primeira visita a uma
+        // sala. Ordem de irmãos é ordem de desenho na UI do Unity, e o painel de
+        // info é irmão do GuildMap dentro de "Background": toda vez que o jogador
+        // volta de uma sala, ShowGuildScreen manda o mapa para o fim da lista e
+        // ele passa a cobrir — e a engolir os cliques — este painel, que nasceu
+        // num índice anterior. Quem abre vai para a frente, a mesma regra que o
+        // UIManager.SetPanelActive já aplica aos painéis que passam por ele.
+        locationInfoPanel.transform.SetAsLastSibling();
     }
 
     void OnEnterButtonClick()
     {
-        if (showDebugLogs) Debug.Log($"MapManager: Enter clicado para {currentLocationName} - Ação: {currentLocationAction}");
-
         CloseLocationInfo();
+
+        if (UIManager.Instance == null)
+        {
+            Debug.LogError("MapManager: UIManager.Instance é nulo — nenhuma tela pode ser aberta.");
+            return;
+        }
 
         switch (currentLocationAction)
         {
             case "Tavern":
-                if (UIManager.Instance != null)
-                    UIManager.Instance.ShowTavern();
+                UIManager.Instance.ShowTavern();
                 break;
 
             case "Library":
-                if(UIManager.Instance  != null)
-                    UIManager.Instance.ShowLibrary();
+                UIManager.Instance.ShowLibrary();
                 break;
 
             case "MapRoom":
-                if (UIManager.Instance != null)
-                    UIManager.Instance.ShowMapRoom();
+                UIManager.Instance.ShowMapRoom();
                 break;
 
             case "Forge":
-                if (UIManager.Instance != null)
-                    UIManager.Instance.ShowForge();
+                UIManager.Instance.ShowForge();
                 break;
 
             case "Cemetery":
-                if (UIManager.Instance != null)
-                    UIManager.Instance.ShowCemetery();
+                UIManager.Instance.ShowCemetery();
                 break;
 
             case "Market":
-                if (UIManager.Instance != null)
-                    UIManager.Instance.ShowMarket();
+                UIManager.Instance.ShowMarket();
                 break;
 
-            // No método OnEnterButtonClick, caso "Journey":
             case "Journey":
-                Debug.Log("Abrindo seleção de missão...");
-                if (UIManager.Instance != null)
+                UIManager.Instance.ShowQuestSelection();
+
+                // A tela de preparação guarda a seleção anterior; sem este refresh
+                // ela reabre com missões e roster desatualizados.
+                if (QuestSelectionUI.Instance != null)
                 {
-                    // Fecha o painel de info
-                    CloseLocationInfo();
-
-                    // Abre o painel de seleção de missão
-                    UIManager.Instance.ShowQuestSelection();
-
-                    // Força o QuestSelectionUI a atualizar
-                    if (QuestSelectionUI.Instance != null)
-                    {
-                        QuestSelectionUI.Instance.gameObject.SetActive(true);
-                        QuestSelectionUI.Instance.RefreshAllData();
-                    }
+                    QuestSelectionUI.Instance.gameObject.SetActive(true);
+                    QuestSelectionUI.Instance.RefreshAllData();
                 }
                 break;
 
             default:
-                Debug.LogWarning($"Ação desconhecida: {currentLocationAction}");
+                Debug.LogWarning($"MapManager: ação desconhecida '{currentLocationAction}' para {currentLocationName}.");
                 break;
         }
     }
@@ -228,15 +219,7 @@ public class MapManager : MonoBehaviour
     public void EnableJourneyButton()
     {
         if (journeyButton != null)
-        {
             journeyButton.interactable = true;
-            if (showDebugLogs) Debug.Log("Botão da Jornada ativado");
-        }
-    }
-
-    void OnUpgradeButtonClick()
-    {
-        UIManager.Instance?.ShowMessage($"Melhorar {currentLocationName} custa 500 ouro.", 2f);
     }
 
     public void CloseLocationInfo()

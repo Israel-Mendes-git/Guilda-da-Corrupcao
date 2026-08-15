@@ -15,19 +15,15 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
     }
 
-    // Chame este método quando a jornada terminar
+    // Chamado quando a jornada termina.
     public void OnJourneyComplete(bool success, int reward)
     {
-        if (success)
-        {
-            GuildManager.Instance.AddGold(reward);
+        if (!success) return;
 
-            // ATUALIZA OS RECRUTAS DA TAVERNA APÓS A JORNADA
-            if (tavernManager != null)
-            {
-                tavernManager.RefreshRecruits();
-            }
+        GuildManager.Instance.AddGold(reward);
 
-        }
+        // Atualiza os recrutas da taverna apÃ³s a jornada.
+        if (tavernManager != null)
+            tavernManager.RefreshRecruits();
     }
 }

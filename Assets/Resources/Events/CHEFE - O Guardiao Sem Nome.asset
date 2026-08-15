@@ -11,45 +11,60 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: CHEFE - O Guardiao Sem Nome
-  m_EditorClassIdentifier:
-  eventTitle: '⚔️ O GUARDIÃO SEM NOME'
-  description: 'Ele esperava por vocês. Não há como saber há quanto tempo, nem o que ele era antes de virar isto.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\u2694\uFE0F O GUARDI\xC3O SEM NOME"
+  description: "Ele esperava por voc\xEAs. N\xE3o h\xE1 como saber h\xE1 quanto tempo,
+    nem o que ele era antes de virar isto."
   eventImage: {fileID: 0}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '💪 Atacar com tudo o que resta'
+  - optionText: "\U0001F4AA Atacar com tudo o que resta"
     consequences:
-      goldChange: 200
+      goldChange: 80
       reputationChange: 15
       heroEffects:
       - heroName: Random
-        hpChange: -18
+        hpChange: -25
         addInjury: 1
         addTrait: 0
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🎯 Desgastá-lo com paciência'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F3AF Desgast\xE1-lo com paci\xEAncia"
     consequences:
-      goldChange: 150
+      goldChange: 90
       reputationChange: 10
       heroEffects:
       - heroName: All
-        hpChange: -8
+        hpChange: -11
         addInjury: 0
         addTrait: 0
       moraleChanges: []
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🏃 Pegar o que der e fugir'
+    requiredEffect: 10
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: A carta certa abre esse caminho.
+  - optionText: "\U0001F3C3 Pegar o que der e fugir"
     consequences:
-      goldChange: 60
+      goldChange: 24
       reputationChange: -15
       heroEffects:
       - heroName: All
-        hpChange: -5
+        hpChange: -7
         addInjury: 0
         addTrait: 0
       moraleChanges:
@@ -57,5 +72,12 @@ MonoBehaviour:
         moraleChange: -20
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 1
   isBossEvent: 1

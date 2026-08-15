@@ -1,114 +1,38 @@
 using UnityEngine;
 
+/// <summary>
+/// Prepara o quadro de miss√µes no come√ßo da sess√£o.
+///
+/// J√° criou tamb√©m os her√≥is iniciais, com valores digitados √† m√£o que divergiam
+/// dos da <see cref="HeroFactory"/> (Gromm nascia com 45 de HP aqui e 42 l√°) e
+/// sem <c>heroId</c>, o que impedia o deck do her√≥i de ser salvo. Quem cria o
+/// elenco inicial √© o <see cref="GuildManager"/>, um s√≥ lugar.
+/// </summary>
 public class GameInitializer : MonoBehaviour
 {
     void Awake()
     {
-        Debug.Log("=== GAME INITIALIZER ===");
-        Invoke("InitializeGame", 0.1f);
+        // Um quadro atr√°s do GuildManager: o roster inicial precisa existir antes
+        // de as miss√µes serem geradas, porque a dificuldade sai do n√≠vel m√©dio.
+        Invoke(nameof(InitializeGame), 0.1f);
     }
 
     void InitializeGame()
     {
-        Debug.Log("Inicializando jogo...");
-
         if (GuildManager.Instance == null)
         {
-            Debug.LogError("GuildManager.Instance È NULL!");
+            Debug.LogError("GameInitializer: GuildManager.Instance √© nulo ‚Äî a cena n√£o tem o manager da guilda.");
             return;
         }
 
-        // Se n„o h· herÛis, adiciona herÛis iniciais
-        if (GuildManager.Instance.roster.Count == 0)
-        {
-            Debug.Log("Nenhum herÛi encontrado! Criando herÛis iniciais...");
-            CreateInitialHeroes();
-        }
-        else
-        {
-            Debug.Log($"HerÛis j· existem: {GuildManager.Instance.roster.Count}");
-        }
-
-        // FOR«A ATUALIZA«√O DO QuestSelectionUI SE ELE ESTIVER ATIVO
         if (QuestSelectionUI.Instance != null && QuestSelectionUI.Instance.gameObject.activeSelf)
-        {
-            Debug.Log("ForÁando atualizaÁ„o do QuestSelectionUI...");
             QuestSelectionUI.Instance.RefreshAllData();
-        }
 
-        // Gera quests se necess·rio
         if (QuestManager.Instance != null && !QuestManager.Instance.HasQuests())
         {
-            Debug.Log("Gerando quests iniciais...");
-            int playerLevel = GetPlayerAverageLevel();
-            var quests = QuestGenerator.GenerateQuests(3, playerLevel);
+            var quests = QuestGenerator.GenerateQuests(3, GetPlayerAverageLevel());
             QuestManager.Instance.SetQuests(quests);
         }
-    }
-
-    void CreateInitialHeroes()
-    {
-        // Cria herÛis manualmente
-        HeroData gromm = ScriptableObject.CreateInstance<HeroData>();
-        gromm.heroName = "Gromm";
-        gromm.heroClass = HeroClass.Warrior;
-        gromm.level = 3;
-        gromm.maxHp = 45;
-        gromm.currentHp = 45;
-        gromm.salary = 50;
-        gromm.loyalty = 75;
-        gromm.morale = 80;
-        gromm.personality = Personality.Brave;
-        gromm.trait = Trait.None;
-        GuildManager.Instance.roster.Add(gromm);
-
-        HeroData lyra = ScriptableObject.CreateInstance<HeroData>();
-        lyra.heroName = "Lyra";
-        lyra.heroClass = HeroClass.Mage;
-        lyra.level = 2;
-        lyra.maxHp = 28;
-        lyra.currentHp = 28;
-        lyra.salary = 40;
-        lyra.loyalty = 70;
-        lyra.morale = 75;
-        lyra.personality = Personality.Ambitious;
-        lyra.trait = Trait.Lucky;
-        GuildManager.Instance.roster.Add(lyra);
-
-        HeroData finn = ScriptableObject.CreateInstance<HeroData>();
-        finn.heroName = "Finn";
-        finn.heroClass = HeroClass.Healer;
-        finn.level = 2;
-        finn.maxHp = 30;
-        finn.currentHp = 30;
-        finn.salary = 40;
-        finn.loyalty = 85;
-        finn.morale = 90;
-        finn.personality = Personality.Loyal;
-        finn.trait = Trait.FastHealer;
-        GuildManager.Instance.roster.Add(finn);
-
-        HeroData sera = ScriptableObject.CreateInstance<HeroData>();
-        sera.heroName = "Sera";
-        sera.heroClass = HeroClass.Hunter;
-        sera.level = 1;
-        sera.maxHp = 24;
-        sera.currentHp = 24;
-        sera.salary = 30;
-        sera.loyalty = 60;
-        sera.morale = 65;
-        sera.personality = Personality.Coward;
-        sera.trait = Trait.None;
-        GuildManager.Instance.roster.Add(sera);
-
-        Debug.Log($"Criados {GuildManager.Instance.roster.Count} herÛis:");
-        foreach (var hero in GuildManager.Instance.roster)
-        {
-            Debug.Log($"  - {hero.heroName} ({hero.heroClass}) Nv.{hero.level}");
-        }
-
-        // Notifica que o roster mudou
-        GuildManager.Instance.onRosterChanged?.Invoke();
     }
 
     int GetPlayerAverageLevel()

@@ -11,9 +11,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
   m_Name: CHEFE - O Guardiao Sem Nome
-  m_EditorClassIdentifier:
-  enemyName: 'O Guardião Sem Nome'
-  description: 'Ele esperava por vocês. Não há como saber há quanto tempo.'
+  m_EditorClassIdentifier: 
+  enemyName: "O Guardi\xE3o Sem Nome"
+  description: "Ele esperava por voc\xEAs. N\xE3o h\xE1 como saber h\xE1 quanto tempo."
   portrait: {fileID: 0}
   biome: 0
   isBoss: 1
@@ -25,4 +25,4 @@ MonoBehaviour:
   defendWeight: 20
   stressWeight: 18
   attackAllWeight: 12
-  goldReward: 130
+  goldReward: 260

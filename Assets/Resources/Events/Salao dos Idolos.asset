@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Salao dos Idolos
-  m_EditorClassIdentifier:
-  eventTitle: '🏯 Salão dos Ídolos'
-  description: 'Cem estátuas de pedra encaram a porta pela qual vocês entraram. Na volta, algumas estarão de costas.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F3EF Sal\xE3o dos \xCDdolos"
+  description: "Cem est\xE1tuas de pedra encaram a porta pela qual voc\xEAs entraram.
+    Na volta, algumas estar\xE3o de costas."
   eventImage: {fileID: 0}
   biome: 7
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '💎 Arrancar as gemas dos olhos'
+  - optionText: "\U0001F48E Arrancar as gemas dos olhos"
     consequences:
       goldChange: 150
       reputationChange: 0
@@ -29,7 +30,14 @@ MonoBehaviour:
         moraleChange: -18
     extraDays: 0
     triggersCorruption: 1
-  - optionText: '📜 Copiar as inscrições da parede'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F4DC Copiar as inscri\xE7\xF5es da parede"
     consequences:
       goldChange: 50
       reputationChange: 12
@@ -37,7 +45,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🚶 Atravessar sem olhar para os lados'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F6B6 Atravessar sem olhar para os lados"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -45,5 +60,29 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u2728 Consagrar o sal\xE3o antes de vasculhar"
+    consequences:
+      goldChange: 80
+      reputationChange: 15
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 8
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 6
   isBossEvent: 0

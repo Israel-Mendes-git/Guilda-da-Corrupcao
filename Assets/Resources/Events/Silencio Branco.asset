@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Silencio Branco
-  m_EditorClassIdentifier:
-  eventTitle: '❄️ Silêncio Branco'
-  description: 'Nenhum pássaro, nenhum vento, nenhum passo além dos seus. A neve engole todo som e devolve o que vocês menos queriam ouvir.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\u2744\uFE0F Sil\xEAncio Branco"
+  description: "Nenhum p\xE1ssaro, nenhum vento, nenhum passo al\xE9m dos seus. A
+    neve engole todo som e devolve o que voc\xEAs menos queriam ouvir."
   eventImage: {fileID: 0}
   biome: 5
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '🔥 Gastar tochas para manter o grupo unido'
+  - optionText: "\U0001F525 Gastar tochas para manter o grupo unido"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -29,7 +30,14 @@ MonoBehaviour:
         moraleChange: 12
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🚶 Marchar em silêncio e economizar'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F6B6 Marchar em sil\xEAncio e economizar"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -39,7 +47,14 @@ MonoBehaviour:
         moraleChange: -14
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🎵 Cantar para espantar o vazio'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F3B5 Cantar para espantar o vazio"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -53,5 +68,33 @@ MonoBehaviour:
         moraleChange: 18
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F525 Montar fogueira e atravessar a noite"
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: 8
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 10
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 0
   isBossEvent: 0

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: "O Que Vive na \xC1gua Parada"
+  m_EditorClassIdentifier: 
+  eventTitle: "\u2694\uFE0F O QUE VIVE NA \xC1GUA PARADA"
+  description: "A \xE1gua \xE0 frente ferve sem calor. Algo grande se mexe logo abaixo
+    da superf\xEDcie."
+  eventImage: {fileID: 0}
+  biome: 3
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: "\U0001F97E Contornar pelo atoleiro"
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: -10
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: -5
+    extraDays: 1
+    triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F525 Queimar o junco e passar correndo"
+    consequences:
+      goldChange: -45
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F5E3\uFE0F Faz\xEA-los recuar sem um golpe"
+    consequences:
+      goldChange: 0
+      reputationChange: 5
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 10
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 7
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: A carta certa abre esse caminho.
+  eventType: 1
+  isBossEvent: 0

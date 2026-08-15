@@ -28,6 +28,31 @@ public class EventOutcome
     public EventConsequences consequences;
     public int extraDays;
     public bool triggersCorruption;
+
+    [Header("Requisito de carta")]
+    /// <summary>
+    /// Efeito de carta que esta opção exige. <c>None</c> = aberta a todos.
+    ///
+    /// É o que liga o baralho à decisão. Antes, qualquer carta servia para
+    /// qualquer evento e a única influência era uma mitigação genérica de 10% —
+    /// o deck mudava o quanto o grupo apanhava, nunca o que ele podia fazer,
+    /// apesar de "Preparação > execução" ser pilar declarado do jogo.
+    ///
+    /// A opção com requisito continua **visível e travada** quando o jogador não
+    /// tem a carta: ele precisa ver o que perdeu por não a ter trazido.
+    /// </summary>
+    public JourneyEffectType requiredEffect = JourneyEffectType.None;
+
+    /// <summary>
+    /// Desfecho quando o requisito foi cumprido. Deixe nulo para a opção apenas
+    /// destravar, sem mudar as consequências.
+    /// </summary>
+    public EventConsequences empoweredConsequences;
+
+    /// <summary>Texto extra mostrado quando a carta certa foi jogada.</summary>
+    [TextArea(1, 2)] public string empoweredText;
+
+    public bool RequiresCard => requiredEffect != JourneyEffectType.None;
 }
 
 [System.Serializable]

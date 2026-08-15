@@ -99,8 +99,6 @@ public class QuestSelectionUI : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("QuestSelectionUI.Start - Inicializando");
-        DebugReferences();
         // Garante que todos os steps começam desativados
         if (step1Panel != null) step1Panel.SetActive(false);
         if (step2Panel != null) step2Panel.SetActive(false);
@@ -189,8 +187,6 @@ public class QuestSelectionUI : MonoBehaviour
 
     void OnEnable()
     {
-        Debug.Log("QuestSelectionUI.OnEnable - Painel ativado");
-
         // Inscreve no evento de mudança do roster
         if (GuildManager.Instance != null)
         {
@@ -211,49 +207,30 @@ public class QuestSelectionUI : MonoBehaviour
 
     void OnRosterChanged()
     {
-        Debug.Log("Roster mudou! Atualizando seleção de party...");
         RefreshPartySelection();
         RefreshDeckSelection();
     }
 
     void Update()
     {
-        // Pressione F5 para forçar refresh
+        // F5 recarrega missões e roster sem sair da tela — atalho de desenvolvimento.
         if (Input.GetKeyDown(KeyCode.F5))
-        {
-            Debug.Log("=== FORCANDO REFRESH (F5) ===");
             RefreshAllData();
-        }
-
-        // Pressione F6 para mostrar status
-        if (Input.GetKeyDown(KeyCode.F6))
-        {
-            Debug.Log($"Step1 ativo: {(step1Panel != null ? step1Panel.activeSelf : false)}");
-            Debug.Log($"Step2 ativo: {(step2Panel != null ? step2Panel.activeSelf : false)}");
-            Debug.Log($"Step3 ativo: {(step3Panel != null ? step3Panel.activeSelf : false)}");
-            Debug.Log($"Quests: {availableQuests.Count}");
-            Debug.Log($"Heróis: {(GuildManager.Instance != null ? GuildManager.Instance.roster.Count : 0)}");
-            Debug.Log($"Herói principal: {(selectedMainHero != null ? selectedMainHero.heroName : "nenhum")}");
-        }
     }
 
     public void RefreshAllData()
     {
-        Debug.Log("=== RefreshAllData ===");
-
         UpdateGoldUI();
 
         // Carrega quests
         if (QuestManager.Instance != null)
         {
             availableQuests = QuestManager.Instance.GetQuests();
-            Debug.Log($"Quests carregadas: {availableQuests.Count}");
         }
         else
         {
             int playerLevel = GetPlayerAverageLevel();
             availableQuests = QuestGenerator.GenerateQuests(3, playerLevel);
-            Debug.Log($"Quests geradas: {availableQuests.Count}");
         }
 
         RefreshQuestList();
@@ -313,15 +290,10 @@ public class QuestSelectionUI : MonoBehaviour
             GameObject item = Instantiate(questItemPrefab, questListContainer);
             SetupQuestItem(item, quest);
         }
-
-        Debug.Log($"Criadas {availableQuests.Count} quests");
     }
 
     void SetupQuestItem(GameObject item, QuestData quest)
     {
-        Debug.Log($"SetupQuestItem para: {quest.questName}");
-        DebugAllTexts(item, "QuestItem");
-
         // Procura pelos textos (use os nomes EXATOS do seu prefab)
         TMP_Text nameText = FindTextInChildren(item, "Name");
         TMP_Text durationText = FindTextInChildren(item, "Duration");
@@ -394,7 +366,6 @@ public class QuestSelectionUI : MonoBehaviour
     void SelectQuest(QuestData quest)
     {
         selectedQuest = quest;
-        Debug.Log($"Quest selecionada: {quest.questName}");
 
         // Só agora preenche os detalhes
         string details = $"<b>{quest.questName}</b>\n\n";
@@ -443,19 +414,9 @@ public class QuestSelectionUI : MonoBehaviour
             return;
         }
 
-        Debug.Log($"Total de heróis no roster: {GuildManager.Instance.roster.Count}");
-
-        // Lista todos os heróis para debug
-        foreach (var hero in GuildManager.Instance.roster)
-        {
-            Debug.Log($"  Herói disponível: {hero.heroName} - Classe: {hero.heroClass} - Morto: {hero.isDead}");
-        }
-
         foreach (var hero in GuildManager.Instance.roster)
         {
             if (hero.isDead) continue;
-
-            Debug.Log($"Criando card para: {hero.heroName}");
 
             if (partyMemberSelectPrefab == null)
             {
@@ -468,7 +429,6 @@ public class QuestSelectionUI : MonoBehaviour
         }
 
         UpdatePartyCountText();
-        Debug.Log($"Party selection atualizado. Heróis na lista: {partySelectionContainer.childCount}");
     }
 
     void SetupPartySelectCard(GameObject card, HeroData hero)
@@ -487,29 +447,48 @@ public class QuestSelectionUI : MonoBehaviour
             if (allTexts.Length > 2) levelText = allTexts[2];
         }
 
-        if (nameText != null) nameText.text = hero.heroName;
+        // Quem voltou perto de quebrar não parte de novo sem cuidado. O card diz
+        // isso na cara: sem o aviso, o herói simplesmente não podia ser marcado e
+        // o jogador não saberia por quê.
+        bool apto = hero.IsFitForJourney;
+
+        if (nameText != null)
+            nameText.text = apto
+                ? hero.heroName
+                : $"<color=#8A7A6A>{hero.heroName}</color>";
+
         if (classText != null) classText.text = GetClassName(hero.heroClass);
-        if (levelText != null) levelText.text = $"Nv.{hero.level}";
+
+        if (levelText != null)
+            levelText.text = apto
+                ? $"Nv.{hero.level}{(hero.isInjured ? "  <color=#B04040>🩸</color>" : "")}"
+                : $"<color=#B0A040>🧠 {hero.UnfitReason}</color>";
 
         // Toggle para selecionar
         Toggle toggle = card.GetComponentInChildren<Toggle>();
         if (toggle != null)
         {
             toggle.isOn = false;
+            toggle.interactable = apto;
             toggle.onValueChanged.RemoveAllListeners();
             toggle.onValueChanged.AddListener((isOn) => {
                 if (isOn)
                 {
-                    if (!selectedParty.Contains(hero))
+                    if (!hero.IsFitForJourney)
                     {
-                        selectedParty.Add(hero);
-                        Debug.Log($"Herói ADICIONADO: {hero.heroName}");
+                        toggle.isOn = false;
+                        UIManager.Instance?.ShowMessage(
+                            $"{hero.heroName} está {hero.UnfitReason}. Alivie o estresse no Mercado "
+                            + "ou no Cemitério antes de mandá-lo de volta.", 3f);
+                        return;
                     }
+
+                    if (!selectedParty.Contains(hero))
+                        selectedParty.Add(hero);
                 }
                 else
                 {
                     selectedParty.Remove(hero);
-                    Debug.Log($"Herói REMOVIDO: {hero.heroName}");
                 }
                 UpdatePartyCountText();
                 if (nextButton2 != null)
@@ -536,7 +515,6 @@ public class QuestSelectionUI : MonoBehaviour
             mainBtn.onClick.RemoveAllListeners();
             mainBtn.onClick.AddListener(() => {
                 selectedMainHero = hero;
-                Debug.Log($"Herói principal DEFINIDO: {hero.heroName}");
                 if (selectedDeckNameText != null)
                     selectedDeckNameText.text = $"⭐ Deck Principal: {hero.heroName}";
                 RefreshMainHeroIndicators();
@@ -790,15 +768,6 @@ public class QuestSelectionUI : MonoBehaviour
 
     void RefreshDeckSelection()
     {
-        Debug.Log("=== RefreshDeckSelection ===");
-        Debug.Log($"selectedParty.Count: {selectedParty.Count}");
-
-        // Mostra todos os heróis selecionados
-        foreach (var hero in selectedParty)
-        {
-            Debug.Log($"  - Herói selecionado: {hero.heroName}");
-        }
-
         if (deckSelectionContainer == null)
         {
             Debug.LogError("deckSelectionContainer é NULL!");
@@ -816,44 +785,20 @@ public class QuestSelectionUI : MonoBehaviour
             return;
         }
 
-        int cardCount = 0;
-
         foreach (var hero in selectedParty)
         {
             if (hero.isDead) continue;
-
-            Debug.Log($"Criando deck card para: {hero.heroName}");
 
             // Sempre pelo repositório: reflete o que o jogador editou no DeckManager.
             DeckData heroDeck = DeckRepository.GetDeck(hero);
 
             GameObject deckCard = Instantiate(deckCardPrefab, deckSelectionContainer);
             SetupDeckCard(deckCard, hero, heroDeck);
-            cardCount++;
         }
-
-        Debug.Log($"Total de decks criados: {cardCount}");
-    }
-
-    void DebugReferences()
-    {
-        Debug.Log("=== VERIFICANDO REFERÊNCIAS ===");
-        Debug.Log($"step1Panel: {(step1Panel != null ? step1Panel.name : "NULL")}");
-        Debug.Log($"step2Panel: {(step2Panel != null ? step2Panel.name : "NULL")}");
-        Debug.Log($"step3Panel: {(step3Panel != null ? step3Panel.name : "NULL")}");
-        Debug.Log($"questListContainer: {(questListContainer != null ? questListContainer.name : "NULL")}");
-        Debug.Log($"questItemPrefab: {(questItemPrefab != null ? questItemPrefab.name : "NULL")}");
-        Debug.Log($"partySelectionContainer: {(partySelectionContainer != null ? partySelectionContainer.name : "NULL")}");
-        Debug.Log($"partyMemberSelectPrefab: {(partyMemberSelectPrefab != null ? partyMemberSelectPrefab.name : "NULL")}");
-        Debug.Log($"deckSelectionContainer: {(deckSelectionContainer != null ? deckSelectionContainer.name : "NULL")}");
-        Debug.Log($"deckCardPrefab: {(deckCardPrefab != null ? deckCardPrefab.name : "NULL")}");
     }
 
     void SetupDeckCard(GameObject card, HeroData hero, DeckData deck)
     {
-        Debug.Log($"SetupDeckCard para: {hero.heroName}");
-        DebugAllTexts(card, "DeckCard");
-
         // Procura pelos textos
         TMP_Text nameText = FindTextInChildren(card, "Name");
         TMP_Text classText = FindTextInChildren(card, "Class");
@@ -1006,16 +951,10 @@ public class QuestSelectionUI : MonoBehaviour
 
     public void ShowStep1()
     {
-        Debug.Log("=== ShowStep1 ===");
         if (step1Panel != null)
-        {
             step1Panel.SetActive(true);
-            Debug.Log("Step1Panel ativado");
-        }
         else
-        {
             Debug.LogError("step1Panel é NULL!");
-        }
 
         if (step2Panel != null) step2Panel.SetActive(false);
         if (step3Panel != null) step3Panel.SetActive(false);
@@ -1038,8 +977,6 @@ public class QuestSelectionUI : MonoBehaviour
 
     void ShowStep3()
     {
-        Debug.Log("=== ShowStep3 ===");
-
         if (step1Panel != null) step1Panel.SetActive(false);
         if (step2Panel != null) step2Panel.SetActive(false);
         if (step3Panel != null) step3Panel.SetActive(true);
@@ -1094,17 +1031,11 @@ public class QuestSelectionUI : MonoBehaviour
             bool canStart = selectedQuest != null && selectedParty.Count > 0 && hasValidDeck;
 
             startJourneyButton.interactable = canStart;
-            Debug.Log($"Start button: {(canStart ? "ATIVADO" : "DESATIVADO")} (Quest: {selectedQuest != null}, Party: {selectedParty.Count}, MainHero in Party: {hasValidDeck})");
         }
     }
 
     void StartJourney()
     {
-        Debug.Log($"=== START JOURNEY ===");
-        Debug.Log($"Quest: {(selectedQuest != null ? selectedQuest.questName : "NULL")}");
-        Debug.Log($"Party: {selectedParty.Count} heróis");
-        Debug.Log($"MainHero: {(selectedMainHero != null ? selectedMainHero.heroName : "NULL")}");
-
         if (selectedQuest == null)
         {
             Debug.LogError("Nenhuma missão selecionada!");
@@ -1142,8 +1073,6 @@ public class QuestSelectionUI : MonoBehaviour
             UIManager.Instance?.ShowMessage($"{selectedMainHero.heroName} não tem cartas no deck!", 2f);
             return;
         }
-
-        Debug.Log($"Baralho da jornada ({selectedDeck.cards.Count} cartas):\n{string.Join("\n", built.breakdown)}");
 
         if (JourneyManager.Instance == null)
         {
@@ -1228,22 +1157,11 @@ public class QuestSelectionUI : MonoBehaviour
 
     #endregion
 
-    void DebugAllTexts(GameObject obj, string prefix)
-    {
-        TMP_Text[] allTexts = obj.GetComponentsInChildren<TMP_Text>(true);
-        Debug.Log($"=== {prefix} - Textos encontrados: {allTexts.Length} ===");
-        foreach (var text in allTexts)
-        {
-            Debug.Log($"  Nome: '{text.gameObject.name}', Texto: '{text.text}'");
-        }
-    }
-
     #region Helpers
 
     public void RegisterHeroDeck(HeroData hero, DeckData deck)
     {
         DeckRepository.SetDeck(hero, deck);
-        Debug.Log($"Deck registrado para {hero.heroName}");
     }
 
     string GetClassName(HeroClass heroClass)

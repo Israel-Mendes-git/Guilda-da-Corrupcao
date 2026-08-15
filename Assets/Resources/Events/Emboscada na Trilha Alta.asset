@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
+  m_Name: Emboscada na Trilha Alta
+  m_EditorClassIdentifier: 
+  eventTitle: "\u2694\uFE0F EMBOSCADA NA TRILHA ALTA"
+  description: "Pedras rolam atr\xE1s de voc\xEAs e a sa\xEDda se fecha. N\xE3o era
+    desabamento: era sinal."
+  eventImage: {fileID: 0}
+  biome: 2
+  minCorruptionToAppear: 0
+  minDay: 1
+  outcomes:
+  - optionText: "\U0001FAA8 Recuar pela fenda estreita"
+    consequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: -8
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: -5
+    extraDays: 1
+    triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F392 Largar parte da carga e correr"
+    consequences:
+      goldChange: -60
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F5E3\uFE0F Faz\xEA-los recuar sem um golpe"
+    consequences:
+      goldChange: 0
+      reputationChange: 5
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 10
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 7
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: A carta certa abre esse caminho.
+  eventType: 1
+  isBossEvent: 0

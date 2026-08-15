@@ -15,7 +15,26 @@ public class EnemyInstance
     public EnemyIntent intent;
     public GameObject view;
 
+    /// <summary>
+    /// Veneno em vigor: tanto de dano no fim de cada turno, perdendo uma pilha
+    /// por vez. Antes, a carta de veneno só causava dano na hora e escrevia
+    /// "foi envenenado" no log — a palavra existia, o efeito não.
+    /// </summary>
+    public int poison;
+
+    /// <summary>
+    /// Quanto o inimigo bate a menos, e por quantos turnos. Mesmo caso do
+    /// veneno: "foi enfraquecido" era só texto sobre um dano comum.
+    /// </summary>
+    public int damageDebuff;
+    public int debuffTurns;
+
     public bool IsAlive => currentHp > 0;
+
+    /// <summary>Dano de ataque já descontado o enfraquecimento em vigor.</summary>
+    public int AttackDamage => Mathf.Max(1, data.attackDamage - (debuffTurns > 0 ? damageDebuff : 0));
+
+    public bool IsWeakened => debuffTurns > 0 && damageDebuff > 0;
 }
 
 /// <summary>
@@ -55,8 +74,26 @@ public class CombatManager : MonoBehaviour
     public Button fleeButton;
 
     [Header("Config")]
-    public int baseEnergy = 3;
-    public int cardsPerTurn = 5;
+    /// <summary>
+    /// Energia por turno e tamanho da mão. Ajustados em 14/08 de 3/5 para 4/6.
+    ///
+    /// Com 3 de energia e custo médio de 2,25 por carta, o jogador via cinco
+    /// cartas e jogava pouco mais de uma — o baralho era decoração, e o chefe
+    /// matava 1,98 herói por jornada contra um alvo de 0,33–0,67.
+    ///
+    /// Medido com a jornada inteira simulada (eventos + cartas + combates) e um
+    /// jogador que se defende quando a intenção anunciada ameaça alguém.
+    ///
+    /// O ponto de equilíbrio se move com o conteúdo: quando o acervo tinha um
+    /// único encontro de combate fora o chefe (1,2 lutas por jornada), 4/6 era o
+    /// centro da faixa. Com um encontro por bioma (2,67 lutas por jornada) a
+    /// medição virou 4/6 → 0,77 · **5/6 → 0,59** · 6/6 → 0,28 mortes por jornada.
+    /// Daí 5. Ao acrescentar ou tirar combates do acervo, medir de novo.
+    ///
+    /// São campos serializados: ao mudar aqui, mudar também na cena.
+    /// </summary>
+    public int baseEnergy = 5;
+    public int cardsPerTurn = 6;
     public float enemyActionDelay = 0.45f;
 
     /// <summary>Estresse que a carta de limpeza tira junto com a aflição.</summary>
@@ -193,12 +230,20 @@ public class CombatManager : MonoBehaviour
         BeginPlayerTurn();
     }
 
+    /// <summary>
+    /// Ouro do último combate encerrado. A jornada soma isto no balanço final —
+    /// sem ele, o espólio das lutas entrava no bolso do jogador sem aparecer em
+    /// lugar nenhum do relatório de volta.
+    /// </summary>
+    public int LastCombatReward { get; private set; }
+
     void EndCombat(bool victory)
     {
         if (combatOver) return;
         combatOver = true;
 
         int reward = victory ? enemies.Sum(e => e.data.goldReward) : 0;
+        LastCombatReward = reward;
 
         if (victory && reward > 0 && GuildManager.Instance != null)
             GuildManager.Instance.AddGold(reward);
@@ -318,14 +363,71 @@ public class CombatManager : MonoBehaviour
             }
         }
 
-        // Inimigos perdem o bloqueio e escolhem a próxima ação.
+        // O veneno cobra no fim da rodada, depois de os inimigos agirem: dá para
+        // ver a pilha descendo e o dano entrando antes do próximo turno.
+        yield return TickVeneno();
+
+        if (enemies.All(e => !e.IsAlive))
+        {
+            EndCombat(true);
+            yield break;
+        }
+
+        // Inimigos perdem o bloqueio, o enfraquecimento envelhece, e a próxima
+        // ação é escolhida — nessa ordem, para a intenção anunciada já refletir
+        // o estado em que o inimigo vai agir.
         foreach (var enemy in enemies)
+        {
             enemy.block = 0;
+
+            if (enemy.debuffTurns > 0)
+            {
+                enemy.debuffTurns--;
+                if (enemy.debuffTurns == 0 && enemy.damageDebuff > 0)
+                {
+                    enemy.damageDebuff = 0;
+                    AddLog($"{enemy.data.enemyName} recobra a força.");
+                }
+            }
+        }
 
         RollAllIntents();
         yield return new WaitForSeconds(enemyActionDelay * 0.5f);
 
         BeginPlayerTurn();
+    }
+
+    /// <summary>Dano de veneno no fim da rodada, uma pilha consumida por vez.</summary>
+    IEnumerator TickVeneno()
+    {
+        var envenenados = enemies.Where(e => e.IsAlive && e.poison > 0).ToList();
+        if (envenenados.Count == 0) yield break;
+
+        foreach (var enemy in envenenados)
+        {
+            int dano = enemy.poison;
+            DamageEnemy(enemy, dano);
+            AddLog($"☠️ O veneno consome {enemy.data.enemyName} ({dano}).");
+
+            // A pilha se desgasta: veneno some se ninguém renovar.
+            enemy.poison = Mathf.Max(0, enemy.poison - 1);
+        }
+
+        RefreshEnemies();
+        yield return new WaitForSeconds(enemyActionDelay * 0.6f);
+    }
+
+    /// <summary>
+    /// Texto flutuante sobre o grupo, para efeitos que não têm um alvo único —
+    /// energia, compra de carta, ímpeto coletivo.
+    /// </summary>
+    void MostrarNoGrupo(string texto, Color cor)
+    {
+        HeroData primeiro = party.FirstOrDefault(h => h.IsAlive);
+        GameObject alvo = primeiro != null ? GetHeroView(primeiro) : null;
+
+        if (alvo == null) alvo = handContainer != null ? handContainer.gameObject : null;
+        if (alvo != null) CombatFeedback.Get().ShowText(alvo, texto, cor);
     }
 
     void ExecuteIntent(EnemyInstance enemy)
@@ -338,14 +440,19 @@ public class CombatManager : MonoBehaviour
             {
                 HeroData target = PickTargetHero();
                 if (target == null) return;
-                DamageHero(target, enemy.data.attackDamage, resolution);
-                AddLog($"{enemy.data.enemyName} ataca {target.heroName}.");
+
+                // AttackDamage, não data.attackDamage: é aqui que o
+                // enfraquecimento aplicado pelo jogador vira menos dano de fato.
+                DamageHero(target, enemy.AttackDamage, resolution);
+                AddLog(enemy.IsWeakened
+                    ? $"{enemy.data.enemyName} ataca {target.heroName} — enfraquecido."
+                    : $"{enemy.data.enemyName} ataca {target.heroName}.");
                 break;
             }
 
             case EnemyIntent.AttackAll:
             {
-                int dmg = Mathf.Max(1, Mathf.RoundToInt(enemy.data.attackDamage * 0.6f));
+                int dmg = Mathf.Max(1, Mathf.RoundToInt(enemy.AttackDamage * 0.6f));
                 foreach (var hero in party.Where(h => h.IsAlive).ToList())
                     DamageHero(hero, dmg, resolution);
                 AddLog($"{enemy.data.enemyName} atinge o grupo inteiro!");
@@ -355,14 +462,21 @@ public class CombatManager : MonoBehaviour
             case EnemyIntent.Defend:
                 enemy.block += enemy.data.blockAmount;
                 AddLog($"{enemy.data.enemyName} se protege.");
+                CombatFeedback.Get().ShowBlock(enemy.view, enemy.data.blockAmount);
                 break;
 
             case EnemyIntent.Stress:
             {
                 HeroData target = PickTargetHero();
                 if (target == null) return;
+
                 EventResolver.AddStress(target, enemy.data.stressDamage, resolution);
                 AddLog($"{enemy.data.enemyName} abala {target.heroName}.");
+
+                // O estresse era a única fonte de dano do jogo sem reação
+                // visual: subia em silêncio até o herói quebrar.
+                CombatFeedback.Get().ShowStress(GetHeroView(target), enemy.data.stressDamage);
+                CombatFeedback.Get().Shake(GetHeroView(target));
                 break;
             }
         }
@@ -622,12 +736,16 @@ public class CombatManager : MonoBehaviour
                 {
                     heroBlock[heroTarget] += block;
                     AddLog($"{heroTarget.heroName} ganha {block} de bloqueio.");
+                    CombatFeedback.Get().ShowBlock(GetHeroView(heroTarget), block);
                 }
                 break;
 
             case CombatEffectType.BlockAll:
                 foreach (var hero in party.Where(h => h.IsAlive))
+                {
                     heroBlock[hero] += block;
+                    CombatFeedback.Get().ShowBlock(GetHeroView(hero), block);
+                }
                 AddLog($"O grupo ganha {block} de bloqueio.");
                 break;
 
@@ -641,38 +759,70 @@ public class CombatManager : MonoBehaviour
                 break;
 
             case CombatEffectType.DrawCards:
-                for (int i = 0; i < Mathf.Max(1, card.combatDuration); i++)
+            {
+                int quantas = Mathf.Max(1, card.combatDuration);
+                for (int i = 0; i < quantas; i++)
                     cards.DrawCard();
-                AddLog($"{card.cardName}: cartas compradas.");
+                AddLog($"{card.cardName}: +{quantas} carta(s) na mão.");
+                MostrarNoGrupo($"🃏 +{quantas}", new Color(0.85f, 0.82f, 0.70f));
                 break;
+            }
 
             case CombatEffectType.GainEnergy:
-                energy += Mathf.Max(1, card.combatDuration);
-                AddLog($"{card.cardName}: +energia.");
+            {
+                int ganho = Mathf.Max(1, card.combatDuration);
+                energy += ganho;
+                AddLog($"{card.cardName}: +{ganho} de energia.");
+                MostrarNoGrupo($"⚡ +{ganho}", new Color(0.95f, 0.85f, 0.35f));
                 break;
+            }
 
             case CombatEffectType.Poison:
                 if (enemyTarget != null)
                 {
-                    DamageEnemy(enemyTarget, Mathf.Max(1, damage));
-                    AddLog($"{enemyTarget.data.enemyName} foi envenenado.");
+                    // Veneno agora dura: uma pilha por ponto de dano da carta,
+                    // cobrada no fim de cada turno.
+                    int pilhas = Mathf.Max(1, damage);
+                    enemyTarget.poison += pilhas;
+                    AddLog($"☠️ {enemyTarget.data.enemyName} está envenenado ({enemyTarget.poison}).");
+                    CombatFeedback.Get().ShowText(enemyTarget.view, $"☠️ {pilhas}",
+                                                  new Color(0.55f, 0.80f, 0.35f));
                 }
                 break;
 
             case CombatEffectType.ShieldBreak:
                 if (enemyTarget != null)
                 {
+                    bool tinhaGuarda = enemyTarget.block > 0;
                     enemyTarget.block = 0;
                     DamageEnemy(enemyTarget, damage);
-                    AddLog($"A guarda de {enemyTarget.data.enemyName} foi quebrada!");
+
+                    AddLog(tinhaGuarda
+                        ? $"🛡️💥 A guarda de {enemyTarget.data.enemyName} foi quebrada!"
+                        : $"{enemyTarget.data.enemyName} é atingido sem guarda.");
+
+                    if (tinhaGuarda)
+                        CombatFeedback.Get().ShowText(enemyTarget.view, "🛡️💥",
+                                                      new Color(0.85f, 0.80f, 0.95f));
                 }
                 break;
 
             case CombatEffectType.Debuff:
                 if (enemyTarget != null)
                 {
-                    DamageEnemy(enemyTarget, Mathf.Max(1, damage));
-                    AddLog($"{enemyTarget.data.enemyName} foi enfraquecido.");
+                    // Enfraquecer de verdade: o inimigo passa a bater menos pelos
+                    // próximos turnos, e a intenção anunciada já mostra o número novo.
+                    int reducao = Mathf.Max(1, Mathf.RoundToInt(enemyTarget.data.attackDamage * 0.4f));
+                    int turnos = Mathf.Max(2, card.combatDuration);
+
+                    enemyTarget.damageDebuff = Mathf.Max(enemyTarget.damageDebuff, reducao);
+                    enemyTarget.debuffTurns = Mathf.Max(enemyTarget.debuffTurns, turnos);
+
+                    if (damage > 0) DamageEnemy(enemyTarget, damage);
+
+                    AddLog($"🔻 {enemyTarget.data.enemyName} bate {reducao} a menos por {turnos} turno(s).");
+                    CombatFeedback.Get().ShowText(enemyTarget.view, $"🔻 -{reducao}",
+                                                  new Color(0.75f, 0.55f, 0.85f));
                 }
                 break;
 
@@ -683,12 +833,14 @@ public class CombatManager : MonoBehaviour
                 groupDamageBonus = Mathf.Max(groupDamageBonus, Mathf.Max(1, rawDamage));
                 groupDamageBonusTurns = Mathf.Max(groupDamageBonusTurns, Mathf.Max(1, card.combatDuration));
                 AddLog($"🔥 O grupo ataca com +{groupDamageBonus} por {groupDamageBonusTurns} turno(s).");
+                MostrarNoGrupo($"🔥 +{groupDamageBonus}", new Color(0.95f, 0.55f, 0.30f));
                 break;
             }
 
             case CombatEffectType.BuffNextCard:
                 nextCardMultiplier = 1.5f;
-                AddLog($"{card.cardName}: a próxima carta de dano sai 50% mais forte.");
+                AddLog($"🎯 {card.cardName}: a próxima carta de dano sai 50% mais forte.");
+                MostrarNoGrupo("🎯 +50%", new Color(0.95f, 0.80f, 0.35f));
                 break;
 
             case CombatEffectType.Evade:
@@ -696,20 +848,28 @@ public class CombatManager : MonoBehaviour
                 {
                     evading.Add(heroTarget);
                     AddLog($"💨 {heroTarget.heroName} vai desviar do próximo golpe.");
+                    CombatFeedback.Get().ShowText(GetHeroView(heroTarget), "💨", Color.white);
                 }
                 break;
 
             case CombatEffectType.Cleanse:
                 if (heroTarget != null)
                 {
-                    if (MentalStateUtil.IsAffliction(heroTarget.mentalState))
+                    bool tinhaAflicao = MentalStateUtil.IsAffliction(heroTarget.mentalState);
+                    if (tinhaAflicao)
                     {
                         heroTarget.mentalState = MentalState.Normal;
                         AddLog($"✨ {heroTarget.heroName} recobra a compostura.");
                     }
 
+                    float antes = heroTarget.stress;
                     heroTarget.stress = Mathf.Max(0f, heroTarget.stress - CleanseStressRelief);
-                    AddLog($"{heroTarget.heroName} respira aliviado.");
+                    int alivio = Mathf.RoundToInt(antes - heroTarget.stress);
+
+                    AddLog($"{heroTarget.heroName} respira aliviado (−{alivio} de estresse).");
+                    CombatFeedback.Get().ShowText(GetHeroView(heroTarget),
+                        tinhaAflicao ? $"✨ −{alivio}" : $"🧠 −{alivio}",
+                        new Color(0.60f, 0.85f, 0.90f));
                 }
                 break;
 
@@ -912,7 +1072,7 @@ public class CombatManager : MonoBehaviour
             SetText(enemy.view, "Name", enemy.data.enemyName);
             SetText(enemy.view, "HP", $"{enemy.currentHp}/{enemy.data.maxHp}");
             SetText(enemy.view, "Intent", DescribeIntent(enemy));
-            SetText(enemy.view, "Block", enemy.block > 0 ? $"🛡️ {enemy.block}" : "");
+            SetText(enemy.view, "Block", DescribeEnemyStatus(enemy));
 
             Image hpBar = enemy.view.transform.Find("HPBar/Fill")?.GetComponent<Image>();
             if (hpBar != null)
@@ -951,13 +1111,18 @@ public class CombatManager : MonoBehaviour
     /// </summary>
     string DescribeIntent(EnemyInstance enemy)
     {
+        // O número anunciado é o que vai sair de fato: se o jogador enfraqueceu
+        // o inimigo, ele precisa VER o golpe encolher, senão gastou a carta às
+        // cegas. O 🔻 marca que aquele número já está reduzido.
+        string marca = enemy.IsWeakened ? "🔻" : "";
+
         switch (enemy.intent)
         {
             case EnemyIntent.Attack:
-                return $"<color=#E04B44>⚔️ Ataca {enemy.data.attackDamage}</color>";
+                return $"<color=#E04B44>⚔️ Ataca {enemy.AttackDamage}{marca}</color>";
 
             case EnemyIntent.AttackAll:
-                return $"<color=#E04B44>💥 Ataca todos ({Mathf.RoundToInt(enemy.data.attackDamage * 0.6f)})</color>";
+                return $"<color=#E04B44>💥 Ataca todos ({Mathf.RoundToInt(enemy.AttackDamage * 0.6f)}){marca}</color>";
 
             case EnemyIntent.Defend:
                 return $"<color=#8CB8F0>🛡️ Defende {enemy.data.blockAmount}</color>";
@@ -968,6 +1133,18 @@ public class CombatManager : MonoBehaviour
             default:
                 return "<color=#9A9A9A>❔ Indeciso</color>";
         }
+    }
+
+    /// <summary>Aflições em vigor sobre o inimigo, para a view mostrar.</summary>
+    string DescribeEnemyStatus(EnemyInstance enemy)
+    {
+        var partes = new List<string>();
+
+        if (enemy.block > 0) partes.Add($"🛡️ {enemy.block}");
+        if (enemy.poison > 0) partes.Add($"<color=#8CCC59>☠️ {enemy.poison}</color>");
+        if (enemy.IsWeakened) partes.Add($"<color=#BF8CD9>🔻 {enemy.damageDebuff} ({enemy.debuffTurns})</color>");
+
+        return string.Join("  ", partes);
     }
 
     void RefreshHeroes()

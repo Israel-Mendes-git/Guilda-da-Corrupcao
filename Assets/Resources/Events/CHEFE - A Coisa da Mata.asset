@@ -11,41 +11,56 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: CHEFE - A Coisa da Mata
-  m_EditorClassIdentifier:
-  eventTitle: '🌳 A COISA DA MATA'
-  description: 'O que se ergue entre as árvores tem galhos no lugar de braços e usa rostos humanos como cascas. Ele conhece o nome de cada um de vocês.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F333 A COISA DA MATA"
+  description: "O que se ergue entre as \xE1rvores tem galhos no lugar de bra\xE7os
+    e usa rostos humanos como cascas. Ele conhece o nome de cada um de voc\xEAs."
   eventImage: {fileID: 0}
   biome: 1
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '🔥 Queimar a criatura e o bosque inteiro'
+  - optionText: "\U0001F525 Queimar a criatura e o bosque inteiro"
     consequences:
-      goldChange: 240
+      goldChange: 96
       reputationChange: 15
       heroEffects:
       - heroName: All
-        hpChange: -12
+        hpChange: -17
         addInjury: 0
         addTrait: 0
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🎯 Cortar as raízes e atacar o núcleo'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F3AF Cortar as ra\xEDzes e atacar o n\xFAcleo"
     consequences:
-      goldChange: 180
+      goldChange: 108
       reputationChange: 10
       heroEffects:
       - heroName: Random
-        hpChange: -22
+        hpChange: -31
         addInjury: 1
         addTrait: 0
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🤝 Ouvir o que ela oferece'
+    requiredEffect: 1
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: A carta certa abre esse caminho.
+  - optionText: "\U0001F91D Ouvir o que ela oferece"
     consequences:
-      goldChange: 300
+      goldChange: 120
       reputationChange: -20
       heroEffects:
       - heroName: Random
@@ -57,5 +72,12 @@ MonoBehaviour:
         moraleChange: -20
     extraDays: 0
     triggersCorruption: 1
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 1
   isBossEvent: 1

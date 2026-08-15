@@ -11,39 +11,54 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: CHEFE - O Gigante de Pedra
-  m_EditorClassIdentifier:
-  eventTitle: '🗿 O GIGANTE DE PEDRA'
-  description: 'O que vocês tomaram por um penhasco abre os olhos. Ele guarda esta passagem desde antes de existir alguém para lembrar por quê.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F5FF O GIGANTE DE PEDRA"
+  description: "O que voc\xEAs tomaram por um penhasco abre os olhos. Ele guarda
+    esta passagem desde antes de existir algu\xE9m para lembrar por qu\xEA."
   eventImage: {fileID: 0}
   biome: 2
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '⚒️ Derrubá-lo pelas juntas'
+  - optionText: "\u2692\uFE0F Derrub\xE1-lo pelas juntas"
     consequences:
-      goldChange: 220
+      goldChange: 88
       reputationChange: 15
       heroEffects:
       - heroName: All
-        hpChange: -14
+        hpChange: -20
         addInjury: 0
         addTrait: 0
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🪨 Provocar um desabamento sobre ele'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001FAA8 Provocar um desabamento sobre ele"
     consequences:
-      goldChange: 170
+      goldChange: 102
       reputationChange: 10
       heroEffects:
       - heroName: Random
-        hpChange: -20
+        hpChange: -28
         addInjury: 1
         addTrait: 0
       moraleChanges: []
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🕯️ Pagar o pedágio antigo em ouro'
+    requiredEffect: 1
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: A carta certa abre esse caminho.
+  - optionText: "\U0001F56F\uFE0F Pagar o ped\xE1gio antigo em ouro"
     consequences:
       goldChange: -120
       reputationChange: 0
@@ -53,5 +68,12 @@ MonoBehaviour:
         moraleChange: 10
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 1
   isBossEvent: 1

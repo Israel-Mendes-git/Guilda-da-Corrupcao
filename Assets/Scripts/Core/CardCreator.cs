@@ -2,8 +2,22 @@
 using UnityEngine;
 using UnityEditor;
 
+/// <summary>
+/// Semeia o pool de cartas em <c>Resources/Cards</c>.
+///
+/// Esta janela gerou as 16 cartas originais e depois ficou para tr√°s: os assets
+/// foram corrigidos no Inspector (Teleporte virou <c>Evade</c>, Purifica√ß√£o
+/// virou <c>Cleanse</c>, Olhar de √Åguia virou <c>BuffNextCard</c>) enquanto o
+/// c√≥digo aqui continuava mandando <c>None</c> ‚Äî os efeitos que tornavam a carta
+/// morta em combate. Rodar "Criar Todas" desfazia a corre√ß√£o sem avisar.
+///
+/// Duas travas contra isso: a tabela abaixo √© um espelho fiel dos assets atuais,
+/// e nada √© sobrescrito a menos que se pe√ßa explicitamente.
+/// </summary>
 public class CardCreator : EditorWindow
 {
+    private bool sobrescreverExistentes;
+
     [MenuItem("Tools/Card Creator")]
     public static void ShowWindow()
     {
@@ -14,162 +28,202 @@ public class CardCreator : EditorWindow
     {
         GUILayout.Label("Criar Cartas Base", EditorStyles.boldLabel);
 
+        EditorGUILayout.HelpBox(
+            "Cria em Resources/Cards as cartas que ainda n√£o existem.\n" +
+            "Cartas j√° existentes s√£o preservadas ‚Äî marque a op√ß√£o abaixo s√≥ se " +
+            "quiser mesmo devolv√™-las ao estado original.",
+            MessageType.Info);
+
+        sobrescreverExistentes = EditorGUILayout.ToggleLeft(
+            "Sobrescrever cartas existentes (descarta ajustes feitos no Inspector)",
+            sobrescreverExistentes);
+
+        EditorGUILayout.Space();
+
         if (GUILayout.Button("Criar Todas as Cartas"))
+            CriarTodas();
+
+        EditorGUILayout.Space();
+
+        if (GUILayout.Button("Criar Cartas de Guerreiro")) CriarDaClasse(HeroClass.Warrior);
+        if (GUILayout.Button("Criar Cartas de Mago")) CriarDaClasse(HeroClass.Mage);
+        if (GUILayout.Button("Criar Cartas de Curandeiro")) CriarDaClasse(HeroClass.Healer);
+        if (GUILayout.Button("Criar Cartas de Ca√ßador")) CriarDaClasse(HeroClass.Hunter);
+    }
+
+    void CriarTodas()
+    {
+        int criadas = 0;
+        foreach (var def in Definicoes)
+            criadas += Criar(def) ? 1 : 0;
+
+        Finalizar(criadas, Definicoes.Length);
+    }
+
+    void CriarDaClasse(HeroClass classe)
+    {
+        int criadas = 0;
+        int total = 0;
+        foreach (var def in Definicoes)
         {
-            CreateAllCards();
+            if (def.classe != classe) continue;
+            total++;
+            criadas += Criar(def) ? 1 : 0;
         }
 
-        if (GUILayout.Button("Criar Cartas de Guerreiro"))
-        {
-            CreateWarriorCards();
-        }
-
-        if (GUILayout.Button("Criar Cartas de Mago"))
-        {
-            CreateMageCards();
-        }
-
-        if (GUILayout.Button("Criar Cartas de Curandeiro"))
-        {
-            CreateHealerCards();
-        }
-
-        if (GUILayout.Button("Criar Cartas de CaÁador"))
-        {
-            CreateHunterCards();
-        }
+        Finalizar(criadas, total);
     }
 
-    void CreateAllCards()
+    void Finalizar(int criadas, int total)
     {
-        CreateWarriorCards();
-        CreateMageCards();
-        CreateHealerCards();
-        CreateHunterCards();
-        AssetDatabase.Refresh();
-        Debug.Log("Todas as cartas foram criadas!");
-    }
-
-    void CreateWarriorCards()
-    {
-        CreateCard("Corte Duplo", HeroClass.Warrior, CardRarity.Common, 2,
-            "Corte Duplo", "Corta galhos e abre caminho. Ignora 1 evento de floresta.",
-            JourneyEffectType.RemoveObstacle, 0,
-            "8 de dano em 2 inimigos diferentes.", CombatEffectType.DamageAll, 8, 0, 0);
-
-        CreateCard("Postura Defensiva", HeroClass.Warrior, CardRarity.Common, 2,
-            "Postura Defensiva", "Protege o grupo contra dano por 2 dias.",
-            JourneyEffectType.ProtectFromWeather, 0,
-            "Ganha 10 de bloqueio.", CombatEffectType.Block, 0, 10, 0);
-
-        CreateCard("F˙ria", HeroClass.Warrior, CardRarity.Rare, 1,
-            "F˙ria", "Aumenta o moral do grupo em +10.",
-            JourneyEffectType.RestoreMorale, 10,
-            "Aumenta o dano em +3 por 2 turnos.", CombatEffectType.Buff, 3, 0, 2);
-
-        CreateCard("Investida", HeroClass.Warrior, CardRarity.Epic, 3,
-            "Investida", "Atravessa terreno difÌcil. Pula 2 dias.",
-            JourneyEffectType.Teleport, 2,
-            "15 de dano em um alvo.", CombatEffectType.Damage, 15, 0, 0);
-    }
-
-    void CreateMageCards()
-    {
-        CreateCard("Bola de Fogo", HeroClass.Mage, CardRarity.Common, 3,
-            "Bola de Fogo", "Queima obst·culos. Remove 1 evento de armadilha.",
-            JourneyEffectType.RemoveObstacle, 0,
-            "12 de dano em ·rea.", CombatEffectType.DamageAll, 12, 0, 0);
-
-        CreateCard("Escudo de Gelo", HeroClass.Mage, CardRarity.Common, 2,
-            "Escudo de Gelo", "Protege contra clima extremo por 2 dias.",
-            JourneyEffectType.ProtectFromWeather, 0,
-            "8 de bloqueio para todos aliados.", CombatEffectType.BlockAll, 0, 8, 0);
-
-        CreateCard("Teleporte", HeroClass.Mage, CardRarity.Rare, 3,
-            "Teleporte", "Teletransporta o grupo. Pula 1 dia.",
-            JourneyEffectType.SkipDay, 1,
-            "Evita o prÛximo ataque.", CombatEffectType.None, 0, 0, 0);
-
-        CreateCard("Explos„o Arcana", HeroClass.Mage, CardRarity.Epic, 4,
-            "Explos„o Arcana", "DestrÛi qualquer obst·culo.",
-            JourneyEffectType.RemoveObstacle, 0,
-            "20 de dano em todos inimigos.", CombatEffectType.DamageAll, 20, 0, 0);
-    }
-
-    void CreateHealerCards()
-    {
-        CreateCard("Toque Curativo", HeroClass.Healer, CardRarity.Common, 1,
-            "Toque Curativo", "Cura ferimentos de 1 herÛi.",
-            JourneyEffectType.HealInjury, 0,
-            "Cura 8 HP de um aliado.", CombatEffectType.Heal, 0, 0, 8);
-
-        CreateCard("BÍnÁ„o", HeroClass.Healer, CardRarity.Common, 2,
-            "BÍnÁ„o", "Aumenta o moral do grupo em +10.",
-            JourneyEffectType.RestoreMorale, 10,
-            "Cura 5 HP para todos aliados.", CombatEffectType.HealAll, 0, 0, 5);
-
-        CreateCard("PurificaÁ„o", HeroClass.Healer, CardRarity.Rare, 2,
-            "PurificaÁ„o", "Remove maldiÁıes e doenÁas.",
-            JourneyEffectType.Purify, 0,
-            "Remove todos debuffs de um aliado.", CombatEffectType.None, 0, 0, 0);
-
-        CreateCard("Ressurgir", HeroClass.Healer, CardRarity.Epic, 4,
-            "Ressurgir", "Revive um herÛi morto (1 por jornada).",
-            JourneyEffectType.None, 0,
-            "Revive um aliado com 5 HP.", CombatEffectType.Heal, 0, 0, 5);
-    }
-
-    void CreateHunterCards()
-    {
-        CreateCard("Flecha Precisa", HeroClass.Hunter, CardRarity.Common, 1,
-            "Flecha Precisa", "Atravessa rios e cavernas facilmente.",
-            JourneyEffectType.None, 0,
-            "6 de dano, ignora bloqueio.", CombatEffectType.Damage, 6, 0, 0);
-
-        CreateCard("Armadilha", HeroClass.Hunter, CardRarity.Common, 2,
-            "Armadilha", "Captura comida. Ganha +2 raÁıes.",
-            JourneyEffectType.GainFood, 2,
-            "10 de dano quando inimigo ataca.", CombatEffectType.Damage, 10, 0, 0);
-
-        CreateCard("Olhar de ¡guia", HeroClass.Hunter, CardRarity.Rare, 1,
-            "Olhar de ¡guia", "Revela o prÛximo evento.",
-            JourneyEffectType.RevealNextEvent, 0,
-            "PrÛxima carta d· +50% dano.", CombatEffectType.Buff, 0, 0, 0);
-
-        CreateCard("Flecha Lunar", HeroClass.Hunter, CardRarity.Epic, 3,
-            "Flecha Lunar", "Revela todo o mapa da regi„o.",
-            JourneyEffectType.RevealNextEvent, 0,
-            "20 de dano, ignora bloqueio.", CombatEffectType.ShieldBreak, 20, 0, 0);
-    }
-
-    void CreateCard(string name, HeroClass heroClass, CardRarity rarity, int cost,
-        string cardName, string journeyDesc, JourneyEffectType journeyEffect, int journeyValue,
-        string combatDesc, CombatEffectType combatEffect, int damage, int block, int heal)
-    {
-        CardData card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = name;
-        card.cardDescription = cardName;
-        card.requiredClass = heroClass;
-        card.rarity = rarity;
-        card.energyCost = cost;
-
-        card.journeyEffectDescription = journeyDesc;
-        card.journeyEffect = journeyEffect;
-        card.journeyEffectValue = journeyValue;
-
-        card.combatEffectDescription = combatDesc;
-        card.combatEffect = combatEffect;
-        card.combatDamage = damage;
-        card.combatBlock = block;
-        card.combatHeal = heal;
-
-        string path = $"Assets/Resources/Cards/{heroClass}/{name}.asset";
-
-        if (!System.IO.Directory.Exists($"Assets/Resources/Cards/{heroClass}"))
-            System.IO.Directory.CreateDirectory($"Assets/Resources/Cards/{heroClass}");
-
-        AssetDatabase.CreateAsset(card, path);
         AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log($"Card Creator: {criadas} de {total} cartas gravadas ({total - criadas} preservadas).");
     }
+
+    /// <summary>Grava a carta. Devolve false quando a existente foi preservada.</summary>
+    bool Criar(Definicao def)
+    {
+        string pasta = $"Assets/Resources/Cards/{def.classe}";
+        string caminho = $"{pasta}/{def.nome}.asset";
+
+        bool jaExiste = AssetDatabase.LoadAssetAtPath<CardData>(caminho) != null;
+        if (jaExiste && !sobrescreverExistentes)
+            return false;
+
+        if (!System.IO.Directory.Exists(pasta))
+            System.IO.Directory.CreateDirectory(pasta);
+
+        CardData card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = def.nome;
+        card.cardDescription = def.nome;
+        card.requiredClass = def.classe;
+        card.rarity = def.raridade;
+        card.energyCost = def.custo;
+
+        card.journeyEffect = def.efeitoJornada;
+        card.journeyEffectValue = def.valorJornada;
+        card.journeyEffectDescription = def.descricaoJornada;
+
+        card.combatEffect = def.efeitoCombate;
+        card.combatDamage = def.dano;
+        card.combatBlock = def.bloqueio;
+        card.combatHeal = def.cura;
+        card.combatDuration = def.duracao;
+        card.combatEffectDescription = def.descricaoCombate;
+
+        if (jaExiste)
+            AssetDatabase.DeleteAsset(caminho);
+
+        AssetDatabase.CreateAsset(card, caminho);
+        return true;
+    }
+
+    private struct Definicao
+    {
+        public string nome;
+        public HeroClass classe;
+        public CardRarity raridade;
+        public int custo;
+        public JourneyEffectType efeitoJornada;
+        public int valorJornada;
+        public string descricaoJornada;
+        public CombatEffectType efeitoCombate;
+        public int dano, bloqueio, cura, duracao;
+        public string descricaoCombate;
+    }
+
+    private static Definicao Def(string nome, HeroClass classe, CardRarity raridade, int custo,
+        JourneyEffectType efeitoJornada, int valorJornada, string descricaoJornada,
+        CombatEffectType efeitoCombate, int dano, int bloqueio, int cura, int duracao, string descricaoCombate)
+    {
+        return new Definicao
+        {
+            nome = nome, classe = classe, raridade = raridade, custo = custo,
+            efeitoJornada = efeitoJornada, valorJornada = valorJornada, descricaoJornada = descricaoJornada,
+            efeitoCombate = efeitoCombate, dano = dano, bloqueio = bloqueio, cura = cura, duracao = duracao,
+            descricaoCombate = descricaoCombate
+        };
+    }
+
+    /// <summary>Espelho dos assets em Resources/Cards. Ao ajustar uma carta no
+    /// Inspector, ajustar aqui tamb√©m ‚Äî sen√£o as duas fontes divergem de novo.</summary>
+    private static readonly Definicao[] Definicoes =
+    {
+        // ‚öîÔ∏è Guerreiro
+        Def("Corte Duplo", HeroClass.Warrior, CardRarity.Common, 2,
+            JourneyEffectType.RemoveObstacle, 0, "Corta galhos e abre caminho. Ignora 1 evento de floresta.",
+            CombatEffectType.DamageAll, 8, 0, 0, 0, "8 de dano em 2 inimigos diferentes."),
+
+        Def("Postura Defensiva", HeroClass.Warrior, CardRarity.Common, 2,
+            JourneyEffectType.ProtectFromWeather, 0, "Protege o grupo contra dano por 2 dias.",
+            CombatEffectType.Block, 0, 10, 0, 0, "Ganha 10 de bloqueio."),
+
+        Def("F√∫ria", HeroClass.Warrior, CardRarity.Rare, 1,
+            JourneyEffectType.RestoreMorale, 10, "Aumenta o moral do grupo em +10.",
+            CombatEffectType.Buff, 3, 0, 2, 2, "Aumenta o dano em +3 por 2 turnos."),
+
+        Def("Investida", HeroClass.Warrior, CardRarity.Epic, 3,
+            JourneyEffectType.Teleport, 2, "Atravessa terreno dif√≠cil. Pula 2 dias.",
+            CombatEffectType.Damage, 15, 0, 0, 0, "15 de dano em um alvo."),
+
+        // √önica carta com Intimidate: √© o que permite recusar um combate na
+        // estrada. O efeito existia no JourneyManager sem nenhuma carta que o
+        // produzisse ‚Äî c√≥digo vivo que nunca rodava.
+        Def("Brado de Guerra", HeroClass.Warrior, CardRarity.Rare, 2,
+            JourneyEffectType.Intimidate, 0, "O grito ecoa pelo vale: o pr√≥ximo bando recua sem lutar.",
+            CombatEffectType.BlockAll, 0, 6, 0, 0, "6 de bloqueio para todos os aliados."),
+
+        // üîÆ Mago
+        Def("Bola de Fogo", HeroClass.Mage, CardRarity.Common, 3,
+            JourneyEffectType.RemoveObstacle, 0, "Queima obst√°culos. Remove 1 evento de armadilha.",
+            CombatEffectType.DamageAll, 12, 0, 0, 0, "12 de dano em √°rea."),
+
+        Def("Escudo de Gelo", HeroClass.Mage, CardRarity.Common, 2,
+            JourneyEffectType.ProtectFromWeather, 0, "Protege contra clima extremo por 2 dias.",
+            CombatEffectType.BlockAll, 0, 8, 0, 0, "8 de bloqueio para todos aliados."),
+
+        Def("Teleporte", HeroClass.Mage, CardRarity.Rare, 3,
+            JourneyEffectType.SkipDay, 1, "Teletransporta o grupo. Pula 1 dia.",
+            CombatEffectType.Evade, 0, 0, 0, 0, "Evita o pr√≥ximo ataque."),
+
+        Def("Explos√£o Arcana", HeroClass.Mage, CardRarity.Epic, 4,
+            JourneyEffectType.RemoveObstacle, 0, "Destr√≥i qualquer obst√°culo.",
+            CombatEffectType.DamageAll, 20, 0, 0, 0, "20 de dano em todos inimigos."),
+
+        // ‚öïÔ∏è Curandeiro
+        Def("Toque Curativo", HeroClass.Healer, CardRarity.Common, 1,
+            JourneyEffectType.HealInjury, 0, "Cura ferimentos de 1 her√≥i.",
+            CombatEffectType.Heal, 0, 0, 8, 0, "Cura 8 HP de um aliado."),
+
+        Def("B√™n√ß√£o", HeroClass.Healer, CardRarity.Common, 2,
+            JourneyEffectType.RestoreMorale, 10, "Aumenta o moral do grupo em +10.",
+            CombatEffectType.HealAll, 0, 0, 5, 0, "Cura 5 HP para todos aliados."),
+
+        Def("Purifica√ß√£o", HeroClass.Healer, CardRarity.Rare, 2,
+            JourneyEffectType.Purify, 0, "Remove maldi√ß√µes e doen√ßas.",
+            CombatEffectType.Cleanse, 0, 0, 0, 0, "Remove a afli√ß√£o e alivia o estresse."),
+
+        Def("Ressurgir", HeroClass.Healer, CardRarity.Epic, 4,
+            JourneyEffectType.Revive, 0, "Traz um her√≥i de volta da beira da morte e devolve metade da vida.",
+            CombatEffectType.Heal, 0, 0, 5, 0, "Revive um aliado com 5 HP."),
+
+        // üèπ Ca√ßador
+        Def("Flecha Precisa", HeroClass.Hunter, CardRarity.Common, 1,
+            JourneyEffectType.RemoveObstacle, 0, "Acerta o ponto exato: abre passagem por rios e cavernas.",
+            CombatEffectType.Damage, 6, 0, 0, 0, "6 de dano, ignora bloqueio."),
+
+        Def("Armadilha", HeroClass.Hunter, CardRarity.Common, 2,
+            JourneyEffectType.GainFood, 2, "Captura comida. Ganha +2 ra√ß√µes.",
+            CombatEffectType.Damage, 10, 0, 0, 0, "10 de dano quando inimigo ataca."),
+
+        Def("Olhar de √Åguia", HeroClass.Hunter, CardRarity.Rare, 1,
+            JourneyEffectType.RevealNextEvent, 0, "Revela o pr√≥ximo evento.",
+            CombatEffectType.BuffNextCard, 0, 0, 0, 0, "Pr√≥xima carta d√° +50% dano."),
+
+        Def("Flecha Lunar", HeroClass.Hunter, CardRarity.Epic, 3,
+            JourneyEffectType.RevealNextEvent, 0, "Revela todo o mapa da regi√£o.",
+            CombatEffectType.ShieldBreak, 20, 0, 0, 0, "20 de dano, ignora bloqueio.")
+    };
 }
 #endif

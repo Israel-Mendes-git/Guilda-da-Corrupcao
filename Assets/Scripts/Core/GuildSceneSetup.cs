@@ -81,6 +81,7 @@ public static class GuildSceneSetup
 
         GameObject journeyPanel = BuildJourney(canvas, choiceBtn, mapNode, partyStatus, cardPrefab);
         GameObject combatPanel = BuildCombat(canvas, enemyCard, partyStatus, cardPrefab);
+        BuildJourneyResult(canvas);
         GameObject mapRoomPanel = BuildMapRoom(canvas);
         GameObject marketPanel = BuildMarket(canvas);
         GameObject cemeteryPanel = BuildCemetery(canvas);
@@ -196,6 +197,13 @@ public static class GuildSceneSetup
         var energy = EnsureText(panel.transform, "Txt_Energy", "", 20, new Vector2(0.4f, 0), new Vector2(0.6f, 0), new Vector2(0, 50), new Vector2(0, 82));
         var detourCount = EnsureText(panel.transform, "Txt_Detours", "", 20, new Vector2(0.6f, 0), new Vector2(0.75f, 0), new Vector2(0, 50), new Vector2(0, 82));
 
+        // Baralho, mão e descarte: num deckbuilder, saber quantas cartas restam é
+        // informação de jogo, não enfeite. Os três campos existiam no script e
+        // nunca tinham sido criados na cena, então os contadores não apareciam.
+        var deckCount = EnsureText(panel.transform, "Txt_DeckCount", "", 20, new Vector2(0.75f, 0), new Vector2(0.83f, 0), new Vector2(0, 50), new Vector2(0, 82));
+        var handCount = EnsureText(panel.transform, "Txt_HandCount", "", 20, new Vector2(0.83f, 0), new Vector2(0.91f, 0), new Vector2(0, 50), new Vector2(0, 82));
+        var discardCount = EnsureText(panel.transform, "Txt_DiscardCount", "", 20, new Vector2(0.91f, 0), new Vector2(1f, 0), new Vector2(0, 50), new Vector2(-20, 82));
+
         // Botões
         var abort = EnsureButton(panel.transform, "Btn_Abort", "Abandonar",
             new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 8), new Vector2(200, 36));
@@ -233,6 +241,9 @@ public static class GuildSceneSetup
         jm.torchesText = torches;
         jm.energyText = energy;
         jm.detourCountText = detourCount;
+        jm.deckCountText = deckCount;
+        jm.handCountText = handCount;
+        jm.discardCountText = discardCount;
         jm.abortButton = abort;
         jm.endTurnButton = endTurn;
         jm.detourButton = detour;
@@ -1492,6 +1503,177 @@ public static class GuildSceneSetup
     #endregion
 
     #region Helpers de UI
+
+    #region Balanço da jornada
+
+    /// <summary>
+    /// A tela de volta para casa. Substitui o popup de texto corrido em que
+    /// sobreviventes, perdas, ouro e promoções vinham numa string só.
+    ///
+    /// A linha de herói é um molde inativo dentro do próprio painel, em vez de um
+    /// prefab em disco: o setup não precisa gravar asset novo, e o molde
+    /// acompanha o painel se alguém mover a hierarquia.
+    /// </summary>
+    static GameObject BuildJourneyResult(Canvas canvas)
+    {
+        GameObject panel = FindOrCreatePanel(canvas, "Panel_JourneyResult");
+
+        var titulo = EnsureText(panel.transform, "Txt_Title", "", 40,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(40, -110), new Vector2(-40, -40));
+        titulo.alignment = TextAlignmentOptions.Center;
+
+        var subtitulo = EnsureText(panel.transform, "Txt_Subtitle", "", 22,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(40, -152), new Vector2(-40, -112));
+        subtitulo.alignment = TextAlignmentOptions.Center;
+        subtitulo.color = SubtleTextColor;
+
+        // Coluna dos heróis: é o corpo da tela, então fica com a maior faixa.
+        var herois = EnsureColumn(panel.transform, "HeroList",
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(60, 400), new Vector2(-60, -170), 10);
+
+        var layout = herois.GetComponent<VerticalLayoutGroup>();
+        if (layout != null)
+        {
+            layout.childControlHeight = false;
+            layout.childForceExpandHeight = false;
+            layout.childControlWidth = true;
+            layout.childForceExpandWidth = true;
+        }
+
+        var recompensa = EnsureText(panel.transform, "Txt_Reward", "", 20,
+            new Vector2(0, 0), new Vector2(0.42f, 0), new Vector2(60, 110), new Vector2(0, 390));
+        recompensa.alignment = TextAlignmentOptions.TopLeft;
+
+        // Escolha do despojo: coluna à direita, ao lado do que a missão pagou —
+        // é a comparação que dá sentido à decisão.
+        var convite = EnsureText(panel.transform, "Txt_RewardPrompt", "", 20,
+            new Vector2(0.45f, 0), new Vector2(1, 0), new Vector2(0, 350), new Vector2(-60, 390));
+        convite.color = SubtleTextColor;
+
+        var escolhas = EnsureColumn(panel.transform, "RewardChoices",
+            new Vector2(0.45f, 0), new Vector2(1, 0), new Vector2(0, 110), new Vector2(-60, 344), 8);
+
+        var escolhasLayout = escolhas.GetComponent<VerticalLayoutGroup>();
+        if (escolhasLayout != null)
+        {
+            escolhasLayout.childControlHeight = false;
+            escolhasLayout.childForceExpandHeight = false;
+            escolhasLayout.childControlWidth = true;
+            escolhasLayout.childForceExpandWidth = true;
+        }
+
+        var continuar = EnsureButton(panel.transform, "Btn_Continue", "Voltar à guilda",
+            new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-140, 40), new Vector2(140, 92));
+
+        GameObject molde = EnsureHeroLineTemplate(panel.transform);
+        GameObject moldeRecompensa = EnsureRewardTemplate(panel.transform);
+
+        JourneyResultUI ui = panel.GetComponent<JourneyResultUI>();
+        if (ui == null) ui = panel.AddComponent<JourneyResultUI>();
+
+        Undo.RecordObject(ui, "Montar Cena");
+        ui.panel = panel;
+        ui.titleText = titulo;
+        ui.subtitleText = subtitulo;
+        ui.heroContainer = herois.transform;
+        ui.heroLinePrefab = molde;
+        ui.rewardText = recompensa;
+        ui.rewardPromptText = convite;
+        ui.rewardContainer = escolhas.transform;
+        ui.rewardButtonPrefab = moldeRecompensa;
+        ui.continueButton = continuar;
+        EditorUtility.SetDirty(ui);
+
+        panel.SetActive(false);
+        return panel;
+    }
+
+    /// <summary>Molde de uma linha de herói: nome, estado, XP e barra.</summary>
+    static GameObject EnsureHeroLineTemplate(Transform parent)
+    {
+        Transform existente = parent.Find("HeroLineTemplate");
+        if (existente != null) return existente.gameObject;
+
+        var go = new GameObject("HeroLineTemplate", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        Undo.RegisterCreatedObjectUndo(go, "Criar molde de linha");
+        go.transform.SetParent(parent, false);
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0, 92);
+        go.GetComponent<Image>().color = BoxColor;
+
+        var elemento = go.AddComponent<LayoutElement>();
+        elemento.minHeight = 92;
+        elemento.preferredHeight = 92;
+
+        EnsureText(go.transform, "Name", "", 24,
+            new Vector2(0, 1), new Vector2(0.55f, 1), new Vector2(16, -40), new Vector2(0, -8));
+
+        var estado = EnsureText(go.transform, "Status", "", 18,
+            new Vector2(0, 0), new Vector2(0.55f, 0), new Vector2(16, 10), new Vector2(0, 44));
+        estado.color = SubtleTextColor;
+
+        var xp = EnsureText(go.transform, "Xp", "", 18,
+            new Vector2(0.55f, 1), new Vector2(1, 1), new Vector2(0, -40), new Vector2(-16, -8));
+        xp.alignment = TextAlignmentOptions.Right;
+
+        // Barra de XP: trilho escuro com preenchimento por cima.
+        var trilho = new GameObject("XpBar", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        trilho.transform.SetParent(go.transform, false);
+        ApplyRect(trilho.GetComponent<RectTransform>(),
+            new Vector2(0.55f, 0), new Vector2(1, 0), new Vector2(0, 18), new Vector2(-16, 34));
+        trilho.GetComponent<Image>().color = TrackColor;
+
+        var preenchimento = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        preenchimento.transform.SetParent(trilho.transform, false);
+        ApplyRect(preenchimento.GetComponent<RectTransform>(),
+            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+        var img = preenchimento.GetComponent<Image>();
+        img.color = new Color(0.62f, 0.55f, 0.30f);
+        img.type = Image.Type.Filled;
+        img.fillMethod = Image.FillMethod.Horizontal;
+        img.fillAmount = 0f;
+
+        // O molde não aparece: ele só é clonado.
+        go.SetActive(false);
+        return go;
+    }
+
+    /// <summary>Molde de uma opção de despojo: título em cima, descrição embaixo.</summary>
+    static GameObject EnsureRewardTemplate(Transform parent)
+    {
+        Transform existente = parent.Find("RewardTemplate");
+        if (existente != null) return existente.gameObject;
+
+        var go = new GameObject("RewardTemplate", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        Undo.RegisterCreatedObjectUndo(go, "Criar molde de recompensa");
+        go.transform.SetParent(parent, false);
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0, 72);
+        go.GetComponent<Image>().color = ButtonColor;
+
+        var elemento = go.AddComponent<LayoutElement>();
+        elemento.minHeight = 72;
+        elemento.preferredHeight = 72;
+
+        var botao = go.AddComponent<Button>();
+        botao.targetGraphic = go.GetComponent<Image>();
+
+        var titulo = EnsureText(go.transform, "Title", "", 20,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -38), new Vector2(-16, -8));
+        titulo.color = ButtonLabelColor;
+
+        var descricao = EnsureText(go.transform, "Desc", "", 15,
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(16, 10), new Vector2(-16, 38));
+        descricao.color = SubtleTextColor;
+
+        go.SetActive(false);
+        return go;
+    }
+
+    #endregion
 
     static GameObject FindOrCreatePanel(Canvas canvas, string name)
     {

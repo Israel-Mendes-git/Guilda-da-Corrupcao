@@ -4,7 +4,22 @@ public static class HeroFactory
 {
     static string[] firstNames = { "Gromm", "Lyra", "Finn", "Elara", "Thorn", "Mira", "Kael", "Sera", "Bjorn", "Luna" };
     static string[] lastNames = { "Ferro", "Stella", "Vento", "Pedra", "Sombra", "Luz", "Gelo", "Fogo" };
-    static string[] traits = { "Sortudo", "Valente", "Teimoso", "R�pido", "Fort�o", "�gil" };
+
+    /// <summary>
+    /// HP máximo por classe e nível. Vive aqui porque a criação do herói e a
+    /// subida de nível precisam da mesma conta — duas cópias divergiriam na
+    /// primeira vez que alguém ajustasse o valor de uma classe.
+    /// </summary>
+    public static int MaxHpFor(HeroClass heroClass, int level)
+    {
+        int bonusDaClasse = heroClass == HeroClass.Warrior ? 10
+                          : heroClass == HeroClass.Mage ? -5
+                          : 0;
+        return 20 + (level * 4) + bonusDaClasse;
+    }
+
+    /// <summary>Custo de recrutamento e referência de valor do herói.</summary>
+    public static int SalaryFor(int level) => 20 + (level * 10);
 
     public static HeroData CreateHero(string name, HeroClass heroClass, int level)
     {
@@ -13,9 +28,9 @@ public static class HeroFactory
         hero.heroName = name;
         hero.heroClass = heroClass;
         hero.level = level;
-        hero.maxHp = 20 + (level * 4) + (heroClass == HeroClass.Warrior ? 10 : heroClass == HeroClass.Mage ? -5 : 0);
+        hero.maxHp = MaxHpFor(heroClass, level);
         hero.currentHp = hero.maxHp;
-        hero.salary = 20 + (level * 10);
+        hero.salary = SalaryFor(level);
         hero.personality = (Personality)Random.Range(0, System.Enum.GetValues(typeof(Personality)).Length);
         hero.trait = (Trait)Random.Range(0, System.Enum.GetValues(typeof(Trait)).Length);
         hero.loyalty = Random.Range(40, 85);
@@ -23,6 +38,7 @@ public static class HeroFactory
         hero.isInjured = false;
         hero.isDead = false;
         hero.corruptionExposure = 0;
+        hero.ResetXpParaNivel();
 
         return hero;
     }

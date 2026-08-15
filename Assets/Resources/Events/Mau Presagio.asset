@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Mau Presagio
-  m_EditorClassIdentifier:
-  eventTitle: '🐦 Mau Presságio'
-  description: 'Corvos acompanham o grupo desde o amanhecer. Um deles pousa perto demais e não foge quando gritam com ele.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F426 Mau Press\xE1gio"
+  description: "Corvos acompanham o grupo desde o amanhecer. Um deles pousa perto
+    demais e n\xE3o foge quando gritam com ele."
   eventImage: {fileID: 0}
   biome: 0
   minCorruptionToAppear: 25
   minDay: 2
   outcomes:
-  - optionText: '🏹 Abater a ave e seguir em silêncio'
+  - optionText: "\U0001F3F9 Abater a ave e seguir em sil\xEAncio"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -29,7 +30,14 @@ MonoBehaviour:
         moraleChange: -6
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '🙏 Fazer uma oferenda ao que quer que observe'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F64F Fazer uma oferenda ao que quer que observe"
     consequences:
       goldChange: -25
       reputationChange: 0
@@ -39,7 +47,14 @@ MonoBehaviour:
         moraleChange: 15
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '👁️ Ignorar o agouro'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F441\uFE0F Ignorar o agouro"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -47,5 +62,29 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 1
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F52E Ler o press\xE1gio e saber o que vem"
+    consequences:
+      goldChange: 0
+      reputationChange: 5
+      heroEffects: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 5
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 6
   isBossEvent: 0

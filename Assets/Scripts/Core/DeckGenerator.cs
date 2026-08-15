@@ -24,17 +24,6 @@ public static class DeckGenerator
         }
 
         isLoaded = true;
-        Debug.Log($"Carregadas {allCards.Length} cartas");
-
-        // Log para debug - mostra cartas carregadas por classe
-        foreach (var kvp in cardCache)
-        {
-            Debug.Log($"Classe {kvp.Key}: {kvp.Value.Count} cartas");
-            foreach (var card in kvp.Value)
-            {
-                Debug.Log($"  - {card.cardName} (Raridade: {card.rarity})");
-            }
-        }
     }
 
     public static DeckData GenerateDeckForHero(HeroData hero)
@@ -48,11 +37,9 @@ public static class DeckGenerator
 
         List<CardData> availableCards = GetCardsForClass(hero.heroClass);
 
-        Debug.Log($"Gerando deck para {hero.heroName} (Classe: {hero.heroClass}). Cartas disponíveis: {availableCards.Count}");
-
         if (availableCards.Count == 0)
         {
-            Debug.LogWarning($"Nenhuma carta encontrada para {hero.heroClass}. Criando deck padrão.");
+            Debug.LogWarning($"Nenhuma carta encontrada para {hero.heroClass}. Criando deck padrÃ£o.");
             return CreateDefaultDeck(hero);
         }
 
@@ -64,15 +51,11 @@ public static class DeckGenerator
         List<CardData> epicCards = availableCards.FindAll(c => c.rarity == CardRarity.Epic);
         List<CardData> legendaryCards = availableCards.FindAll(c => c.rarity == CardRarity.Legendary);
 
-        Debug.Log($"Cartas disponíveis - Common: {commonCards.Count}, Rare: {rareCards.Count}, Epic: {epicCards.Count}, Legendary: {legendaryCards.Count}");
-
         // Adiciona cartas comuns
         int commonCount = Mathf.Min(deckSize - 2, commonCards.Count);
         for (int i = 0; i < commonCount && commonCards.Count > 0; i++)
         {
-            CardData card = commonCards[Random.Range(0, commonCards.Count)];
-            deck.cards.Add(card);
-            Debug.Log($"Adicionou carta comum: {card.cardName}");
+            deck.cards.Add(commonCards[Random.Range(0, commonCards.Count)]);
         }
 
         // Adiciona cartas raras
@@ -81,39 +64,26 @@ public static class DeckGenerator
         {
             CardData card = rareCards[Random.Range(0, rareCards.Count)];
             if (!deck.cards.Contains(card))
-            {
                 deck.cards.Add(card);
-                Debug.Log($"Adicionou carta rara: {card.cardName}");
-            }
         }
 
-        // Adiciona carta épica
+        // Adiciona carta Ã©pica
         if (hero.level >= 3 && epicCards.Count > 0)
-        {
-            CardData epicCard = epicCards[Random.Range(0, epicCards.Count)];
-            deck.cards.Add(epicCard);
-            Debug.Log($"Adicionou carta épica: {epicCard.cardName}");
-        }
+            deck.cards.Add(epicCards[Random.Range(0, epicCards.Count)]);
 
-        // Adiciona carta lendária
+        // Adiciona carta lendÃ¡ria
         if (hero.level >= 5 && legendaryCards.Count > 0)
-        {
-            CardData legendaryCard = legendaryCards[Random.Range(0, legendaryCards.Count)];
-            deck.cards.Add(legendaryCard);
-            Debug.Log($"Adicionou carta lendária: {legendaryCard.cardName}");
-        }
+            deck.cards.Add(legendaryCards[Random.Range(0, legendaryCards.Count)]);
 
-        // Garante tamanho mínimo
+        // Garante tamanho mÃ­nimo
         while (deck.cards.Count < deckSize && commonCards.Count > 0)
         {
             deck.cards.Add(commonCards[Random.Range(0, commonCards.Count)]);
         }
 
-        // Garante tamanho máximo
+        // Garante tamanho mÃ¡ximo
         while (deck.cards.Count > 12)
             deck.cards.RemoveAt(deck.cards.Count - 1);
-
-        Debug.Log($"Deck final para {hero.heroName}: {deck.cards.Count} cartas");
 
         return deck;
     }
@@ -132,19 +102,19 @@ public static class DeckGenerator
         deck.owner = hero;
         deck.cards = new List<CardData>();
 
-        // Cria cartas padrão
+        // Cria cartas padrÃ£o
         for (int i = 0; i < 8; i++)
         {
             CardData defaultCard = ScriptableObject.CreateInstance<CardData>();
             defaultCard.cardName = GetDefaultCardName(hero.heroClass);
-            defaultCard.cardDescription = $"Ataque básico de {GetClassName(hero.heroClass)}";
+            defaultCard.cardDescription = $"Ataque bÃ¡sico de {GetClassName(hero.heroClass)}";
             defaultCard.requiredClass = hero.heroClass;
             defaultCard.rarity = CardRarity.Common;
             defaultCard.energyCost = 2;
             defaultCard.combatDamage = 8;
-            defaultCard.journeyEffect = JourneyEffectType.None;
+            defaultCard.journeyEffect = JourneyEffectType.RemoveObstacle;
             defaultCard.combatEffect = CombatEffectType.Damage;
-            defaultCard.journeyEffectDescription = "Ação básica na jornada";
+            defaultCard.journeyEffectDescription = "Abre caminho na jornada";
             defaultCard.combatEffectDescription = $"{defaultCard.combatDamage} de dano";
 
             deck.cards.Add(defaultCard);
@@ -158,9 +128,9 @@ public static class DeckGenerator
         switch (heroClass)
         {
             case HeroClass.Warrior: return "Ataque de Espada";
-            case HeroClass.Mage: return "Centelha Mágica";
+            case HeroClass.Mage: return "Centelha MÃ¡gica";
             case HeroClass.Healer: return "Toque Curativo";
-            case HeroClass.Hunter: return "Flecha Básica";
+            case HeroClass.Hunter: return "Flecha BÃ¡sica";
             default: return "Ataque";
         }
     }
@@ -172,8 +142,8 @@ public static class DeckGenerator
             case HeroClass.Warrior: return "Guerreiro";
             case HeroClass.Mage: return "Mago";
             case HeroClass.Healer: return "Curandeiro";
-            case HeroClass.Hunter: return "Caçador";
-            default: return "Herói";
+            case HeroClass.Hunter: return "CaÃ§ador";
+            default: return "HerÃ³i";
         }
     }
 }

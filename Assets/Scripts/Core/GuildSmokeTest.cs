@@ -154,6 +154,66 @@ public static class GuildSmokeTest
               $"toda carta faz algo em combate (inertes: {inertes.Count}"
               + (inertes.Count > 0 ? $" — {string.Join(", ", inertes.Select(c => c.cardName))}" : "")
               + ")");
+
+        // A mesma trava do outro lado do jogo. Ela não existia, e por isso
+        // Ressurgir (⚡4) e Flecha Precisa passaram meses cobrando energia na
+        // estrada sem fazer nada — o mesmo bug já corrigido no combate.
+        var inertesNaEstrada = cards.Where(c => c.journeyEffect == JourneyEffectType.None).ToList();
+        Check(inertesNaEstrada.Count == 0,
+              $"toda carta faz algo na jornada (inertes: {inertesNaEstrada.Count}"
+              + (inertesNaEstrada.Count > 0
+                    ? $" — {string.Join(", ", inertesNaEstrada.Select(c => c.cardName))}"
+                    : "")
+              + ")");
+
+        // Efeito sem nenhuma carta é espaço de design vazio, não defeito: fica
+        // como aviso para orientar a próxima leva de conteúdo.
+        var comCarta = new HashSet<JourneyEffectType>(cards.Select(c => c.journeyEffect));
+        var semCarta = System.Enum.GetValues(typeof(JourneyEffectType))
+                                  .Cast<JourneyEffectType>()
+                                  .Where(e => e != JourneyEffectType.None && !comCarta.Contains(e))
+                                  .ToList();
+
+        Info(semCarta.Count == 0
+            ? "todo efeito de jornada tem ao menos uma carta"
+            : $"efeitos de jornada sem carta nenhuma: {string.Join(", ", semCarta)}");
+
+        var comCartaCombate = new HashSet<CombatEffectType>(cards.Select(c => c.combatEffect));
+        var semCartaCombate = implementados.Where(e => !comCartaCombate.Contains(e)).ToList();
+
+        Info(semCartaCombate.Count == 0
+            ? "todo efeito de combate tem ao menos uma carta"
+            : $"efeitos de combate implementados e sem carta: {string.Join(", ", semCartaCombate)}");
+
+        // Uma opção que exige um efeito sem carta é um caminho que o jogador vê
+        // e nunca pode tomar — pior que não existir, porque promete.
+        var exigidos = events
+            .Where(e => e.outcomes != null)
+            .SelectMany(e => e.outcomes)
+            .Where(o => o != null && o.RequiresCard)
+            .Select(o => o.requiredEffect)
+            .Distinct()
+            .ToList();
+
+        var impossiveis = exigidos.Where(e => !comCarta.Contains(e)).ToList();
+        Check(impossiveis.Count == 0,
+              $"todo requisito de carta dos eventos é satisfazível (impossíveis: {impossiveis.Count}"
+              + (impossiveis.Count > 0 ? $" — {string.Join(", ", impossiveis)}" : "")
+              + ")");
+
+        int comRequisito = events.Count(e => e.outcomes != null && e.outcomes.Any(o => o != null && o.RequiresCard));
+        Info($"eventos com caminho que exige carta: {comRequisito} de {events.Length}");
+
+        // Um evento em que TODAS as opções exigem carta pode travar a jornada.
+        var semSaidaLivre = events
+            .Where(e => e.outcomes != null && e.outcomes.Length > 0
+                     && e.outcomes.All(o => o != null && o.RequiresCard))
+            .ToList();
+
+        Check(semSaidaLivre.Count == 0,
+              $"todo evento tem ao menos uma saída sem exigir carta (sem saída: {semSaidaLivre.Count}"
+              + (semSaidaLivre.Count > 0 ? $" — {string.Join(", ", semSaidaLivre.Select(e => e.eventTitle))}" : "")
+              + ")");
     }
 
     static void TestBiomeMatching()
@@ -276,23 +336,240 @@ public static class GuildSmokeTest
     /// <summary>Espelha JourneyManager.darknessStress; as duas devem andar juntas.</summary>
     const float DarknessStress = 5f;
 
+    /// <summary>
+    /// Energia e mão do combate, lidas da instância da cena — que é onde o valor
+    /// de verdade mora, já que são campos serializados.
+    ///
+    /// <c>OverrideEnergiaDeCombate</c> existe só para a varredura de parâmetros:
+    /// permite medir "e se a energia fosse 4?" sem tocar na cena.
+    /// </summary>
+    public static int? OverrideEnergiaDeCombate;
+    public static int? OverrideCartasPorTurno;
+
+    static CombatManager CombateDaCena =>
+        Object.FindObjectOfType<CombatManager>(true);
+
+    static int EnergiaDeCombate
+    {
+        get
+        {
+            if (OverrideEnergiaDeCombate.HasValue) return OverrideEnergiaDeCombate.Value;
+            var cm = CombateDaCena;
+            return cm != null ? cm.baseEnergy : 3;
+        }
+    }
+
+    static int CartasPorTurno
+    {
+        get
+        {
+            if (OverrideCartasPorTurno.HasValue) return OverrideCartasPorTurno.Value;
+            var cm = CombateDaCena;
+            return cm != null ? cm.cardsPerTurn : 5;
+        }
+    }
+
+    /// <summary>
+    /// Varre energia × tamanho de mão de uma vez. Com uma variável só a curva
+    /// satura perto de 0,8 mortes por jornada e some a impressão de que o
+    /// problema acabou — é preciso ver as duas juntas.
+    /// </summary>
+    public static string VarrerCombate(int[] energias, int[] maos, int runs)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("energia | mão | mortes/jornada | chefe | estrada | sobrev.");
+
+        int? energiaOriginal = OverrideEnergiaDeCombate;
+        int? maoOriginal = OverrideCartasPorTurno;
+
+        try
+        {
+            foreach (int energia in energias)
+            foreach (int mao in maos)
+            {
+                OverrideEnergiaDeCombate = energia;
+                OverrideCartasPorTurno = mao;
+
+                JourneyStats s = RodarJornadas(runs);
+                sb.AppendLine($"   {energia}    |  {mao}  |      {s.mortesPorJornada:F2}      "
+                            + $"| {s.mortesNoChefe:F2}  |  {s.mortesNaEstrada:F2}   | {s.sobrevivencia:P0}");
+            }
+        }
+        finally
+        {
+            OverrideEnergiaDeCombate = energiaOriginal;
+            OverrideCartasPorTurno = maoOriginal;
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Simula jornadas inteiras: eventos, cartas jogadas pelo jogador, combates
+    /// do caminho e desgaste da estrada.
+    ///
+    /// Duas correções sobre a versão anterior, ambas medidas em 14/08:
+    ///
+    /// 1. **Ela não travava os combates.** Eventos de combate e o chefe eram
+    ///    resolvidos pelo texto, e a luta ficava só em SimulateCombats, à parte.
+    ///    Como o combate é onde o grupo mais perde HP (87 contra 40 numa run de
+    ///    Play Mode), a jornada saía muito mais leve do que é.
+    /// 2. **Ela jogava sem cartas.** O jogador real gasta energia antes de
+    ///    decidir e reduz o desfecho em até 75%; o simulador entrava com 0 de
+    ///    mitigação, o que puxava a letalidade para cima.
+    ///
+    /// Os dois erros se cancelavam parcialmente, e o número resultante — 0,54
+    /// mortes por jornada — não media nem um jogo nem o outro.
+    /// </summary>
+    /// <summary>O que uma leva de jornadas simuladas produziu.</summary>
+    public struct JourneyStats
+    {
+        public float mortesPorJornada;
+        public float mortesNoChefe;
+        public float mortesEmCombateComum;
+        public float mortesNaEstrada;
+        public float cartasJogadas;
+        public float combates;
+        public float sobrevivencia;
+        public float duracaoMedia;
+        public float aflicoes;
+    }
+
     static void SimulateJourneys(int runs)
+    {
+        JourneyStats s = RodarJornadas(runs);
+
+        Info($"{runs} jornadas: {s.sobrevivencia:P1} de sobrevivência");
+        Info($"duração média: {s.duracaoMedia:F1} dias");
+        Info($"combates travados: {s.combates:F2} por jornada"
+           + $" | cartas jogadas na estrada: {s.cartasJogadas:F2} por jornada");
+        Info($"origem das mortes por jornada — chefe: {s.mortesNoChefe:F2}"
+           + $" | encontro do caminho: {s.mortesEmCombateComum:F2}"
+           + $" | estrada (fome, eventos): {s.mortesNaEstrada:F2}");
+        Info($"heróis que sucumbiram ao estresse: {s.aflicoes:P0}");
+        Info($"mortes por jornada: {s.mortesPorJornada:F2} (alvo {MortesPorJornadaMin:F2}–{MortesPorJornadaMax:F2})");
+
+        // O KPI é a letalidade, não a sobrevivência: "punitivo" tem piso e teto.
+        // Ficar abaixo do piso é tão fora do alvo quanto passar do teto.
+        Expect(s.mortesPorJornada >= MortesPorJornadaMin && s.mortesPorJornada <= MortesPorJornadaMax,
+            $"letalidade {s.mortesPorJornada:F2} mortes/jornada dentro do alvo punitivo "
+            + $"({MortesPorJornadaMin:F2}–{MortesPorJornadaMax:F2}), jornada inteira: "
+            + "eventos, cartas e combates");
+
+        Check(s.mortesPorJornada > 0f, "heróis realmente podem morrer");
+    }
+
+    /// <summary>
+    /// Varredura de parâmetro: mede a letalidade da jornada para cada valor de
+    /// energia de combate, sem tocar na cena. Serve para escolher o número antes
+    /// de gravá-lo, em vez de gravar e torcer.
+    /// </summary>
+    public static string VarrerEnergiaDeCombate(int[] valores, int runs)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"energia | mortes/jornada | chefe | estrada | sobrev. | cartas/jornada");
+
+        int? original = OverrideEnergiaDeCombate;
+        try
+        {
+            foreach (int energia in valores)
+            {
+                OverrideEnergiaDeCombate = energia;
+                JourneyStats s = RodarJornadas(runs);
+                sb.AppendLine($"   {energia}    |     {s.mortesPorJornada:F2}      "
+                            + $"| {s.mortesNoChefe:F2}  |  {s.mortesNaEstrada:F2}   "
+                            + $"| {s.sobrevivencia:P0}    | {s.cartasJogadas:F2}");
+            }
+        }
+        finally
+        {
+            OverrideEnergiaDeCombate = original;
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Varre a força do chefe olhando os DOIS alvos ao mesmo tempo: a letalidade
+    /// da jornada e a taxa de vitória no combate.
+    ///
+    /// Otimizar um sem ver o outro foi como se chegou aqui — dar energia ao
+    /// jogador trouxe a letalidade para dentro da faixa, mas transformou o chefe
+    /// numa formalidade de 93% de vitória.
+    /// </summary>
+    public static string VarrerEscalaDeChefe(float[] escalas, int runs)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("escala | mortes/jornada | chefe | estrada | vitória do chefe (desgastada)");
+
+        float original = EscalaDeChefe;
+        try
+        {
+            foreach (float escala in escalas)
+            {
+                EscalaDeChefe = escala;
+
+                JourneyStats s = RodarJornadas(runs);
+                float vitoria = MedirVitoriaDeChefe(runs, 0.5f, 50f);
+
+                sb.AppendLine($" {escala:F2}  |      {s.mortesPorJornada:F2}      | {s.mortesNoChefe:F2}  "
+                            + $"|  {s.mortesNaEstrada:F2}   |  {vitoria:P0}");
+            }
+        }
+        finally
+        {
+            EscalaDeChefe = original;
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>Taxa de vitória contra chefes, sem escrever no relatório —
+    /// serve às varreduras, que rodam fora do Run().</summary>
+    static float MedirVitoriaDeChefe(int runs, float hpPerdidoFrac, float estresse)
+    {
+        var grupos = new List<SimParty>();
+        for (int i = 0; i < 10; i++) grupos.Add(SimParty.Create());
+
+        int vitorias = 0;
+        for (int r = 0; r < runs; r++)
+        {
+            SimParty grupo = grupos[r % grupos.Count];
+            grupo.Reset(hpPerdidoFrac, estresse);
+
+            var lineup = EnemyPool.GetLineup(BiomeType.Forest, true, 5);
+            if (SimulateOneCombat(grupo.heroes, grupo.ownership, grupo.deck, lineup).vitoria)
+                vitorias++;
+        }
+
+        foreach (var g in grupos) g.Dispose();
+        return vitorias / (float)runs;
+    }
+
+    static JourneyStats RodarJornadas(int runs)
     {
         int totalHerois = 0, sobreviventes = 0, mortos = 0;
         int totalAflicoes = 0;
+        int combatesTravados = 0, cartasJogadas = 0;
         var duracoes = new List<int>();
+
+        // De onde vêm as mortes. Sem separar, "2,40 mortes por jornada" não diz
+        // se o culpado é o chefe, o encontro do caminho ou a fome — e as três
+        // causas pedem correções opostas.
+        int mortesEmCombateComum = 0, mortesNoChefe = 0, mortesNaEstrada = 0;
+
+        // Grupos reciclados, como em SimulateCombats: recriar a party a cada run
+        // geraria milhares de decks e travaria o Editor por minutos.
+        var grupos = new List<SimParty>();
+        for (int i = 0; i < 25; i++) grupos.Add(SimParty.Create());
 
         for (int r = 0; r < runs; r++)
         {
             QuestData quest = QuestGenerator.GenerateQuests(1, 3)[0];
 
-            var party = new List<HeroData>
-            {
-                HeroFactory.CreateHero("A", HeroClass.Warrior, 3),
-                HeroFactory.CreateHero("B", HeroClass.Mage, 2),
-                HeroFactory.CreateHero("C", HeroClass.Healer, 2),
-                HeroFactory.CreateHero("D", HeroClass.Hunter, 1)
-            };
+            SimParty grupo = grupos[r % grupos.Count];
+            grupo.Reset(0f, 0f);
+            List<HeroData> party = grupo.heroes;
             totalHerois += party.Count;
 
             int dias = quest.GetActualDuration();
@@ -307,6 +584,12 @@ public static class GuildSmokeTest
 
             EventPool.ResetHistory();
 
+            // Baralho da jornada, com as mesmas regras de mão do JourneyManager.
+            var mao = new SimHand(grupo.deck, 5, 7);
+            int energia = EnergiaInicialDaJornada;
+            int protecaoClima = 0;
+            bool evitarProximoCombate = false;
+
             for (int dia = 1; dia <= dias + 1 && party.Any(h => h.IsAlive); dia++)
             {
                 bool ehChefe = dia == dias + 1;
@@ -314,17 +597,91 @@ public static class GuildSmokeTest
                     ? EventPool.GetFinalEvent(quest.biomeType)
                     : EventPool.GetRandomEvent(quest.biomeType, quest.corruptionLevel, dia);
 
-                if (ev?.outcomes == null || ev.outcomes.Length == 0) continue;
+                if (ev == null) continue;
 
-                // Jogador neutro: escolhe ao acaso, sem mitigação por cartas.
-                EventOutcome escolha = ev.outcomes[Random.Range(0, ev.outcomes.Length)];
-                EventResolver.Resolve(escolha, party, 0f);
+                int diasGastos = 1;
+
+                bool ehCombate = ev.eventType == JourneyEventType.Combat || ev.isBossEvent;
+                if (ehCombate && !(evitarProximoCombate && !ev.isBossEvent))
+                {
+                    // O caminho que o jogo quer premiar: resolver na mesa.
+                    var lineup = EnemyPool.GetLineup(quest.biomeType, ev.isBossEvent, dia);
+
+                    int vivosAntes = party.Count(h => h.IsAlive);
+                    SimulateOneCombat(party, grupo.ownership, grupo.deck, lineup);
+                    int caidos = vivosAntes - party.Count(h => h.IsAlive);
+
+                    if (ev.isBossEvent) mortesNoChefe += caidos;
+                    else mortesEmCombateComum += caidos;
+
+                    combatesTravados++;
+                }
+                else if (ehCombate)
+                {
+                    // Intimidação gastou-se aqui: não há luta neste trecho.
+                    evitarProximoCombate = false;
+                }
+                else
+                {
+                    if (ev.outcomes == null || ev.outcomes.Length == 0) continue;
+
+                    // O jogador prepara o trecho com cartas antes de decidir.
+                    float mitigacao = 0f;
+                    var efeitosJogados = new HashSet<JourneyEffectType>();
+
+                    foreach (CardData carta in mao.EscolherPreparo(energia, ev))
+                    {
+                        energia -= carta.energyCost;
+                        mitigacao = Mathf.Min(JourneyManager.MaxMitigationValue,
+                                              mitigacao + JourneyManager.GetMitigationFor(carta));
+                        AplicarEfeitoDeEstrada(carta, party, ref racoes, ref protecaoClima,
+                                               ref evitarProximoCombate);
+                        efeitosJogados.Add(carta.journeyEffect);
+                        mao.Descartar(carta);
+                        cartasJogadas++;
+                    }
+
+                    // Opção travada não entra no sorteio: sem a carta exigida,
+                    // aquele caminho não existe para o jogador.
+                    var disponiveis = ev.outcomes
+                        .Where(o => !o.RequiresCard || efeitosJogados.Contains(o.requiredEffect))
+                        .ToList();
+
+                    if (disponiveis.Count == 0) disponiveis.Add(ev.outcomes[0]);
+
+                    EventOutcome escolha = disponiveis[Random.Range(0, disponiveis.Count)];
+
+                    // Carta certa também melhora o desfecho, quando o evento define isso.
+                    if (escolha.RequiresCard && escolha.empoweredConsequences != null
+                        && efeitosJogados.Contains(escolha.requiredEffect))
+                    {
+                        escolha = new EventOutcome
+                        {
+                            optionText = escolha.optionText,
+                            consequences = escolha.empoweredConsequences,
+                            extraDays = escolha.extraDays,
+                            triggersCorruption = escolha.triggersCorruption
+                        };
+                    }
+
+                    EventResolver.Resolve(escolha, party, mitigacao);
+                    diasGastos += escolha.extraDays;
+                }
 
                 // Manutenção diária, igual à do JourneyManager.
-                int diasGastos = 1 + escolha.extraDays;
                 for (int d = 0; d < diasGastos; d++)
                 {
                     racoes--;
+                    tochas--;
+
+                    if (protecaoClima > 0)
+                    {
+                        protecaoClima--;
+                        racoes = Mathf.Max(0, racoes);
+                        tochas = Mathf.Max(0, tochas);
+                        continue;
+                    }
+
                     if (racoes <= 0)
                     {
                         racoes = 0;
@@ -332,7 +689,6 @@ public static class GuildSmokeTest
                             EventResolver.DealDamage(h, 5, party, new EventResolver.Resolution());
                     }
 
-                    tochas--;
                     if (tochas <= 0)
                     {
                         tochas = 0;
@@ -348,39 +704,211 @@ public static class GuildSmokeTest
                 else sobreviventes++;
 
                 if (MentalStateUtil.IsAffliction(h.mentalState)) totalAflicoes++;
-                Object.DestroyImmediate(h);
             }
 
             Object.DestroyImmediate(quest);
         }
 
-        float taxa = sobreviventes / (float)totalHerois;
-        float mortesPorJornada = mortos / (float)runs;
+        foreach (var g in grupos) g.Dispose();
 
-        Info($"{runs} jornadas, {totalHerois} heróis: {sobreviventes} vivos, {mortos} mortos");
-        Info($"duração média: {duracoes.Average():F1} dias");
-        Info($"heróis que sucumbiram ao estresse: {totalAflicoes} ({totalAflicoes / (float)totalHerois:P0})");
-        Info($"mortes por jornada: {mortesPorJornada:F2} (alvo {MortesPorJornadaMin:F2}–{MortesPorJornadaMax:F2})");
+        mortesNaEstrada = mortos - mortesNoChefe - mortesEmCombateComum;
 
-        // O KPI é a letalidade, não a sobrevivência: "punitivo" tem piso e teto.
-        // Ficar abaixo do piso é tão fora do alvo quanto passar do teto.
-        Expect(mortesPorJornada >= MortesPorJornadaMin && mortesPorJornada <= MortesPorJornadaMax,
-            $"letalidade {mortesPorJornada:F2} mortes/jornada dentro do alvo punitivo "
-            + $"({MortesPorJornadaMin:F2}–{MortesPorJornadaMax:F2}) com jogador aleatório");
-
-        Info($"taxa de sobrevivência: {taxa:P1}");
-        Check(mortos > 0, $"heróis realmente podem morrer ({mortos} mortes)");
+        return new JourneyStats
+        {
+            mortesPorJornada = mortos / (float)runs,
+            mortesNoChefe = mortesNoChefe / (float)runs,
+            mortesEmCombateComum = mortesEmCombateComum / (float)runs,
+            mortesNaEstrada = mortesNaEstrada / (float)runs,
+            cartasJogadas = cartasJogadas / (float)runs,
+            combates = combatesTravados / (float)runs,
+            sobrevivencia = sobreviventes / (float)totalHerois,
+            duracaoMedia = (float)duracoes.Average(),
+            aflicoes = totalAflicoes / (float)totalHerois
+        };
     }
 
-    /// <summary>Um inimigo dentro da simulação. Espelha o EnemyInstance do CombatManager.</summary>
+    /// <summary>Espelha JourneyManager.maxEnergy. A energia da estrada não regenera
+    /// entre trechos — só o descanso devolve +2, ao custo de um dia de mantimentos.</summary>
+    const int EnergiaInicialDaJornada = 5;
+
+    /// <summary>
+    /// A mão da jornada e a decisão de quando gastar energia.
+    ///
+    /// O ponto delicado é que a energia é escassa: são 5 para a jornada inteira,
+    /// contra 6 a 9 trechos. Um simulador que jogasse tudo no primeiro evento
+    /// mediria um jogador que não existe, e um que nunca jogasse repetiria o erro
+    /// anterior. O modelo aqui é o de um jogador econômico: no máximo uma carta
+    /// por trecho, preferindo a de maior proteção, e só gastando com as cartas
+    /// fracas (10%) quando ainda sobra energia.
+    /// </summary>
+    class SimHand
+    {
+        private readonly List<CardData> mao = new List<CardData>();
+        private readonly List<CardData> monte = new List<CardData>();
+
+        public SimHand(DeckData deck, int tamanhoMao, int maxMao)
+        {
+            monte.AddRange(deck.cards.Where(c => c != null));
+            Shuffle(monte);
+
+            for (int i = 0; i < Mathf.Min(tamanhoMao, monte.Count); i++)
+            {
+                mao.Add(monte[0]);
+                monte.RemoveAt(0);
+            }
+        }
+
+        public IEnumerable<CardData> EscolherPreparo(int energia, EventData evento)
+        {
+            // Prioridade máxima: a carta que destrava uma opção do evento. É a
+            // jogada que muda o que o grupo PODE fazer, não só o quanto apanha —
+            // um jogador que ignorasse isso mediria o jogo de antes da mudança.
+            var exigidos = evento != null && evento.outcomes != null
+                ? new HashSet<JourneyEffectType>(
+                    evento.outcomes.Where(o => o != null && o.RequiresCard)
+                                   .Select(o => o.requiredEffect))
+                : new HashSet<JourneyEffectType>();
+
+            CardData chave = mao.FirstOrDefault(c => c.energyCost <= energia
+                                                  && exigidos.Contains(c.journeyEffect));
+            if (chave != null)
+            {
+                yield return chave;
+                energia -= chave.energyCost;
+            }
+
+            CardData melhor = null;
+            float melhorProtecao = 0f;
+
+            foreach (var carta in mao)
+            {
+                if (carta == chave) continue;
+                if (carta.energyCost > energia) continue;
+
+                float protecao = JourneyManager.GetMitigationFor(carta);
+
+                // Carta fraca só entra se a energia estiver folgada.
+                if (protecao <= 0.10f && energia < 3) continue;
+
+                if (protecao > melhorProtecao)
+                {
+                    melhorProtecao = protecao;
+                    melhor = carta;
+                }
+            }
+
+            if (melhor != null) yield return melhor;
+        }
+
+        public void Descartar(CardData carta)
+        {
+            mao.Remove(carta);
+        }
+    }
+
+    /// <summary>
+    /// O que a carta muda na estrada, além da mitigação: comida, abrigo, cura e
+    /// intimidação. Os efeitos de informação (revelar evento) não alteram
+    /// sobrevivência e ficam de fora.
+    /// </summary>
+    static void AplicarEfeitoDeEstrada(CardData carta, List<HeroData> party,
+                                       ref int racoes, ref int protecaoClima,
+                                       ref bool evitarProximoCombate)
+    {
+        switch (carta.journeyEffect)
+        {
+            case JourneyEffectType.GainFood:
+                racoes += carta.journeyEffectValue;
+                break;
+
+            case JourneyEffectType.ExtraRations:
+                racoes += 5;
+                break;
+
+            case JourneyEffectType.ProtectFromWeather:
+                protecaoClima += Mathf.Max(2, carta.journeyEffectValue);
+                break;
+
+            case JourneyEffectType.HealInjury:
+                var ferido = party.FirstOrDefault(h => h.isInjured && h.IsAlive);
+                if (ferido != null) ferido.isInjured = false;
+                break;
+
+            case JourneyEffectType.Purify:
+                foreach (var h in party.Where(x => x.IsAlive))
+                    h.isInjured = false;
+                break;
+
+            case JourneyEffectType.Intimidate:
+                evitarProximoCombate = true;
+                break;
+
+            case JourneyEffectType.RestoreMorale:
+                foreach (var h in party.Where(x => x.IsAlive))
+                    h.morale = Mathf.Min(100f, h.morale + carta.journeyEffectValue);
+                break;
+
+            case JourneyEffectType.Revive:
+            {
+                HeroData alvo = party.FirstOrDefault(h => h.IsAlive && h.isOnDeathsDoor)
+                             ?? party.Where(h => h.IsAlive)
+                                     .OrderBy(h => h.currentHp / (float)Mathf.Max(1, h.maxHp))
+                                     .FirstOrDefault();
+                if (alvo == null) break;
+
+                alvo.isOnDeathsDoor = false;
+                alvo.currentHp = Mathf.Min(alvo.maxHp,
+                    alvo.currentHp + Mathf.Max(1, Mathf.RoundToInt(alvo.maxHp * 0.5f)));
+                alvo.stress = Mathf.Max(0f, alvo.stress - 20f);
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Um inimigo dentro da simulação. Espelha o EnemyInstance do CombatManager.
+    ///
+    /// Os atributos são copiados na criação em vez de lidos do asset a cada uso,
+    /// para a varredura conseguir perguntar "e se o chefe fosse 30% mais forte?"
+    /// sem editar — muito menos estragar — os cinco assets de chefe.
+    /// </summary>
     class SimEnemy
     {
         public EnemyData data;
         public int hp;
         public int block;
         public EnemyIntent intent;
+
+        public int dano;
+        public int bloqueio;
+        public int estresse;
+
+        // Espelham EnemyInstance.poison / damageDebuff / debuffTurns.
+        public int veneno;
+        public int reducaoDeDano;
+        public int turnosEnfraquecido;
+
         public bool IsAlive => hp > 0;
+
+        /// <summary>Dano já descontado o enfraquecimento, como no CombatManager.</summary>
+        public int DanoAtual => Mathf.Max(1, dano - (turnosEnfraquecido > 0 ? reducaoDeDano : 0));
+
+        public static SimEnemy From(EnemyData e)
+        {
+            float k = e.isBoss ? EscalaDeChefe : 1f;
+            return new SimEnemy
+            {
+                data = e,
+                hp = Mathf.RoundToInt(e.maxHp * k),
+                dano = Mathf.RoundToInt(e.attackDamage * k),
+                bloqueio = e.blockAmount,
+                estresse = e.stressDamage
+            };
+        }
     }
+
+    /// <summary>Multiplicador de HP e dano dos chefes, só para varredura.</summary>
+    public static float EscalaDeChefe = 1f;
 
     /// <summary>O que sobrou de um combate simulado.</summary>
     struct CombatOutcome
@@ -542,12 +1070,15 @@ public static class GuildSmokeTest
     static CombatOutcome SimulateOneCombat(List<HeroData> party, CardOwnership ownership,
                                            DeckData deck, List<EnemyData> lineup)
     {
-        const int baseEnergy = 3;
-        const int cardsPerTurn = 5;
-        const int maxHandSize = cardsPerTurn + 3;
+        // Lidos da cena, não copiados: uma constante aqui divergiria do jogo no
+        // primeiro ajuste de balanceamento feito no Inspector, e o simulador
+        // passaria a medir um combate que ninguém joga.
+        int baseEnergy = EnergiaDeCombate;
+        int cardsPerTurn = CartasPorTurno;
+        int maxHandSize = cardsPerTurn + 3;
         const int maxTurns = 30;
 
-        var enemies = lineup.Select(e => new SimEnemy { data = e, hp = e.maxHp }).ToList();
+        var enemies = lineup.Select(SimEnemy.From).ToList();
         var heroBlock = party.ToDictionary(h => h, h => 0);
         var buffs = new SimBuffs();
 
@@ -626,7 +1157,27 @@ public static class GuildSmokeTest
 
             if (party.All(h => !h.IsAlive)) break;
 
-            foreach (var e in enemies) e.block = 0;
+            // Veneno cobra no fim da rodada e a pilha se desgasta; o
+            // enfraquecimento envelhece — mesma ordem do CombatManager.
+            foreach (var e in enemies.Where(x => x.IsAlive && x.veneno > 0).ToList())
+            {
+                e.hp -= e.veneno;
+                e.veneno = Mathf.Max(0, e.veneno - 1);
+            }
+
+            if (enemies.All(e => !e.IsAlive)) { vitoria = true; break; }
+
+            foreach (var e in enemies)
+            {
+                e.block = 0;
+
+                if (e.turnosEnfraquecido > 0)
+                {
+                    e.turnosEnfraquecido--;
+                    if (e.turnosEnfraquecido == 0) e.reducaoDeDano = 0;
+                }
+            }
+
             RollIntents(enemies);
         }
 
@@ -671,12 +1222,25 @@ public static class GuildSmokeTest
         // 3. Golpe grande anunciado. O jogador vê a intenção, então o simulador
         //    também vê. O corte é da ordem de um golpe de chefe.
         int danoAnunciado = enemies.Where(e => e.IsAlive).Sum(e =>
-              e.intent == EnemyIntent.Attack ? e.data.attackDamage
+              e.intent == EnemyIntent.Attack ? e.DanoAtual
             : e.intent == EnemyIntent.AttackAll
-                ? Mathf.RoundToInt(e.data.attackDamage * 0.6f) * party.Count(h => h.IsAlive)
+                ? Mathf.RoundToInt(e.DanoAtual * 0.6f) * party.Count(h => h.IsAlive)
             : 0);
 
-        if (danoAnunciado >= 12)
+        // O corte era fixo em 12, e isso escondia um absurdo: o chefe base bate 11,
+        // então o simulador NUNCA se defendia dele — mas contra um chefe 30% mais
+        // forte (17 de dano) se defendia sempre. Resultado: quanto mais forte o
+        // chefe, mais o jogador simulado vencia. Um degrau na heurística do
+        // jogador virava uma conclusão invertida sobre o jogo.
+        //
+        // O critério agora é relativo a quem está mais perto de cair, que é a
+        // pergunta que o jogador de verdade se faz ao ler a intenção.
+        int menorHpVivo = party.Where(h => h.IsAlive)
+                               .Select(h => h.currentHp)
+                               .DefaultIfEmpty(1)
+                               .Min();
+
+        if (danoAnunciado >= Mathf.Max(6, menorHpVivo / 2))
         {
             var guarda = jogaveis.Where(Bloqueia)
                                  .OrderByDescending(c => c.combatBlock * Poder(c))
@@ -776,9 +1340,26 @@ public static class GuildSmokeTest
         switch (card.combatEffect)
         {
             case CombatEffectType.Damage:
-            case CombatEffectType.Poison:
-            case CombatEffectType.Debuff:
                 DamageEnemy(alvo, Mathf.Max(1, damage));
+                break;
+
+            // Veneno e enfraquecimento deixaram de ser dano com outro nome no
+            // CombatManager; se continuassem sendo aqui, o simulador voltaria a
+            // medir um combate que o jogo não tem.
+            case CombatEffectType.Poison:
+                if (alvo != null) alvo.veneno += Mathf.Max(1, damage);
+                break;
+
+            case CombatEffectType.Debuff:
+                if (alvo != null)
+                {
+                    alvo.reducaoDeDano = Mathf.Max(alvo.reducaoDeDano,
+                        Mathf.Max(1, Mathf.RoundToInt(alvo.data.attackDamage * 0.4f)));
+                    alvo.turnosEnfraquecido = Mathf.Max(alvo.turnosEnfraquecido,
+                        Mathf.Max(2, card.combatDuration));
+
+                    if (damage > 0) DamageEnemy(alvo, damage);
+                }
                 break;
 
             case CombatEffectType.ShieldBreak:
@@ -861,25 +1442,25 @@ public static class GuildSmokeTest
         switch (enemy.intent)
         {
             case EnemyIntent.Attack:
-                DamageHero(PartyFormation.PickTarget(party), enemy.data.attackDamage,
+                DamageHero(PartyFormation.PickTarget(party), enemy.DanoAtual,
                            party, heroBlock, buffs, resolution);
                 break;
 
             case EnemyIntent.AttackAll:
             {
-                int dmg = Mathf.Max(1, Mathf.RoundToInt(enemy.data.attackDamage * 0.6f));
+                int dmg = Mathf.Max(1, Mathf.RoundToInt(enemy.DanoAtual * 0.6f));
                 foreach (var hero in party.Where(h => h.IsAlive).ToList())
                     DamageHero(hero, dmg, party, heroBlock, buffs, resolution);
                 break;
             }
 
             case EnemyIntent.Defend:
-                enemy.block += enemy.data.blockAmount;
+                enemy.block += enemy.bloqueio;
                 break;
 
             case EnemyIntent.Stress:
                 EventResolver.AddStress(PartyFormation.PickTarget(party),
-                                        enemy.data.stressDamage, resolution);
+                                        enemy.estresse, resolution);
                 break;
         }
     }

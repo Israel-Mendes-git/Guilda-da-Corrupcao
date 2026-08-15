@@ -11,15 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: Nevoa Putrida
-  m_EditorClassIdentifier:
-  eventTitle: '🌫️ Névoa Pútrida'
-  description: 'O ar fica doce demais, quase adocicado. Respirar aqui deixa gosto de metal na boca e sombras nos cantos dos olhos.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F32B\uFE0F N\xE9voa P\xFAtrida"
+  description: O ar fica doce demais, quase adocicado. Respirar aqui deixa gosto
+    de metal na boca e sombras nos cantos dos olhos.
   eventImage: {fileID: 0}
   biome: 3
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '😷 Cobrir o rosto e atravessar rápido'
+  - optionText: "\U0001F637 Cobrir o rosto e atravessar r\xE1pido"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -31,7 +32,14 @@ MonoBehaviour:
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 1
-  - optionText: '🧭 Esperar o vento virar'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F9ED Esperar o vento virar"
     consequences:
       goldChange: 0
       reputationChange: 0
@@ -41,7 +49,14 @@ MonoBehaviour:
         moraleChange: -6
     extraDays: 1
     triggersCorruption: 0
-  - optionText: '🌿 Queimar ervas e seguir devagar'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F33F Queimar ervas e seguir devagar"
     consequences:
       goldChange: -20
       reputationChange: 0
@@ -51,5 +66,33 @@ MonoBehaviour:
         moraleChange: 8
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\u2728 Dissipar a n\xE9voa com fogo limpo"
+    consequences:
+      goldChange: 20
+      reputationChange: 0
+      heroEffects:
+      - heroName: All
+        hpChange: 5
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: 8
+    extraDays: 0
+    triggersCorruption: 0
+    requiredEffect: 8
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 0
   isBossEvent: 0

@@ -11,29 +11,37 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81a6198021225c0489e9bdef5336fc63, type: 3}
   m_Name: CHEFE - O Bibliotecario Cego
-  m_EditorClassIdentifier:
-  eventTitle: '📖 O BIBLIOTECÁRIO CEGO'
-  description: 'Ele não tem olhos, mas vira a cabeça na direção exata de cada um que entra. Nas mãos, um livro encadernado em couro que ainda respira.'
+  m_EditorClassIdentifier: 
+  eventTitle: "\U0001F4D6 O BIBLIOTEC\xC1RIO CEGO"
+  description: "Ele n\xE3o tem olhos, mas vira a cabe\xE7a na dire\xE7\xE3o exata
+    de cada um que entra. Nas m\xE3os, um livro encadernado em couro que ainda respira."
   eventImage: {fileID: 0}
   biome: 7
   minCorruptionToAppear: 0
   minDay: 1
   outcomes:
-  - optionText: '⚔️ Silenciá-lo antes que termine a frase'
+  - optionText: "\u2694\uFE0F Silenci\xE1-lo antes que termine a frase"
     consequences:
-      goldChange: 230
+      goldChange: 92
       reputationChange: 15
       heroEffects:
       - heroName: All
-        hpChange: -11
+        hpChange: -15
         addInjury: 0
         addTrait: 0
       moraleChanges: []
     extraDays: 0
     triggersCorruption: 0
-  - optionText: '📚 Deixar que leia o nome de vocês em voz alta'
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
+  - optionText: "\U0001F4DA Deixar que leia o nome de voc\xEAs em voz alta"
     consequences:
-      goldChange: 320
+      goldChange: 192
       reputationChange: 0
       heroEffects:
       - heroName: All
@@ -45,13 +53,20 @@ MonoBehaviour:
         moraleChange: -25
     extraDays: 0
     triggersCorruption: 1
-  - optionText: '🔥 Queimar o livro com ele junto'
+    requiredEffect: 8
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: A carta certa abre esse caminho.
+  - optionText: "\U0001F525 Queimar o livro com ele junto"
     consequences:
-      goldChange: 140
+      goldChange: 56
       reputationChange: 20
       heroEffects:
       - heroName: Random
-        hpChange: -20
+        hpChange: -28
         addInjury: 1
         addTrait: 0
       moraleChanges:
@@ -59,5 +74,12 @@ MonoBehaviour:
         moraleChange: 10
     extraDays: 0
     triggersCorruption: 0
+    requiredEffect: 0
+    empoweredConsequences:
+      goldChange: 0
+      reputationChange: 0
+      heroEffects: []
+      moraleChanges: []
+    empoweredText: 
   eventType: 1
   isBossEvent: 1
