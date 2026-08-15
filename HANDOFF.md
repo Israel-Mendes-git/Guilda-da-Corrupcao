@@ -1,203 +1,159 @@
-# Handoff — Guild of Legends: combate medido de verdade e telas destravadas (2026-08-02)
+# Handoff — Guilda da Corrupção: fases 0–2.5 fechadas, KPI decidido, Fase 3 a começar (2026-08-15)
 
 ## Objetivo
 
-Desenvolver o **Guild of Legends** (Unity 2022.3.62f3): roguelike deckbuilder + gerência de guilda,
-**mistura declarada de Darkest Dungeon com Slay the Spire**.
+Desenvolver o **Guilda da Corrupção** (Unity 2022.3.62f3): roguelike deckbuilder + gerência de
+guilda, mistura declarada de *Darkest Dungeon* com *Slay the Spire*.
 
-Projeto: `C:\Users\Israel\Documents\GitHub\My project (1)`
-**Não é repositório git** — não há histórico; as mudanças só existem no disco.
+Projeto: `C:\Users\Israel\Documents\GitHub\Guilda-da-Corrupcao`.
+
+O plano de trabalho vive em **[`ROADMAP.md`](ROADMAP.md)** e o design em **[`GDD.md`](GDD.md)**
+(v1.1). Leia os dois antes de continuar — este handoff só cobre o que eles não contam.
 
 ---
 
 ## Estado atual
 
-Última verificação: `PlayModeReport.txt` de **2026-08-02 20:47** — `PLAY MODE OK — nenhum erro
-capturado`, console limpo, jornada completa, todas as telas abrem/fecham e a saída pela vitória é
-confirmada por raycast. Smoke test: **38 verificações, 0 falhas, 0 avisos**.
+### ✅ Tudo que estava pendente foi fechado
 
-### ⚠️ Não verificado ainda
+**Fases 0, 1, 2 e 2.5** — implementadas, validadas e **commitadas**. Nada em aberto do ciclo
+anterior. A run que faltava (`PlayModeReport.run43-fase25-validada.txt`, 15/08 01:18) confirmou os
+três pontos que o handoff anterior deixou como "não verificado":
 
-A **última alteração do `DeckManager`** (permitir cópias da mesma carta e mostrar a coleção inteira)
-**compilou mas ainda não passou por Play Mode** — ela é posterior ao relatório das 20:47. Rodar o
-teste antes de considerá-la pronta.
+| Prova | Resultado |
+|---|---|
+| Painel da sala, 2ª abertura | `ordem entre irmãos: 7 de 7 — na frente`, alcançável — **o bug reportado saiu** |
+| Tela de balanço | `jornada encerrada pela tela de balanço: '🏆 A GUILDA VOLTA VITORIOSA'` |
+| Escolha de despojo | 2 opções, botão travado até escolher, liberado depois, ouro 2855 → 2956 |
+| Jornada termina sozinha | `painel ainda ativo ao fim: False (iterações: 134)` |
+| Console | 0 erros, 0 exceções |
 
-### Parte 1 — O combate era medido errado (concluído)
+**Smoke test:** `41 verificações, 0 falhas` e — pela primeira vez — **nenhum aviso de balanceamento**.
+Letalidade em 0,47 mortes/jornada (alvo 0,33–0,67).
 
-A sessão anterior deixou como próximo passo *"o combate não é vetor de dificuldade — 200/200
-vitórias; confirmar com o autor antes de mexer"*. **A premissa estava errada e a conclusão
-invertida.**
+### Commits desta sessão
 
-O `GuildSmokeTest.SimulateCombats` escolhia livremente a melhor carta de dano do **baralho inteiro** a
-cada turno e ignorava mão de 5 cartas, compra, bloqueio dos dois lados, as quatro intenções do
-inimigo (Atacar/AtacarTodos/**Defender**/**Estressar**), o estresse, a formação e o desgaste da
-estrada. Toda omissão pesava a favor do jogador. Reescrito para seguir o `CombatManager`, o mesmo
-conteúdo media **24% de vitória contra chefes com 3,37 mortes por combate**.
+O projeto tinha 4 commits e nenhum do trabalho novo. Agora tem, separados por origem como combinado:
 
-A causa real: **4 das 16 cartas não faziam nada.** O `CombatManager.ResolveCard` não tinha `case`
-para `Buff` nem `None` — caíam no `default`, mas a energia era paga e a carta gasta, enquanto a
-descrição prometia um efeito.
+```
+6299a30 KPI de combate passa a ser mortes por combate, nao taxa de vitoria
+ed584c1 Identidade do projeto e pacotes trazidos pelo autor
+0d8e9ab Importa o ESave, pacote de save de terceiros
+d786d6d Fases 0-2.5: XP, carta cruza escolha, chefe rebalanceado e pos-jornada
+```
 
-| Carta | Custo | Agora |
-|---|---|---|
-| Fúria (Warrior) | 1 | `Buff` — bônus de dano do grupo, com prazo (`combatDuration` 0 → 2) |
-| Olhar de Águia (Hunter) | 1 | `BuffNextCard` (13) — próxima carta +50% |
-| Teleporte (Mage) | 3 | `Evade` (14) — ignora o próximo golpe |
-| Purificação (Healer) | 2 | `Cleanse` (15) — tira a aflição e alivia 25 de estresse |
-
-**Implementar as cartas resolveu o balanceamento sozinho**, sem tocar em HP de chefe, dano ou energia:
-chefes foram de 24% para **~39%** de vitória (alvo 35–75%) e o combate encurtou de 20,3 para ~16
-turnos.
-
-### Parte 2 — Telas e heróis destravados (concluído, exceto o item acima)
-
-Auditoria via Play Mode revelou que metade das telas não funcionava:
-
-| Problema | Causa | Correção |
-|---|---|---|
-| Ficha do herói **inalcançável** | `HeroDetailPanel.Instance` é setado no `Awake`, mas o componente mora num painel **inativo** — o `Awake` nunca rodava, o singleton ficava nulo e `PartyMemberCard.OnCardClick` usava `?.`, então o clique não fazia nada | `Instance` resolvido sob demanda com `Resources.FindObjectsOfTypeAll`; clique passa pelo `UIManager.ShowHeroDetail` |
-| Ficha fechava sozinha | `Start()` chamava `HidePanel()` no frame seguinte à primeira abertura | wiring movido para `Awake`, sem `HidePanel` |
-| **Impossível contratar** na Taverna | `GuildManager.maxRosterSize` estava **4** na cena (o script diz 8) e o `GameInitializer` cria 4 heróis: a guilda nascia cheia | corrigido para 8 **na cena** |
-| Taverna sem renovar candidatos | `refreshButton`/`refreshCostText` nulos, botão inexistente na cena; a cobrança estava comentada | `GuildSceneSetup.BuildTavern()` cria `Btn_Refresh`/`Txt_RefreshCost`; novo `TavernManager.PayToRefresh()` cobra 50 |
-| **Gerenciador de Deck vazio** (0 heróis, 0 cartas) | `RefreshHeroList()` só roda dentro de `OpenDeckManager()`, e `UIManager.ShowDeckManager()` apenas ativava o painel, sem nunca chamá-la | `ShowDeckManager` chama `OpenDeckManager()`, que também seleciona o primeiro herói |
-| **Tela em branco** ao trocar de sala | Duas corrotinas de animação concorrentes: a de fechar terminava depois e desativava o painel recém-aberto — e "abrir" só agia se o objeto estivesse inativo, então a reabertura era ignorada. **O próprio código já resolvia isso para popups** e nunca aplicou aos painéis | uma animação por painel (`panelAnimations`), cancelando a anterior |
-| Telas atrás do rodapé | `Panel_DeckManager`, `Journey` e `Library` são irmãos **anteriores** a `Panel_DownBar` dentro de `Background` | `SetPanelActive` faz `SetAsLastSibling()` ao abrir |
-| Coleção de cartas sempre vazia | Só há 4 cartas por classe e o deck gerado usa as 4 com cópias; `RefreshCollectionDisplay` escondia o que já estava no deck | mostra o acervo inteiro; cópias permitidas até `MaxCopiasPorCarta = 4` |
-
-**Party sem teto, com custo** (item do handoff anterior): a seleção **já não tinha teto**. Faltava o
-custo — implementado em `PartyFormation.DailyRations(partySize)`: acima de 4 heróis, cada bloco de 4
-soma uma ração diária (5–8 heróis comem 2/dia). A tela de preparação avisa antes de fechar a mochila.
-
-Resultado medido: contratação `roster 4 → 5`, gerenciador de deck com `5 heróis / 11 cartas`, ficha do
-herói abrindo pelo retrato, party de 5 com o extra na retaguarda.
+Árvore limpa. **Nada foi enviado para remoto** — nenhum `push` foi dado.
 
 ---
 
 ## Próximos passos
 
-1. **Rodar o Play Mode** para validar a mudança de cópias no `DeckManager` (ver "Não verificado").
-2. **Implementar progressão de XP — decisão do autor tomada nesta sessão, ainda NÃO implementada.**
-   Hoje `hero.level` é atribuído em `GameInitializer`/`HeroFactory`/Taverna e **nunca sobe** (não há
-   `level++` em lugar nenhum). O autor aprovou: heróis ganham XP ao concluir jornadas e sobem de
-   nível. O nível já tem efeito pronto no jogo — `HeroFactory` (HP máximo), `DeckGenerator` (tamanho
-   do deck `8+level`, libera raras no 3 e lendárias no 5) e requisitos de missão. Junto disso, fechar
-   o item: **o herói além do 4º rende menos XP** (o custo em rações já está feito).
-3. **Limpar o ruído de log — decisão do autor tomada, ainda NÃO implementada.** `QuestSelectionUI`
-   escreve ~15 linhas por abertura, e `DeckGenerator.GenerateDeckForHero` uma por deck gerado. Isso
-   encheu o `Editor.log` em **76 MB** numa única sessão travada. Remover os `Debug.Log` de
-   diagnóstico de `QuestSelectionUI`, `DeckGenerator` e `MapManager`, mantendo avisos e erros reais.
-4. **Arte**: retratos, ilustrações de carta e de inimigo seguem placeholder.
-5. Barras de progresso do kit (`Assets/Alebardium/Bloodlines UI/Textures/Progress_Bar/`) ainda não
-   usadas — as barras de HP/estresse do combate continuam retângulos chapados.
-6. `MapManager.OnUpgradeButtonClick` só mostra "custa 500 ouro" e não faz nada — melhorar salas não
-   está implementado.
-7. Encontros normais estão em ~90–94% de vitória. Dentro do alvo, mas é o lado fácil da curva: se um
-   dia o combate precisar de mais mordida, é ali que sobra espaço, não nos chefes.
+1. **Fase 3 — a run** (`ROADMAP.md`): `RunManager`, Corrupção global como relógio, três condições de
+   fim de run, Chefe Supremo plugado (`QuestGenerator.GenerateBossQuest` existe e nunca é chamado) e
+   meta-progressão. **O ESave está no projeto e commitado**, então a meta-progressão deixou de estar
+   bloqueada — falta confirmar se é ele mesmo que deve ser usado (ver pendências).
+2. **Vigiar a letalidade a cada mudança de conteúdo.** O ponto de equilíbrio se move: com 1,2 lutas
+   por jornada a energia certa era 4; com 2,7, é 5. Ao acrescentar ou remover combates, **remeça**.
 
 ---
 
 ## Decisões tomadas (e por quê)
 
-- **Medir antes de mexer.** A decisão sobre dificuldade ia ser tomada sobre um número falso.
-  Consertar a régua veio primeiro; depois disso o ajuste nem foi preciso.
-- **Acrescentar ao enum `CombatEffectType` só no fim** — os valores são gravados como número nos
-  assets; inserir no meio trocaria o efeito de toda carta já configurada.
-- **O bônus de dano não empilha** — repetir a Fúria renova o prazo em vez de dobrar o dano.
-- **Só carta que fere recebe os bônus** (`CombatManager.DealsDamage`). A Fúria carrega `combatDamage`
-  sem atacar; sem isso, jogar Olhar de Águia e depois Fúria queimava o +50% à toa.
-- **O simulador chama `CombatManager.DealsDamage`** em vez de repetir a lista — foi esse tipo de
-  duplicata que deixou o simulador divergir do jogo.
-- **Faixas de `Expect` largas de propósito** — com 200 amostras por célula a variação entre execuções
-  é de ~3 pontos; um teto apertado acusa sorteio como regressão.
-- **Cópias de carta permitidas no editor de deck** — o `DeckGenerator` já monta baralhos com cópias;
-  proibi-las tornava a remoção de uma carta irreversível.
-- **Demitir herói passa por confirmação** — é irreversível e leva o deck junto.
-- **Grupos reciclados no smoke test** (`SimParty`) — recriar a party a cada run gerava milhares de
-  decks e o `DeckGenerator` loga a cada um; só isso travava o Editor por minutos.
-- Mantidas de sessões anteriores: ordem de irmãos (não `sortingOrder`) para pôr popup na frente;
-  repintar só o que está claro demais; a ordem de `selectedParty` **é** a formação; formação
-  enfraquece mas não bloqueia; mapa ramificado livre; deck híbrido; dano de fome em 5;
-  **`-batchmode` rejeitado**.
+- **O KPI de combate é `mortes por combate`, não taxa de vitória** (escolha do autor, 15/08). O alvo
+  de 35–75% veio do *Slay the Spire*, onde perder a luta encerra a run; aqui a party só perde quando
+  os quatro caem e a Beira da Morte segura cada um por um golpe. A régua nova e o porquê de cada
+  alvo estão no `ROADMAP.md`. **O detalhe que importa:** o *piso* do chefe mora na simulação de
+  **jornada** (0,10, medido 0,23) e não na de combate, porque no combate isolado ele cobra de 0,02 a
+  0,06 conforme a execução — ruído que reprovaria por sorteio. Os *tetos* ficam no combate isolado.
+- **Commits separados por origem**, não por fase (escolha do autor, 15/08): as fases 0–2.5 mexeram
+  nos mesmos arquivos, e separá-las exigiria dividir hunks à mão, com risco de commits que não
+  compilam.
+- Mantidas de sessões anteriores: alvo de letalidade 0,33–0,67 para a jornada inteira; a alavanca é
+  dar ferramentas ao jogador, não enfraquecer o inimigo (energia 5, mão 6); o chefe mantém a saída
+  narrativa, mas cara; opção travada nunca some da tela; `Revive` não ressuscita; ferimento não sara
+  por sorteio; quem fica na guilda descansa; moldes de linha da tela de balanço são objetos inativos
+  na cena, não prefabs em disco; ordem de irmãos (não `sortingOrder`); a ordem de `selectedParty`
+  **é** a formação; acrescentar valor de enum **só no fim**; `-batchmode` rejeitado.
 
 ---
 
 ## Pegadinhas / lições desta sessão
 
-- **Não chamar `refresh_unity` depois de criar o `RunPlayModeTest.trigger`.** O reimport entra em fila
-  e roda **já dentro do Play Mode**; o domain reload zera os singletons do probe e o teste fica preso
-  na preparação regerando missões — **sem um único erro no console**. Custou duas runs. Compilar
-  antes, criar o gatilho, e só trazer a janela à frente (`SetForegroundWindow` + `AttachThreadInput`).
-  Sintoma no `Editor.log`: `Trigger detectado` sem `Jornada iniciada` depois, e um
-  `ImportOutOfDateAssets` no meio da execução.
-- **`FindObjectOfType` não acha componentes em objetos inativos.** Foi por isso que o relatório dava
-  `TavernManager` e `HeroDetailPanel` como "AUSENTE" quando os dois estavam na cena. Usar
-  `Resources.FindObjectsOfTypeAll` para inspecionar.
-- **Singleton em painel desativado nasce nulo** — `Awake` só roda quando o objeto é ativado. Combinado
-  com `Instance?.Metodo()`, a falha é silenciosa e a tela vira inalcançável.
-- **Um simulador que não replica as regras mede a si mesmo, não o sistema.** Memória:
-  `simulador-que-nao-replica-o-jogo`.
-- **Efeito de carta sem `case` vira carta morta e ninguém percebe.** O smoke test agora tem trava:
-  *"toda carta faz algo em combate"*. Memória: `cartas-sem-efeito-no-combate`.
-- **Com erro de compilação, o Unity entra em Play Mode com o assembly ANTIGO** — sempre conferir o
-  console antes de ler um relatório. Memória: `compilacao-quebrada-play-mode-antigo`.
-- **`onClick.Invoke()` não prova que o jogador consegue clicar** — usar `EventSystem.RaycastAll`
-  (`PlayModeProbe.ReportarAlcancavel()`).
-- **A receita de compilar por fora só cobre `Assets/Scripts`**, e precisa rodar **a partir da raiz do
-  projeto** (o `.rsp` usa caminhos relativos).
-- **NUNCA editar `.cs` com o Play Mode rodando**: o domain reload zera os singletons.
-- **Campos públicos são serializados**: `maxRosterSize` estava 4 na cena com o script dizendo 8. Ao
-  mudar um valor de jogo, atualizar a cena também.
-- Demais armadilhas de automação: memória `unity-mcp-armadilhas-automacao`.
+- **O instrumento envelhece junto com a tela que ele mede.** Duas runs seguidas pararam no limite de
+  600 iterações com a jornada aparentemente sem fim — 305 eventos numa jornada de 6 dias, party
+  morta, estresse em 92. Parecia regressão grave de letalidade. **Não era o jogo:** a Fase 2.5 trocou
+  a saída da jornada de `UIManager.resultPopup` para `JourneyResultUI`, e o laço do `PlayModeProbe`
+  só sabia fechar os popups do `UIManager`. A jornada terminava certo, a tela de balanço abria, e o
+  probe clicava um botão morto até estourar. **Ao trocar a tela por onde um fluxo termina, atualize
+  quem o dirige automaticamente.**
+- **Um detector de travamento cego ao caminho que trava é pior que nenhum.** O detector contava
+  cliques em opções de evento e nós de mapa, mas não no `endTurnButton` — e `EndTurn` é um no-op
+  quando a jornada não espera escolha. O laço girava sem nunca acusar. Corrigido, e o
+  `DumpStuckState` agora despeja a máquina de estados inteira: foi a linha `jornadaEncerrada=True`
+  com o painel ainda ativo que resolveu o caso em segundos.
+- **Amostra pequena não sustenta piso.** O primeiro alvo que escrevi para o chefe (piso 0,02
+  mortes/combate) passou raspando numa execução e teria reprovado na seguinte: 4 a 12 mortes em 200
+  lutas é ruído. Piso exige sinal forte; teto tolera ruído. **Antes de fixar um alvo, rode duas
+  vezes e veja a oscilação.**
+- **Mudança de fim de linha polui o `git status`.** Nove dos "95 arquivos modificados" eram só LF→
+  CRLF, sem mudança de conteúdo — o `git add -A` normalizou e eles sumiram. Confira com
+  `git diff HEAD --stat` antes de tratar volume de diff como trabalho.
+- **O Unity não recompila sem foco**, e perde o foco de volta assim que outro comando roda. O que
+  funciona é trazer a janela à frente **e esperar dentro do mesmo comando**, em laço, até a
+  `Library/ScriptAssemblies/Assembly-CSharp.dll` ficar mais nova que o `.cs`. Fazer o foco e a espera
+  em comandos separados falha.
+- **`Remove-Item` na mesma chamada que um caminho em `C:\Program Files` é bloqueado** pelo sandbox.
+  Separe em dois comandos.
+- Continuam valendo: `Tools ▸ Card Creator` sobrescreve assets de carta se a opção for marcada;
+  gatilho esquecido dispara Play Mode ao ganhar foco; campo público é serializado (mudar no script
+  **não** muda a cena); uma run de Play Mode é n=1 — balanceamento se mede no simulador.
 
 ---
 
 ## Arquivos e comandos relevantes
 
-**Alterados nesta sessão** (nenhum commit — o projeto não é git):
+**Documentação** — `ROADMAP.md` (plano, diagnóstico e resultados medidos), `GDD.md` (design, v1.1).
 
-Combate e balanceamento
-- `Assets/Scripts/Core/GuildSmokeTest.cs` — simulador reescrito (`SimulateOneCombat`, `EscolherCarta`,
-  `JogarCarta`, `SimParty`, `SimBuffs`), trava de cartas inertes, alvos com faixa
-- `Assets/Scripts/Core/CombatManager.cs` — `Buff`/`BuffNextCard`/`Evade`/`Cleanse`, `DealsDamage`,
-  expiração do bônus em `EndPlayerTurn`, esquiva em `DamageHero`, `NeedsHeroTarget`
-- `Assets/Scripts/Data/CardData.cs` — três valores novos no fim de `CombatEffectType`
-- `Assets/Resources/Cards/`: `Hunter/Olhar de Águia`, `Mage/Teleporte`, `Healer/Purificação`
-  (efeito), `Warrior/Fúria` (`combatDuration` 0 → 2)
+**Compilar sem abrir o Editor** (segundos). O `.rsp` precisa ser **regerado quando um `.cs` novo é
+criado**:
 
-Telas e heróis
-- `Assets/Scripts/Core/UIManager.cs` — `SetPanelActive` com uma animação por painel + `SetAsLastSibling`;
-  `ShowDeckManager` chama `OpenDeckManager()`
-- `Assets/Scripts/Core/HeroDetailPanel.cs` — `Instance` sob demanda, wiring no `Awake`, estresse e
-  estado mental na ficha, demissão com confirmação
-- `Assets/Scripts/Core/DeckManager.cs` — `Instance` sob demanda, wiring no `Awake`, `OpenDeckManager`
-  seleciona o primeiro herói, cópias até `MaxCopiasPorCarta`
-- `Assets/Scripts/Core/TavernManager.cs` — `PayToRefresh` cobra, `OnEnable` não re-sorteia à toa,
-  `RefreshCardInteractivity`
-- `Assets/Scripts/Core/PartyMemberCard.cs` — clique via `UIManager`
-- `Assets/Scripts/Core/GuildSceneSetup.cs` — `BuildTavern()`
-- `Assets/Scripts/Core/PartyFormation.cs` — `DailyRations(partySize)`
-- `Assets/Scripts/Core/JourneyManager.cs` — `DailyRationCost()` no consumo diário
-- `Assets/Scripts/UI/QuestSelectionUI.cs` — aviso do custo de rações da party grande
-- `Assets/Scripts/Core/PlayModeProbe.cs` — `TestTavern`, `TestLibrary`, `TestMapRoom`,
-  `TestDeckManager`, `TestHeroDetail`
-
-**Alterado na CENA** (já salvo): `GuildManager.maxRosterSize` 4 → 8; Taverna ganhou `Btn_Refresh` e
-`Txt_RefreshCost`.
-
-**Compilar sem abrir o Editor** (segundos) — rodar **a partir da raiz do projeto**:
-```
-Set-Location "C:\Users\Israel\Documents\GitHub\My project (1)"
+```powershell
+$root = "C:\Users\Israel\Documents\GitHub\Guilda-da-Corrupcao"
+$out  = "C:\Users\Israel\AppData\Local\Temp\gol-build"
+$csproj = Get-Content "$root\Assembly-CSharp.csproj" -Raw
+$refs = [regex]::Matches($csproj, '<HintPath>(.*?)</HintPath>') | ForEach-Object { $_.Groups[1].Value }
+$defines = [regex]::Match($csproj, '<DefineConstants>(.*?)</DefineConstants>').Groups[1].Value
+$lines = New-Object System.Collections.Generic.List[string]
+$lines.Add('-target:library'); $lines.Add('-nostdlib+'); $lines.Add('-langversion:9.0')
+$lines.Add('-out:"C:/Users/Israel/AppData/Local/Temp/gol-build/AssemblyCheck.dll"')
+foreach ($d in $defines -split ';') { if ($d.Trim()) { $lines.Add("-define:$($d.Trim())") } }
+foreach ($r in $refs) { $lines.Add("-r:`"$r`"") }
+foreach ($f in (Get-ChildItem "$root\Assets\Scripts" -Recurse -Filter *.cs)) { $lines.Add("`"$($f.FullName)`"") }
+$lines | Out-File "$out\build.rsp" -Encoding utf8
+Set-Location $root
 & "C:\Program Files\Unity\Hub\Editor\2022.3.62f3\Editor\Data\NetCoreRuntime\dotnet.exe" `
   "C:\Program Files\Unity\Hub\Editor\2022.3.62f3\Editor\Data\DotNetSdkRoslyn\csc.dll" `
   "@C:/Users/Israel/AppData/Local/Temp/gol-build/build.rsp"
 ```
-Receita para recriar o `.rsp`: memória `validar-compilacao-sem-abrir-unity`.
 
-**Balanceamento**: `Tools/Guild of Legends/Rodar Smoke Test` — 200 jornadas + 800 combates em quatro
-cenários (party descansada/desgastada × normal/chefe). Leva ~1 minuto.
+**Os dois testes rodam por gatilho de arquivo**, sem tocar no menu do Editor. Crie o arquivo vazio na
+raiz e traga a janela do Unity à frente; ele é consumido em ~1 s e grava o relatório na raiz:
 
-**Aplicar mudanças de layout na cena** — editar `GuildSceneSetup.cs`, `refresh_unity`, conferir o
-console, e então via `execute_code`:
+| Gatilho | Relatório | O que mede | Custo |
+|---|---|---|---|
+| `RunSmokeTest.trigger` | `SmokeTestReport.txt` | 41 verificações + 200 jornadas + 800 combates | ~1 min |
+| `RunPlayModeTest.trigger` | `PlayModeReport.txt` | telas por raycast, jornada completa, console limpo | ~2 min |
+
+Ambos estão no `.gitignore`. **Não** chame refresh depois de criar o gatilho. Varreduras de
+parâmetro continuam por `execute_code` do MCP (que **não estava conectado** nesta sessão):
+
+```csharp
+GuildSmokeTest.VarrerCombate(new int[]{4,5,6}, new int[]{5,6}, 300)   // energia × mão
+GuildSmokeTest.VarrerEscalaDeChefe(new float[]{1.0f,1.3f,1.6f}, 200)  // força do chefe
+```
+
+**Aplicar mudanças de layout na cena** — editar `GuildSceneSetup.cs`, recompilar, e então:
+
 ```csharp
 GuildSceneSetup.Setup(false);
 UnityEditor.AssetDatabase.SaveAssets();
@@ -205,19 +161,12 @@ UnityEditor.SceneManagement.EditorSceneManager.SaveScene(
     UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
 ```
 
-**Teste em Play Mode**: criar `RunPlayModeTest.trigger` na raiz → trazer a janela do Unity à frente →
-**não chamar refresh depois**. Gera `PlayModeReport.txt` e capturas em `Assets/Screenshots/`.
-
-Relatórios preservados como `PlayModeReport.runNN*.txt` — desta sessão: `run34-antes-cartas`,
-`run35-cartas-implementadas`, `run36-auditoria-telas`.
-
 ---
 
 ## Pendências que dependem do usuário
 
-- **Arte**: retratos, ilustrações de carta e de inimigo.
-- **Considerar versionar o projeto com git.** Segue sem histórico, agora com uma biblioteca grande de
-  assets de terceiros no disco. Um `.gitignore` de Unity (ignorando `Library/`, `Temp/`, `obj/`)
-  tornaria trivial reverter uma importação que quebra a compilação.
-- As decisões sobre **XP** e **limpeza de logs** já foram tomadas pelo autor (ver Próximos passos 2 e
-  3) — não precisam ser perguntadas de novo, só implementadas.
+- **Confirmar o ESave como o pacote de save da Fase 3.** Está em `Assets/Esper/ESave`, commitado, e
+  **ainda não integrado**: a persistência do jogo segue limitada aos decks (`PlayerPrefs`,
+  `DeckRepository`).
+- **Push**: os 4 commits novos estão só no repositório local.
+- **Arte e áudio**: seguem placeholder e inexistente, respectivamente.
