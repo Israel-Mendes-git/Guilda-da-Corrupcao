@@ -227,6 +227,9 @@ public class PlayModeProbe : MonoBehaviour
         else
             Line("pulada: JourneyManager ausente na cena");
 
+        Section("A RUN (Fase 3)");
+        yield return TestRun();
+
         Section("ERROS CAPTURADOS");
         if (ignoredErrors.Count > 0)
             Line($"({ignoredErrors.Count} erro(s) de pacote de terceiros ignorados — ver RuidoConhecido)");
@@ -478,6 +481,97 @@ public class PlayModeProbe : MonoBehaviour
     /// cobrir o painel, engolindo os cliques. A primeira abertura funcionava, a
     /// segunda não — por isso um teste que abre só uma vez não pegava.
     /// </summary>
+    /// <summary>
+    /// A run tem começo, relógio e fim?
+    ///
+    /// Exercita o ciclo de verdade em vez de só ler os campos: avança até o
+    /// limiar do chefe, confere que ele entra no quadro, empurra a Corrupção ao
+    /// máximo e verifica que a run termina e a tela aparece. É o teste que a
+    /// Fase 2.5 não teve e que a deixou "escrita mas não verificada".
+    ///
+    /// No fim, restaura a run para não deixar a sessão num estado terminado.
+    /// </summary>
+    IEnumerator TestRun()
+    {
+        var run = RunManager.Instance;
+        if (run == null)
+        {
+            Line("FALHA: RunManager não existe.");
+            yield break;
+        }
+
+        Line($"estado inicial: ciclo {run.Cycle} | corrupção {run.Corruption:F0}"
+           + $" | chefe disponível={run.BossAvailable}");
+
+        // --- O relógio anda? ---
+        float antes = run.Corruption;
+        run.AdvanceCycle();
+        Line($"após 1 ciclo: corrupção {antes:F0} → {run.Corruption:F0}"
+           + $" (esperado +{RunManager.CorruptionPerCycle:F0})");
+
+        if (Mathf.Approximately(run.Corruption, antes))
+            Line("FALHA: a Corrupção não avançou com o ciclo.");
+
+        // --- O chefe entra no quadro no limiar? ---
+        int guarda = 0;
+        while (!run.BossAvailable && guarda++ < 40) run.AdvanceCycle();
+
+        Line($"chefe disponível a partir do ciclo {run.Cycle} (corrupção {run.Corruption:F0},"
+           + $" limiar {RunManager.BossThreshold:F0})");
+
+        var qm = QuestManager.Instance;
+        if (qm != null)
+        {
+            qm.GarantirChefeSupremo();
+            var quests = qm.GetQuests();
+            int chefes = quests.Count(q => q != null && q.isFinalBoss);
+
+            Line($"missões no quadro: {quests.Count} | Chefe Supremo: {chefes}");
+
+            if (chefes == 0) Line("FALHA: chefe disponível mas fora do quadro.");
+            if (chefes > 1) Line("FALHA: mais de um Chefe Supremo no quadro.");
+
+            // A corrupção das missões acompanha o medidor global?
+            var comuns = quests.Where(q => q != null && !q.isFinalBoss).ToList();
+            if (comuns.Count > 0)
+                Line($"corrupção das missões: {comuns.Min(q => q.corruptionLevel)}"
+                   + $"–{comuns.Max(q => q.corruptionLevel)} (global {run.Corruption:F0})");
+        }
+
+        // --- A run termina? ---
+        run.AddCorruption(RunManager.CorruptionMax);
+        run.CheckEndConditions();
+
+        Line($"após saturar a Corrupção: estado={run.State} motivo={run.EndReason}");
+
+        if (run.State == RunState.Running)
+            Line("FALHA: corrupção no máximo e a run não terminou.");
+
+        yield return new WaitForSeconds(0.3f);
+
+        var tela = RunEndUI.Instance;
+        bool telaVisivel = tela != null && tela.panel != null && tela.panel.activeInHierarchy;
+        Line($"tela de fim de run: {(tela == null ? "AUSENTE na cena" : telaVisivel ? "visível" : "montada, mas não apareceu")}");
+
+        if (tela != null && telaVisivel)
+        {
+            if (tela.titleText != null) Line($"  título: '{StripTags(tela.titleText.text)}'");
+            if (tela.statsText != null) Line($"  balanço: '{StripTags(tela.statsText.text).Replace("\n", " · ")}'");
+            if (tela.metaText != null) Line($"  meta: '{StripTags(tela.metaText.text)}'");
+
+            Line($"  botão de nova guilda: {(tela.newRunButton != null ? "ok" : "AUSENTE")}");
+            if (tela.newRunButton != null) ReportarAlcancavel(tela.newRunButton);
+        }
+
+        // --- Recomeçar devolve o jogo ao início? ---
+        run.StartNewRun();
+        Line($"após recomeçar: ciclo {run.Cycle} | corrupção {run.Corruption:F0} | estado {run.State}");
+
+        if (run.IsOver) Line("FALHA: a run continuou terminada depois de recomeçar.");
+
+        if (tela != null && tela.panel != null) tela.panel.SetActive(false);
+    }
+
     IEnumerator TestLocationInfo(UIManager ui)
     {
         var mm = Resources.FindObjectsOfTypeAll<MapManager>()

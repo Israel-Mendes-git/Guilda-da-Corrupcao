@@ -59,6 +59,29 @@ public class GuildManager : MonoBehaviour
         onRosterChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Uma guilda nova, para a run seguinte.
+    ///
+    /// Tudo o que a run acumulou se perde — é o preço da derrota. O que atravessa
+    /// são as relíquias da <see cref="MetaProgression"/>, e elas entram aqui como
+    /// ouro de partida: a próxima tentativa começa mais folgada por causa da
+    /// anterior, que é o que faz perder valer alguma coisa.
+    /// </summary>
+    public void ResetForNewRun()
+    {
+        roster.Clear();
+        fallenHeroes.Clear();
+
+        gold = 500 + MetaProgression.StartingGoldBonus();
+        reputation = 100;
+
+        AddStartingHeroes();
+
+        UpdateGoldUI();
+        UpdateReputationUI();
+        onRosterChanged?.Invoke();
+    }
+
     public bool CanRecruit()
     {
         return roster.Count < maxRosterSize;

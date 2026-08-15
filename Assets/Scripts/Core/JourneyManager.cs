@@ -1359,6 +1359,19 @@ public class JourneyManager : MonoBehaviour
         if (TavernManager.Instance != null)
             TavernManager.Instance.RefreshRecruits();
 
+        // O pulso da run: a jornada acabou, então o mundo apodrece um pouco e as
+        // condições de fim são conferidas. Vencer o Chefe Supremo é a única
+        // vitória — e é conferido antes de avançar o ciclo, para a run não
+        // terminar por Corrupção no mesmo instante em que foi ganha.
+        var run = RunManager.Instance;
+        if (run != null)
+        {
+            if (success && currentQuest != null && currentQuest.isFinalBoss)
+                run.ReportBossDefeated();
+            else
+                run.AdvanceCycle(journeyCasualties.Count);
+        }
+
         string resultMessage = success
             ? $"Missão concluída!\n{survivors} heróis sobreviveram\n+{reward} ouro"
             : $"Missão fracassada!\n{survivors} heróis sobreviveram\n+{reward} ouro";

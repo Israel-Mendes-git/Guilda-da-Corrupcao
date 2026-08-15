@@ -41,8 +41,17 @@ public static class QuestGenerator
             // Nível recomendado
             quest.recommendedLevel = Mathf.Max(1, playerLevel + Random.Range(-1, 2));
 
-            // Corrupção (quanto maior, mais difícil)
-            quest.corruptionLevel = Random.Range(0, 100);
+            // Corrupção da região: gira em torno do medidor global, não é sorteio
+            // livre. Era Random.Range(0, 100), e por isso o mundo nunca piorava —
+            // o ciclo 1 e o ciclo 15 ofereciam exatamente as mesmas missões.
+            //
+            // A faixa em volta do global mantém variedade no quadro: sempre há uma
+            // opção mais segura e uma mais podre, e é aí que mora a escolha.
+            float global = RunManager.Instance != null ? RunManager.Instance.Corruption
+                                                       : RunManager.CorruptionStart;
+
+            quest.corruptionLevel = Mathf.Clamp(
+                Mathf.RoundToInt(global) + Random.Range(-15, 21), 0, 100);
 
             // Risco
             quest.risk = (QuestRisk)Random.Range(0, 3);
