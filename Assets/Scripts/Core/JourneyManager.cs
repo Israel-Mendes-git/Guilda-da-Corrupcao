@@ -1545,8 +1545,20 @@ public class JourneyManager : MonoBehaviour
     {
         if (questNameText != null) questNameText.text = currentQuest.questName;
         if (biomeText != null) biomeText.text = currentQuest.biome;
-        if (biomeIcon != null && currentQuest.biomeIcon != null)
-            biomeIcon.sprite = currentQuest.biomeIcon;
+        // A região tinha nome e emoji, e mais nada: Pântano e Tundra eram a mesma
+        // tela cinza. A arte da missão vem primeiro; o catálogo é o padrão do
+        // bioma. Deserto e Vulcão não têm arte em pacote nenhum, e aí a imagem
+        // some em vez de aparecer vazia.
+        if (biomeIcon != null)
+        {
+            Sprite arte = currentQuest.biomeIcon;
+
+            if (arte == null && BiomeArtCatalog.Instance != null)
+                arte = BiomeArtCatalog.Instance.Para(currentQuest.biomeType);
+
+            biomeIcon.sprite = arte;
+            biomeIcon.enabled = arte != null;
+        }
     }
 
     void UpdatePartyStatus()

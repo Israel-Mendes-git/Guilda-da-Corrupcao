@@ -164,6 +164,8 @@ public static class SceneToolsTriggerWatcher
     const string BarSkinTrigger = "RunBarSkin.trigger";
     const string CardArtTrigger = "RunCardArt.trigger";
     const string PortraitTrigger = "RunPortraitCatalog.trigger";
+    const string BiomeArtTrigger = "RunBiomeArt.trigger";
+    const string UiPrefabsTrigger = "RunUiSkinPrefabs.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -191,6 +193,8 @@ public static class SceneToolsTriggerWatcher
         Consumir(BarSkinTrigger, BarSkin.Aplicar);
         Consumir(CardArtTrigger, CardArt.Aplicar);
         Consumir(PortraitTrigger, PortraitCatalogBuilder.Montar);
+        Consumir(BiomeArtTrigger, BiomeArtBuilder.Montar);
+        Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);
     }
 
     static void Consumir(string arquivo, System.Action acao)
