@@ -191,27 +191,6 @@ Nenhum número de letalidade de jornada deve ser levado a sério antes de a Fase
 
 ---
 
-### Fase 1 — O herói progride
-*Decisão já tomada pelo autor; nunca implementada. É o que faz o tempo passar dentro da guilda.*
-
-1. **`HeroData`**: campos `xp` e `xpToNextLevel`, mais `AddXp(int)` devolvendo se subiu de nível.
-   Curva sugerida: `100 + (nível−1)×75`.
-2. **Ganho de XP em `JourneyManager.EndJourney`** (`:1080`, no laço dos sobreviventes):
-   base por jornada concluída, escalada por dias percorridos e corrupção da missão; **metade** para
-   quem morreu na estrada não recebe nada. Conforme decidido: **do 5º herói em diante o XP rende
-   menos** — o mesmo critério de bloco de 4 já usado em `PartyFormation.DailyRations`.
-3. **Subir de nível** aumenta `maxHp` pela mesma fórmula da `HeroFactory` e o salário; o resto já é
-   automático — `DeckGenerator` lê `level` para tamanho de deck (`8+nível`) e libera raras no 3 e
-   lendárias no 5.
-4. **Mostrar na ficha** (`HeroDetailPanel`) a barra de XP e o próximo nível, e no relatório de fim de
-   jornada quem subiu.
-
-**Cuidado:** isso liga a escala de dificuldade que hoje está congelada
-(`QuestManager.GetPlayerAverageLevel`). Rodar o smoke test antes e depois e comparar mortes/jornada —
-missões vão ficar mais duras sozinhas.
-
----
-
 ### Fase 2 — A jornada vira decisão de verdade ✅ *concluída em 14/08*
 *Aqui mora a resposta do autor: manter a escolha no chefe, rebalancear, e **mesclar cartas com o
 sistema de decisão**.*
@@ -266,18 +245,46 @@ valor certo de energia caiu de 6 para 5. Um balanceamento inteiro havia sido cal
 adversário artificialmente incompetente. É o terceiro caso da mesma família neste projeto; o teste
 de sanidade que passou a valer é: **varra a dificuldade e confira se a curva é monotônica.**
 
-#### 🔶 Decisão pendente: o KPI de combate
+#### ✅ Decidido em 15/08: o KPI de combate é mortes, não taxa de vitória
 
-O smoke test ainda acusa dois avisos: `encontros normais 100%` e `chefes 100%` de vitória, contra um
-alvo de 35–75%. Isso **não** é balanceamento por fazer — é um alvo que não cabe neste jogo:
+O smoke test acusava dois avisos permanentes — `encontros normais 100%` e `chefes 100%` de vitória,
+contra um alvo de 35–75%. Não era balanceamento por fazer; era um alvo que não cabe neste jogo:
 
 - A party só perde o combate quando os **quatro** caem, e a Beira da Morte segura cada um por um
   golpe. Derrota total é rara por construção.
-- O que o jogador realmente perde é gente: 0,02 a 0,18 mortes por combate de chefe.
+- O que o jogador realmente perde é gente.
 - O alvo de 35–75% veio do *Slay the Spire*, onde perder a luta encerra a run.
 
-**Recomendação:** trocar o KPI de combate de *taxa de vitória* para *mortes por combate*, que é o que
-o jogo cobra de fato. Precisa da sua decisão — está deixado como aviso, não como falha.
+**Escolha do autor:** trocar o KPI para *mortes por combate*. A régua nova, e por que cada alvo está
+onde está:
+
+| Onde | Alvo | Medido |
+|---|---|---|
+| Chefe, ao longo da jornada | **piso** 0,10 mortes/jornada | 0,23 |
+| Chefe, combate isolado (party desgastada) | **teto** 0,40 mortes/combate | 0,05 |
+| Encontro comum, combate isolado | **teto** 0,15 mortes/combate | 0,01 |
+
+O piso do chefe mora na simulação de **jornada**, não na de combate, e isso é deliberado: no combate
+isolado o chefe cobra de 0,02 a 0,06 mortes conforme a execução — 4 a 12 mortes em 200 lutas, ruído
+puro para servir de piso, que reprovaria por sorteio. Medido ao longo da jornada, com o grupo
+chegando desgastado de verdade, o mesmo chefe cobra 0,23, e aí o sinal aguenta um alvo. É o número
+que impede o chefe de virar formalidade: se as mortes migrarem todas para a fome e os eventos, a
+letalidade total continua no alvo e o clímax some sem ninguém notar.
+
+Os tetos ficam no combate isolado, onde é justamente o excesso que se quer pegar. Com 1 chefe por
+jornada, 0,40 estouraria sozinho o alvo de 0,33–0,67 da jornada inteira; com ~1,6 encontros comuns,
+0,15 cada somaria 0,24 e, com o chefe por cima, também estouraria.
+
+A taxa de vitória **continua no relatório**, como informação: serve para ver se o combate virou
+formalidade, mas não reprova a régua.
+
+**Resultado:** `41 verificações, 0 falhas`, sem nenhum aviso de balanceamento pela primeira vez.
+
+#### O smoke test ganhou gatilho e relatório em arquivo
+
+Ele só existia no menu e só escrevia no console, o que obrigava a garimpar o `Editor.log` para
+comparar duas execuções. Agora grava `SmokeTestReport.txt` na raiz e aceita `RunSmokeTest.trigger`,
+como o Play Mode já fazia — o balanceamento passou a ser medível sem abrir o Editor.
 
 #### Verificação executada (14/08)
 
@@ -497,8 +504,12 @@ instrumento e o jogo saem de sincronia em silêncio, e o número errado parece u
 | Ferramenta | Para quê | Custo |
 |---|---|---|
 | Compilar por fora (Roslyn do Unity, receita no `HANDOFF.md`) | erro de sintaxe antes de abrir o Editor | segundos |
-| `Tools ▸ Guild of Legends ▸ Rodar Smoke Test` | 38 verificações + 200 jornadas + 800 combates; mortes/jornada, vitória de chefe | ~1 min |
+| `RunSmokeTest.trigger` → `SmokeTestReport.txt` | 41 verificações + 200 jornadas + 800 combates; mortes/jornada e mortes/combate | ~1 min |
 | `RunPlayModeTest.trigger` → `PlayModeReport.txt` | telas alcançáveis por raycast, jornada completa, console limpo | ~2 min |
+
+Os dois gatilhos são arquivos vazios criados na raiz do projeto e consumidos pelo Editor quando ele
+ganha foco — nenhum dos dois precisa do menu, e ambos gravam relatório em arquivo para que duas
+execuções possam ser comparadas.
 
 **Regras que já custaram caro** (do handoff — valem para todo este plano):
 - Play Mode com compilação quebrada roda o **assembly antigo**: conferir o console antes de ler o relatório.

@@ -108,6 +108,11 @@ InitTestScene*.unity*
 # --- Especifico deste projeto ---
 # Relatorios de Play Mode gerados a cada sessao de teste
 PlayModeReport*.txt
+# Relatorio do smoke test, idem
+SmokeTestReport*.txt
+# Gatilhos de teste: criados de fora do Editor e consumidos na hora
+RunPlayModeTest.trigger
+RunSmokeTest.trigger
 # Token de autenticacao do MCP for Unity (credencial local, nunca versionar)
 [Aa]ssets/.mcp_auth_token
 # Ferramenta de desenvolvimento com repositorio proprio (MCP for Unity)

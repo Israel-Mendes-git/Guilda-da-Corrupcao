@@ -60,6 +60,20 @@ public static class GuildSmokeTest
 
         report.Insert(0, resumo + "\n\n");
 
+        // Gravado em arquivo, e não só no console: o balanceamento é comparado
+        // entre execuções, e ler o Editor.log para isso é como procurar agulha —
+        // o mesmo motivo pelo qual o Play Mode escreve PlayModeReport.txt.
+        try
+        {
+            System.IO.File.WriteAllText(
+                System.IO.Path.Combine(PlayModeTestLauncher.ProjectRoot, "SmokeTestReport.txt"),
+                $"(gerado em {System.DateTime.Now:yyyy-MM-dd HH:mm:ss})\n\n" + report.ToString());
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Smoke test: não consegui gravar o relatório — {e.Message}");
+        }
+
         if (failures == 0)
             Debug.Log(report.ToString());
         else
@@ -457,6 +471,18 @@ public static class GuildSmokeTest
             + "eventos, cartas e combates");
 
         Check(s.mortesPorJornada > 0f, "heróis realmente podem morrer");
+
+        // O piso do chefe mora aqui, e não em SimulateCombats, por causa do
+        // tamanho da amostra: no combate isolado o chefe cobra de 0,02 a 0,06
+        // mortes — 4 a 12 mortes em 200 lutas, ruído puro para servir de piso.
+        // Medido ao longo da jornada, com o grupo chegando desgastado de verdade,
+        // o mesmo chefe cobra ~0,27, e aí o sinal aguenta um alvo.
+        //
+        // É o que impede o chefe de virar formalidade: se as mortes migrarem
+        // todas para a fome e os eventos, a letalidade total continua no alvo e
+        // o clímax da jornada some sem ninguém notar.
+        Expect(s.mortesNoChefe >= 0.10f,
+            $"o chefe é o clímax e cobra por isso (piso 0,10 mortes/jornada): {s.mortesNoChefe:F2}");
     }
 
     /// <summary>
@@ -491,16 +517,20 @@ public static class GuildSmokeTest
 
     /// <summary>
     /// Varre a força do chefe olhando os DOIS alvos ao mesmo tempo: a letalidade
-    /// da jornada e a taxa de vitória no combate.
+    /// da jornada e o que o chefe cobra em gente.
     ///
     /// Otimizar um sem ver o outro foi como se chegou aqui — dar energia ao
-    /// jogador trouxe a letalidade para dentro da faixa, mas transformou o chefe
-    /// numa formalidade de 93% de vitória.
+    /// jogador trouxe a letalidade para dentro da faixa, mas esvaziou o chefe.
+    ///
+    /// **Teste de sanidade obrigatório:** a curva tem de ser monotônica. Um chefe
+    /// mais forte que mate menos denuncia heurística com degrau no simulador —
+    /// já aconteceu, e calibrou um balanceamento inteiro contra um adversário
+    /// artificialmente incompetente.
     /// </summary>
     public static string VarrerEscalaDeChefe(float[] escalas, int runs)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("escala | mortes/jornada | chefe | estrada | vitória do chefe (desgastada)");
+        sb.AppendLine("escala | mortes/jornada | chefe | estrada | mortes/combate do chefe | vitória");
 
         float original = EscalaDeChefe;
         try
@@ -510,10 +540,10 @@ public static class GuildSmokeTest
                 EscalaDeChefe = escala;
 
                 JourneyStats s = RodarJornadas(runs);
-                float vitoria = MedirVitoriaDeChefe(runs, 0.5f, 50f);
+                var chefe = MedirChefe(runs, 0.5f, 50f);
 
                 sb.AppendLine($" {escala:F2}  |      {s.mortesPorJornada:F2}      | {s.mortesNoChefe:F2}  "
-                            + $"|  {s.mortesNaEstrada:F2}   |  {vitoria:P0}");
+                            + $"|  {s.mortesNaEstrada:F2}   |          {chefe.mortes:F2}           | {chefe.vitoria:P0}");
             }
         }
         finally
@@ -524,26 +554,31 @@ public static class GuildSmokeTest
         return sb.ToString();
     }
 
-    /// <summary>Taxa de vitória contra chefes, sem escrever no relatório —
-    /// serve às varreduras, que rodam fora do Run().</summary>
-    static float MedirVitoriaDeChefe(int runs, float hpPerdidoFrac, float estresse)
+    /// <summary>
+    /// O que um combate de chefe cobra, sem escrever no relatório — serve às
+    /// varreduras, que rodam fora do Run(). Mortes primeiro: é o KPI; a vitória
+    /// vai junto só para enxergar se o chefe virou formalidade.
+    /// </summary>
+    static (float mortes, float vitoria) MedirChefe(int runs, float hpPerdidoFrac, float estresse)
     {
         var grupos = new List<SimParty>();
         for (int i = 0; i < 10; i++) grupos.Add(SimParty.Create());
 
-        int vitorias = 0;
+        int vitorias = 0, mortos = 0;
         for (int r = 0; r < runs; r++)
         {
             SimParty grupo = grupos[r % grupos.Count];
             grupo.Reset(hpPerdidoFrac, estresse);
 
             var lineup = EnemyPool.GetLineup(BiomeType.Forest, true, 5);
-            if (SimulateOneCombat(grupo.heroes, grupo.ownership, grupo.deck, lineup).vitoria)
-                vitorias++;
+            CombatOutcome resultado = SimulateOneCombat(grupo.heroes, grupo.ownership, grupo.deck, lineup);
+
+            if (resultado.vitoria) vitorias++;
+            mortos += resultado.mortos;
         }
 
         foreach (var g in grupos) g.Dispose();
-        return vitorias / (float)runs;
+        return (mortos / (float)runs, vitorias / (float)runs);
     }
 
     static JourneyStats RodarJornadas(int runs)
@@ -1008,23 +1043,46 @@ public static class GuildSmokeTest
         // A party desgastada é o caso representativo: é o estado em que a jornada
         // entrega o grupo ao combate. É sobre ela que a expectativa vale.
         //
-        // Piso E teto: num deckbuilder o combate é o desafio, não formalidade.
-        // Ganhar sempre falha o alvo tanto quanto perder sempre.
+        // O KPI é MORTES POR COMBATE, não taxa de vitória (decisão do autor,
+        // 15/08). Taxa de vitória veio do Slay the Spire, onde perder a luta
+        // encerra a run; aqui a party só perde quando os quatro caem e a Beira
+        // da Morte segura cada um por um golpe, então derrota total é rara por
+        // construção — o alvo de 35–75% media algo que este jogo não cobra.
+        // O que o combate custa de fato é gente, e é isso que passa a ser aferido.
         //
-        // As faixas são largas de propósito. Com 200 amostras por célula, os
-        // encontros normais oscilam uns 3 pontos entre execuções; um teto justo
-        // demais acusaria variação de sorteio como se fosse regressão.
-        Expect(desgastada.normais >= 0.60f && desgastada.normais <= 0.95f,
-               $"encontros normais desafiam sem massacrar (alvo 60–95%): {desgastada.normais:P0}");
-        Expect(desgastada.chefes >= 0.35f && desgastada.chefes <= 0.75f,
-               $"chefes são ameaça real (alvo 35–75%): {desgastada.chefes:P0}");
+        // A taxa de vitória continua no relatório como informação: serve para ver
+        // se o combate virou formalidade, mas não reprova a régua.
+        //
+        // As faixas são largas de propósito. Com 200 amostras por célula o valor
+        // oscila entre execuções, e um alvo justo demais acusaria sorteio como
+        // se fosse regressão.
+        //
+        // Só teto, dos dois lados. Este cenário é sintético e mais brando que a
+        // jornada real — aqui o chefe cobra 0,02 a 0,06 mortes, enquanto na
+        // jornada, com o grupo chegando desgastado de verdade, cobra ~0,27. Uma
+        // amostra de 200 lutas com 4 a 12 mortes não sustenta um piso: ele
+        // reprovaria por sorteio. O piso do chefe fica em SimulateJourneys, onde
+        // o sinal é forte; o que se afere aqui é que o combate não dizima.
+        //
+        // Com 1 chefe por jornada, 0,40 já estouraria sozinho o alvo de
+        // 0,33–0,67 mortes da jornada inteira.
+        Expect(desgastada.mortesChefes <= 0.40f,
+               $"chefe cobra em gente sem dizimar (teto 0,40 mortes/combate): {desgastada.mortesChefes:F2}");
+
+        // Encontro comum leva só teto. Com ~1,6 deles por jornada, 0,15 cada já
+        // somaria 0,24 mortes/jornada e, com o chefe por cima, estouraria o
+        // orçamento de letalidade. Um piso aqui seria pedir que o caminho até o
+        // chefe matasse sozinho — o desgaste que ele cobra é HP, não vida.
+        Expect(desgastada.mortesNormais <= 0.15f,
+               $"encontro comum desgasta sem matar (teto 0,15 mortes/combate): {desgastada.mortesNormais:F2}");
     }
 
     /// <summary>Roda encontros normais e chefes para um estado de party e relata.</summary>
-    static (float normais, float chefes) SimulateCombatScenario(
+    static (float normais, float chefes, float mortesNormais, float mortesChefes) SimulateCombatScenario(
         int runs, List<SimParty> grupos, string rotulo, float hpPerdidoFrac, float estresseInicial)
     {
         var taxas = new float[2];
+        var mortesPorCombate = new float[2];
 
         for (int modo = 0; modo < 2; modo++)
         {
@@ -1047,14 +1105,15 @@ public static class GuildSmokeTest
             }
 
             taxas[modo] = vitorias / (float)runs;
+            mortesPorCombate[modo] = mortesTotais / (float)runs;
 
             Info($"{(chefe ? "chefes" : "encontros normais")}, party {rotulo}: "
-                 + $"{vitorias}/{runs} vitórias ({taxas[modo]:P0})"
-                 + (turnos.Count > 0 ? $", {turnos.Average():F1} turnos" : "")
-                 + $", {mortesTotais / (float)runs:F2} mortes por combate");
+                 + $"{mortesPorCombate[modo]:F2} mortes por combate"
+                 + $" | {vitorias}/{runs} vitórias ({taxas[modo]:P0})"
+                 + (turnos.Count > 0 ? $", {turnos.Average():F1} turnos" : ""));
         }
 
-        return (taxas[0], taxas[1]);
+        return (taxas[0], taxas[1], mortesPorCombate[0], mortesPorCombate[1]);
     }
 
     /// <summary>
@@ -1542,5 +1601,42 @@ public static class GuildSmokeTest
     }
 
     #endregion
+}
+
+/// <summary>
+/// Dispara o smoke test criando RunSmokeTest.trigger na raiz do projeto, do
+/// mesmo jeito que o Play Mode — assim o balanceamento pode ser medido sem
+/// abrir o menu do Editor. O arquivo é apagado assim que detectado.
+/// </summary>
+[InitializeOnLoad]
+public static class SmokeTestTriggerWatcher
+{
+    const string TriggerFile = "RunSmokeTest.trigger";
+    static double nextCheck;
+
+    static SmokeTestTriggerWatcher()
+    {
+        EditorApplication.update += Tick;
+    }
+
+    static void Tick()
+    {
+        if (EditorApplication.timeSinceStartup < nextCheck) return;
+        nextCheck = EditorApplication.timeSinceStartup + 1.0;
+
+        // Rodar a simulação durante o Play Mode ou uma recompilação atropelaria
+        // o que estiver em curso — a mesma guarda do gatilho do Play Mode.
+        if (EditorApplication.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+
+        string path = System.IO.Path.Combine(PlayModeTestLauncher.ProjectRoot, TriggerFile);
+        if (!System.IO.File.Exists(path)) return;
+
+        try { System.IO.File.Delete(path); }
+        catch { return; }
+
+        Debug.Log("Trigger detectado — rodando o smoke test.");
+        GuildSmokeTest.Run();
+    }
 }
 #endif
