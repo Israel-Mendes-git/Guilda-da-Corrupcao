@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: Corte Duplo
   cardDescription: Corte Duplo
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: 2bbebcc9ca74c2c47bc5238486432710, type: 3}
   rarity: 0
   requiredClass: 0
   energyCost: 2

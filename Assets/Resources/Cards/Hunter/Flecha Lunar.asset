@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: Flecha Lunar
   cardDescription: Flecha Lunar
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: 313eb4d0157f6ec418d857892d7b44ad, type: 3}
   rarity: 2
   requiredClass: 5
   energyCost: 3

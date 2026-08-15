@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: "Purifica\xE7\xE3o"
   cardDescription: "Purifica\xE7\xE3o"
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: b11f9c52da2945740b5078d84177a9ab, type: 3}
   rarity: 1
   requiredClass: 2
   energyCost: 2

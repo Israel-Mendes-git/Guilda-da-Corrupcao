@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: Teleporte
   cardDescription: Teleporte
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: 2456dd2824f5ec540830760922f5bac6, type: 3}
   rarity: 1
   requiredClass: 1
   energyCost: 3

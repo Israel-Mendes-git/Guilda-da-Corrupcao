@@ -40,6 +40,13 @@ public static class HeroFactory
         hero.corruptionExposure = 0;
         hero.ResetXpParaNivel();
 
+        // O rosto sai do nome, não do acaso: assim o mesmo herói mantém a cara
+        // dele entre execuções, e é o elenco que o jogador aprende a reconhecer
+        // ao longo das jornadas. Sem catálogo, o campo fica nulo e a ficha
+        // continua funcionando como antes.
+        if (PortraitCatalog.Instance != null)
+            hero.portrait = PortraitCatalog.Instance.Para(name);
+
         return hero;
     }
 

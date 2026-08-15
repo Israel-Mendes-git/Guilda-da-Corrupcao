@@ -936,9 +936,9 @@ public class JourneyManager : MonoBehaviour
             SetCardText(cardObj, "CardDescription", card.GetDescription(true));
             SetCardText(cardObj, "CostTxt", $"⚡ {card.energyCost}");
 
-            Image cardImage = cardObj.transform.Find("Image")?.GetComponent<Image>();
-            if (cardImage != null && card.cardImage != null)
-                cardImage.sprite = card.cardImage;
+            // Find("Image") pegava o primeiro filho com esse nome, e o prefab tem
+            // quatro — a arte ia parar num enfeite de canto do texto.
+            CardUI.AplicarArte(cardObj, card);
         }
 
         // Fundo por raridade

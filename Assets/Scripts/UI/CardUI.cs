@@ -4,6 +4,45 @@ using UnityEngine.UI;
 
 public class CardUI : MonoBehaviour
 {
+    /// <summary>
+    /// Põe a arte da carta numa view montada a partir do prefab, sem depender de
+    /// um <see cref="CardUI"/> ligado no Inspector.
+    ///
+    /// O prefab da carta não tem este componente — o combate e a jornada montam a
+    /// carta preenchendo filhos por nome. Só que o prefab tem hierarquia plana e
+    /// **quatro** objetos chamados "Image", então procurar pelo nome pega um
+    /// enfeite de canto. A arte é a de maior área que não é o fundo nem a moldura.
+    /// </summary>
+    public static void AplicarArte(GameObject view, CardData card)
+    {
+        if (view == null || card == null || card.cardImage == null) return;
+
+        Image alvo = null;
+        float maiorArea = 0f;
+
+        foreach (Image img in view.GetComponentsInChildren<Image>(true))
+        {
+            string nome = img.gameObject.name;
+            if (nome == "Background" || nome == "Border") continue;
+
+            Rect r = img.rectTransform.rect;
+            float area = Mathf.Abs(r.width * r.height);
+            if (area > maiorArea)
+            {
+                maiorArea = area;
+                alvo = img;
+            }
+        }
+
+        if (alvo == null) return;
+
+        alvo.sprite = card.cardImage;
+        // O slot nasce com uma cor de preenchimento que serviria de placeholder;
+        // com sprite por cima, ela tingiria a arte.
+        alvo.color = Color.white;
+        alvo.preserveAspect = true;
+    }
+
     [Header("UI References")]
     public TMP_Text cardNameText;
     public TMP_Text descriptionText;

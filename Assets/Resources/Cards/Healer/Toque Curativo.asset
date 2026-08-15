@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: Toque Curativo
   cardDescription: Toque Curativo
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: 0ad2337320c1b5841ba3ceb24de6e91a, type: 3}
   rarity: 0
   requiredClass: 2
   energyCost: 1

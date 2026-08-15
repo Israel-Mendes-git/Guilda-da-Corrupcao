@@ -1262,6 +1262,7 @@ public class CombatManager : MonoBehaviour
                 SetText(view, "CardName", card.cardName);
                 SetText(view, "CardDescription", card.GetDescription(false));
                 SetText(view, "CostTxt", $"⚡ {card.energyCost}");
+                CardUI.AplicarArte(view, card);
             }
 
             // Aviso na própria carta: o jogador precisa ver o preço da má formação

@@ -162,6 +162,8 @@ public static class SceneToolsTriggerWatcher
 {
     const string SetupTrigger = "RunSceneSetup.trigger";
     const string BarSkinTrigger = "RunBarSkin.trigger";
+    const string CardArtTrigger = "RunCardArt.trigger";
+    const string PortraitTrigger = "RunPortraitCatalog.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -187,6 +189,8 @@ public static class SceneToolsTriggerWatcher
         });
 
         Consumir(BarSkinTrigger, BarSkin.Aplicar);
+        Consumir(CardArtTrigger, CardArt.Aplicar);
+        Consumir(PortraitTrigger, PortraitCatalogBuilder.Montar);
     }
 
     static void Consumir(string arquivo, System.Action acao)

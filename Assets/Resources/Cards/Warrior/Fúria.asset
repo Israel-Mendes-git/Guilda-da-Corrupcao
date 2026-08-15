@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardName: "F\xFAria"
   cardDescription: "F\xFAria"
-  cardImage: {fileID: 0}
+  cardImage: {fileID: 21300000, guid: 4d7635c366a76274c85747592d98d2f5, type: 3}
   rarity: 1
   requiredClass: 0
   energyCost: 1
