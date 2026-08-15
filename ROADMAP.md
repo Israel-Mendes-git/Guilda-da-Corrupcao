@@ -450,7 +450,51 @@ não foi acionada. E se a tela de balanço abrir **sem** botão utilizável, ago
 automaticamente. É a mesma família de erro do simulador que media uma jornada sem combates — o
 instrumento e o jogo saem de sincronia em silêncio, e o número errado parece um achado.
 
-### Fase 3 — A run: começo, relógio e fim
+### Fase 3 — A run: começo, relógio e fim ✅ *concluída em 15/08*
+
+**O jogo deixou de ser um sandbox infinito.** Havia sistema para uma run inteira escrito e
+desconectado: `GenerateBossQuest` nunca era chamada, `triggersCorruption` estressava a party sem
+significar nada, e `corruptionLevel` era sorteado por missão sem nunca avançar no mundo.
+
+| Peça | Como ficou |
+|---|---|
+| **Relógio** | `RunManager`: um ciclo = uma jornada. Corrupção 10 → +6 por ciclo, +3 por evento corrompido |
+| **Chefe Supremo** | Entra no quadro quando a Corrupção passa de 60, **uma vez só** |
+| **Fim de run** | As três derrotas do GDD + a vitória por derrotar o chefe |
+| **Meta-progressão** | Relíquias por ciclo sobrevivido viram ouro de partida na run seguinte (com teto) |
+| **Tela de fim** | `RunEndUI` com balanço, motivo e o que atravessa |
+
+**Régua medida:** o chefe aparece por volta do ciclo 7–9 e o mundo é consumido no 12–15 — janela de
+**5 a 7 jornadas** para tentar a vitória. Com 0,47 mortes/jornada, uma run custa 6–7 heróis. No teste
+real o chefe apareceu no ciclo 8.
+
+#### ⚠️ O achado: o relógio andava e o quadro ficava parado
+
+A primeira versão passou em tudo, menos numa linha do relatório: `corrupção das missões: 1–39
+(global 61)`. As missões geradas no ciclo 1 continuavam no quadro no ciclo 8, com a corrupção de
+antes — o mundo piorava e **nada do que o jogador via mudava**, que é o oposto do §4.2 do GDD.
+
+Corrigido com `RenovarQuadro()` a cada ciclo, preservando o Chefe Supremo. Depois: `59–78 (global
+64)`.
+
+**A lição:** medir o efeito, não só o mecanismo. O `RunManager` estava certo desde o começo; o que
+não funcionava era a consequência dele no que o jogador escolhe.
+
+#### Verificação executada (15/08)
+
+O `PlayModeProbe` ganhou a seção **A RUN (Fase 3)**, que exercita o ciclo em vez de ler campos:
+avança o relógio, confere o chefe entrando uma única vez, satura a Corrupção, verifica que a run
+termina pelo motivo certo, que a tela aparece com botão alcançável por raycast, e que recomeçar
+devolve o jogo ao início. Foi esse teste que flagrou o quadro parado.
+
+`PLAY MODE OK` · `SMOKE TEST OK — 41 verificações, 0 falhas`.
+
+**Pendente da fase:** a meta-progressão usa `PlayerPrefs`, não o ESave — ele está no projeto e nunca
+foi confirmado como o save oficial. `MetaProgression` é o único ponto a trocar quando for.
+
+---
+
+### Fase 3 — planejamento original
 
 1. **`RunManager`** (novo, `DontDestroyOnLoad` como os outros): número do ciclo, corrupção global,
    estado da run, e o evento `onCycleAdvanced`. Um ciclo = uma jornada concluída.
