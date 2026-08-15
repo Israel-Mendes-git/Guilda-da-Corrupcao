@@ -1607,16 +1607,22 @@ public class JourneyManager : MonoBehaviour
         }
 
         if (hpBar != null)
+        {
             hpBar.fillAmount = hero.maxHp > 0 ? (float)hero.currentHp / hero.maxHp : 0f;
+
+            // A barra veste o sprite vermelho do kit: sangue é a cor dela. Só a
+            // Beira da Morte escurece — ver a mesma regra no CombatManager.
+            hpBar.color = hero.isOnDeathsDoor ? new Color(0.55f, 0.15f, 0.15f) : Color.white;
+        }
 
         if (stressText != null) stressText.text = $"🧠 {Mathf.RoundToInt(hero.stress)}";
 
         if (stressBar != null)
         {
-            stressBar.fillAmount = hero.stress / 100f;
-            stressBar.color = hero.stress >= 100f ? new Color(0.8f, 0.1f, 0.1f)
-                            : hero.stress >= 50f ? new Color(0.85f, 0.6f, 0.1f)
-                            : new Color(0.4f, 0.5f, 0.7f);
+            stressBar.fillAmount = Mathf.Clamp01(hero.stress / 100f);
+            stressBar.color = hero.stress >= 100f ? new Color(0.80f, 0.10f, 0.10f)
+                            : hero.stress >= 75f ? new Color(0.85f, 0.65f, 0.25f)
+                                                 : new Color(0.55f, 0.52f, 0.45f);
         }
 
         if (stateText != null)
