@@ -40,14 +40,18 @@ public class GuildManager : MonoBehaviour
 
     void Start()
     {
-        UpdateGoldUI();
-        UpdateReputationUI();
-
-        // Adiciona heróis iniciais se não houver nenhum
+        // Roster vazio aqui significa guilda nova: ou a sessão começou sem save,
+        // ou o jogador escolheu "Nova guilda". Quando há save, o SceneFlow já
+        // preencheu o roster no sceneLoaded — antes deste Start, de propósito —
+        // e nada aqui deve passar por cima do que foi carregado.
         if (roster.Count == 0)
         {
+            AplicarDestraves();
             AddStartingHeroes();
         }
+
+        UpdateGoldUI();
+        UpdateReputationUI();
     }
 
     void AddStartingHeroes()
@@ -58,6 +62,24 @@ public class GuildManager : MonoBehaviour
         roster.Add(HeroFactory.CreateHero("Sera", HeroClass.Hunter, 1));
         onRosterChanged?.Invoke();
     }
+
+    /// <summary>
+    /// O que as runs anteriores compraram, aplicado à guilda que está nascendo.
+    ///
+    /// Ficava só no <see cref="ResetForNewRun"/>, e por isso valia apenas para a
+    /// guilda fundada a partir da tela de fim de run — a primeira partida da
+    /// sessão, que é o caminho normal saindo do menu, ignorava tudo o que o
+    /// jogador tinha destravado.
+    /// </summary>
+    void AplicarDestraves()
+    {
+        gold = MetaProgression.OuroBasePorRun + MetaProgression.StartingGoldBonus();
+        reputation = MetaProgression.ReputacaoBasePorRun + MetaProgression.StartingReputationBonus();
+        maxRosterSize = BaseRosterSize + MetaProgression.ExtraRosterSlots();
+    }
+
+    /// <summary>Vagas de fábrica, antes dos alojamentos comprados no Santuário.</summary>
+    public const int BaseRosterSize = 8;
 
     /// <summary>
     /// Uma guilda nova, para a run seguinte.
@@ -72,13 +94,26 @@ public class GuildManager : MonoBehaviour
         roster.Clear();
         fallenHeroes.Clear();
 
-        gold = 500 + MetaProgression.StartingGoldBonus();
-        reputation = 100;
-
+        AplicarDestraves();
         AddStartingHeroes();
 
+        NotificarTudoMudou();
+    }
+
+    /// <summary>
+    /// Avisa a UI inteira de que tudo mudou de uma vez.
+    ///
+    /// Existe para o carregamento de save: ouro, reputação e roster trocam no
+    /// mesmo instante, e disparar os três eventos separados espalhados pelo
+    /// código de carga deixaria a tela meio atualizada se um deles faltasse.
+    /// </summary>
+    public void NotificarTudoMudou()
+    {
         UpdateGoldUI();
         UpdateReputationUI();
+
+        onGoldChanged?.Invoke();
+        onReputationChanged?.Invoke();
         onRosterChanged?.Invoke();
     }
 

@@ -273,6 +273,14 @@ public class JourneyResultUI : MonoBehaviour
         var acao = onContinue;
         onContinue = null;
         acao?.Invoke();
+
+        // Grava com o despojo já escolhido.
+        //
+        // O autosave do fim de ciclo dispara antes desta tela abrir, então ele
+        // não conhece o ouro extra, o descanso na taverna nem os curativos que o
+        // jogador acabou de escolher — e é justamente a última decisão da jornada
+        // que ele odiaria repetir.
+        SaveSystem.Autosave();
     }
 
     /// <summary>Escreve num filho pelo nome, em qualquer profundidade.</summary>

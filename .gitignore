@@ -110,9 +110,10 @@ InitTestScene*.unity*
 PlayModeReport*.txt
 # Relatorio do smoke test, idem
 SmokeTestReport*.txt
-# Gatilhos de teste: criados de fora do Editor e consumidos na hora
-RunPlayModeTest.trigger
-RunSmokeTest.trigger
+# Gatilhos de teste e de montagem: criados de fora do Editor e consumidos na hora.
+# Curinga porque a lista cresce a cada ferramenta nova (RunSceneSetup, RunBarSkin,
+# RunMenuSetup...) e as que faltavam vinham aparecendo soltas no git status.
+*.trigger
 # Token de autenticacao do MCP for Unity (credencial local, nunca versionar)
 [Aa]ssets/.mcp_auth_token
 # Ferramenta de desenvolvimento com repositorio proprio (MCP for Unity)

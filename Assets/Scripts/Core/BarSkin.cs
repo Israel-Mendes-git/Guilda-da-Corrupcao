@@ -170,6 +170,7 @@ public static class SceneToolsTriggerWatcher
     const string AudioTrigger = "RunAudioCatalog.trigger";
     const string PartyCardTrigger = "RunPartyCardSkin.trigger";
     const string CardFrameTrigger = "RunCardFrameSkin.trigger";
+    const string MenuSetupTrigger = "RunMenuSetup.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -193,6 +194,8 @@ public static class SceneToolsTriggerWatcher
             AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
         });
+
+        Consumir(MenuSetupTrigger, () => MenuSceneSetup.Montar(false));
 
         Consumir(BarSkinTrigger, BarSkin.Aplicar);
         Consumir(CardArtTrigger, CardArt.Aplicar);

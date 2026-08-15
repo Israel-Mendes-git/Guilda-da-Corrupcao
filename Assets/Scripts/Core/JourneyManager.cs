@@ -107,6 +107,16 @@ public class JourneyManager : MonoBehaviour
     /// <summary>O mapa só aceita cliques enquanto a rota está sendo escolhida.</summary>
     public bool IsChoosingRoute => isChoosingRoute && !journeyEnded;
 
+    /// <summary>
+    /// O grupo está na estrada?
+    ///
+    /// É o que o save consulta antes de gravar. O estado de dentro da jornada —
+    /// mapa, dia, mão, descarte, mitigação — vive em campos privados daqui e não
+    /// é salvo por ninguém; gravar no meio devolveria o jogador à guilda com a
+    /// missão sumida do quadro e a party fora de casa.
+    /// </summary>
+    public bool EmJornada => currentQuest != null && !journeyEnded;
+
     // Sem isto, as corrotinas de transição já agendadas continuam produzindo
     // eventos depois que a jornada acabou — a jornada nunca fechava.
     private bool journeyEnded = false;
@@ -442,7 +452,7 @@ public class JourneyManager : MonoBehaviour
 
             if (destravada)
             {
-                string rotulo = $"<color=#D9B85A>✦</color> {captured.optionText}";
+                string rotulo = $"<color=#D9B85A>◆</color> {captured.optionText}";
                 if (!string.IsNullOrEmpty(captured.empoweredText))
                     rotulo += $"\n<size=80%><color=#D9B85A>{captured.empoweredText}</color></size>";
 
