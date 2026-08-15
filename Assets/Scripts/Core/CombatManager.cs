@@ -1080,10 +1080,10 @@ public class CombatManager : MonoBehaviour
                 float alvo = enemy.data.maxHp > 0 ? (float)enemy.currentHp / enemy.data.maxHp : 0f;
                 CombatFeedback.Get().LerpBar(hpBar, alvo);
 
-                // Vermelho quando a vida está baixa: legível de relance.
-                hpBar.color = alvo <= 0.25f ? new Color(0.80f, 0.25f, 0.22f)
-                            : alvo <= 0.5f ? new Color(0.85f, 0.65f, 0.25f)
-                                            : new Color(0.45f, 0.68f, 0.38f);
+                // A barra veste o sprite vermelho do kit; escurecer quando a vida
+                // cai lê melhor do que trocar de matiz, que pintaria o sprite de
+                // uma cor que não é dele.
+                hpBar.color = alvo <= 0.25f ? new Color(0.55f, 0.15f, 0.15f) : Color.white;
             }
 
             Image portrait = enemy.view.transform.Find("Portrait")?.GetComponent<Image>();
@@ -1195,10 +1195,24 @@ public class CombatManager : MonoBehaviour
                 float alvo = hero.maxHp > 0 ? (float)hero.currentHp / hero.maxHp : 0f;
                 CombatFeedback.Get().LerpBar(hpBar, alvo);
 
-                hpBar.color = hero.isOnDeathsDoor ? new Color(0.55f, 0.15f, 0.15f)
-                            : alvo <= 0.25f ? new Color(0.80f, 0.25f, 0.22f)
-                            : alvo <= 0.5f ? new Color(0.85f, 0.65f, 0.25f)
-                                            : new Color(0.45f, 0.68f, 0.38f);
+                // A barra veste o sprite vermelho do kit, então sangue é a cor
+                // natural dela: tingir de verde com HP cheio pintava o sprite de
+                // uma cor que não é dele. Só a Beira da Morte escurece, que é
+                // quando o estado precisa saltar aos olhos.
+                hpBar.color = hero.isOnDeathsDoor ? new Color(0.55f, 0.15f, 0.15f) : Color.white;
+            }
+
+            // O estresse tinha barra no prefab e ninguém a atualizava: no combate
+            // ela ficava no valor gravado (cheia), dizendo 100 de estresse para um
+            // herói com 0. Passava batido enquanto era um retângulo chapado.
+            Image stressBar = view.transform.Find("StressBar/Fill")?.GetComponent<Image>();
+            if (stressBar != null)
+            {
+                CombatFeedback.Get().LerpBar(stressBar, Mathf.Clamp01(hero.stress / 100f));
+
+                stressBar.color = hero.stress >= 100f ? new Color(0.80f, 0.10f, 0.10f)
+                                : hero.stress >= 75f ? new Color(0.85f, 0.65f, 0.25f)
+                                                     : new Color(0.55f, 0.52f, 0.45f);
             }
 
             var target = view.GetComponent<CombatDropTarget>();
