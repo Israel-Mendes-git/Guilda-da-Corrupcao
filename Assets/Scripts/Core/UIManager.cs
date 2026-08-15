@@ -253,6 +253,19 @@ public class UIManager : MonoBehaviour
         if (hideDuringCombat != null)
             foreach (var painel in hideDuringCombat)
                 Hide(painel);
+
+        // O aviso da tela anterior morre aqui.
+        //
+        // A mensagem da jornada ("Prepare-se com cartas…") dura 3 segundos e o
+        // combate abre antes disso, então ela ficava plantada no meio do campo de
+        // batalha — um retângulo preto cobrindo party e inimigos, falando de uma
+        // tela que não está mais lá. Os popups são levantados acima de tudo de
+        // propósito (LiftPopups), o que fazia deste o objeto mais visível da luta.
+        if (messagePopup != null && messagePopup.activeSelf)
+        {
+            if (currentMessageCoroutine != null) StopCoroutine(currentMessageCoroutine);
+            messagePopup.SetActive(false);
+        }
     }
 
     /// <summary>
@@ -449,7 +462,13 @@ public class UIManager : MonoBehaviour
 
         messageText.text = message;
         EnsurePopupOnTop(messagePopup);
-        StartCoroutine(ShowMessageCoroutine(duration > 0 ? duration : messageDuration));
+
+        // A corrotina precisava ser guardada: o campo existia e nunca era
+        // preenchido, então o StopCoroutine acima nunca parava nada — duas
+        // mensagens seguidas brigavam pelo mesmo popup, e não havia como
+        // cancelar uma ao trocar de tela.
+        currentMessageCoroutine =
+            StartCoroutine(ShowMessageCoroutine(duration > 0 ? duration : messageDuration));
     }
 
     IEnumerator ShowMessageCoroutine(float duration)

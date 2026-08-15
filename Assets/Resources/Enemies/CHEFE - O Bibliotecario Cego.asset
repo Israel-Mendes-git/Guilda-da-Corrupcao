@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: "O Bibliotec\xE1rio Cego"
   description: "N\xE3o tem olhos, mas vira a cabe\xE7a na dire\xE7\xE3o exata de
     quem entra."
-  portrait: {fileID: 0}
+  portrait: {fileID: -4795363162621231457, guid: 6d7cd4f7505dc674c891ca8946cfd98b, type: 3}
   biome: 7
   isBoss: 1
   maxHp: 80
@@ -27,3 +27,5 @@ MonoBehaviour:
   stressWeight: 40
   attackAllWeight: 10
   goldReward: 310
+  portraitTint: {r: 0.8, g: 0.75, b: 0.55, a: 1}
+  portraitScale: 2.8

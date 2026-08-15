@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: O Gigante de Pedra
   description: "Guarda esta passagem desde antes de existir algu\xE9m para lembrar
     por qu\xEA."
-  portrait: {fileID: 0}
+  portrait: {fileID: 4723107735738678597, guid: 1018b0ba13578bf459bd254ae1a2be99, type: 3}
   biome: 2
   isBoss: 1
   maxHp: 110
@@ -27,3 +27,5 @@ MonoBehaviour:
   stressWeight: 5
   attackAllWeight: 15
   goldReward: 300
+  portraitTint: {r: 0.55, g: 0.56, b: 0.6, a: 1}
+  portraitScale: 3

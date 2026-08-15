@@ -69,6 +69,9 @@ public class CombatManager : MonoBehaviour
     public TMP_Text combatLogText;
     public TMP_Text instructionText;
 
+    [Header("Ordem do round")]
+    public TurnOrderBar turnOrder;
+
     [Header("Botões")]
     public Button endTurnButton;
     public Button fleeButton;
@@ -324,6 +327,16 @@ public class CombatManager : MonoBehaviour
 
         AddLog($"— Turno {turn} —");
         RefreshAll();
+
+        // A fila é remontada aqui, e não só no início do combate: quem morreu no
+        // turno passado precisa sair dela. Uma fila que não encurta mente sobre o
+        // que ainda vem — que é exatamente o que ela existe para responder.
+        if (turnOrder != null)
+        {
+            turnOrder.Montar(enemies);
+            turnOrder.DestacarGrupo();
+        }
+
         SetInstruction("Escolha uma carta.");
     }
 
@@ -352,9 +365,21 @@ public class CombatManager : MonoBehaviour
 
     IEnumerator EnemyPhase()
     {
-        foreach (var enemy in enemies.Where(e => e.IsAlive).ToList())
+        // A fila do round é fotografada aqui: é esta ordem, e não a lista bruta,
+        // que a barra mostra e que os índices de destaque seguem.
+        var vivos = enemies.Where(e => e.IsAlive).ToList();
+        turnOrder?.Montar(vivos);
+
+        for (int i = 0; i < vivos.Count; i++)
         {
+            EnemyInstance enemy = vivos[i];
+
             if (combatOver) yield break;
+            if (!enemy.IsAlive) continue;
+
+            // Destaca antes do golpe sair, com a espera no meio: é o instante em
+            // que o jogador liga o que vai acontecer a quem vai fazer.
+            turnOrder?.DestacarInimigo(i);
 
             yield return new WaitForSeconds(enemyActionDelay);
 
@@ -1106,7 +1131,17 @@ public class CombatManager : MonoBehaviour
 
             Image portrait = enemy.view.transform.Find("Portrait")?.GetComponent<Image>();
             if (portrait != null && enemy.data.portrait != null)
+            {
                 portrait.sprite = enemy.data.portrait;
+                portrait.preserveAspect = true;
+
+                // Cor e tamanho são o que separa duas criaturas que dividem a
+                // mesma arte: há 11 inimigos e 7 desenhos. Ver EnemyArt.
+                portrait.color = enemy.data.portraitTint;
+
+                float escala = enemy.data.portraitScale > 0f ? enemy.data.portraitScale : 1f;
+                portrait.transform.localScale = Vector3.one * escala;
+            }
 
             // Alvo de drop: é assim que a carta chega ao inimigo.
             var target = enemy.view.GetComponent<CombatDropTarget>();
@@ -1178,6 +1213,10 @@ public class CombatManager : MonoBehaviour
         foreach (var hero in party)
         {
             GameObject view = Instantiate(heroStatusPrefab, heroContainer);
+
+            // O molde do combate nasce desativado dentro do painel, como todos os
+            // moldes montados por código neste projeto; o clone precisa acordar.
+            view.SetActive(true);
             heroViews[hero] = view;
 
             // A posição precisa estar visível durante a luta: é ela que explica
@@ -1200,16 +1239,22 @@ public class CombatManager : MonoBehaviour
                               : hero.isOnDeathsDoor ? "<color=#E04B44>☠️ BEIRA DA MORTE</color>"
                               : $"{hero.currentHp}/{hero.maxHp}");
 
-            // O rosto de quem está lutando, atrás dos números e translúcido: no
-            // combate a informação manda, e o card é pequeno. A Beira da Morte
-            // puxa o rosto para o vermelho — aviso que se capta sem parar para ler.
+            // O rosto de quem está lutando, agora em tamanho de figura e opaco.
+            //
+            // Era um fundo translúcido a 34% atrás dos números, porque o card do
+            // combate era pequeno e a informação tinha de vencer. Com o campo de
+            // batalha frente a frente, a figura é o assunto: quem está lutando
+            // precisa ser reconhecido de relance, como em Darkest Dungeon.
+            //
+            // O estado continua na cor: morto apaga para o cinza, Beira da Morte
+            // puxa para o vermelho — aviso que se capta sem parar para ler.
             Image retrato = view.transform.Find("Portrait")?.GetComponent<Image>();
             if (retrato != null && hero.portrait != null)
             {
                 retrato.sprite = hero.portrait;
-                retrato.color = hero.isDead ? new Color(0.45f, 0.35f, 0.35f, 0.20f)
-                              : hero.isOnDeathsDoor ? new Color(1f, 0.55f, 0.55f, 0.42f)
-                                                    : new Color(1f, 1f, 1f, 0.34f);
+                retrato.color = hero.isDead ? new Color(0.38f, 0.34f, 0.36f, 0.55f)
+                              : hero.isOnDeathsDoor ? new Color(1f, 0.62f, 0.60f, 1f)
+                                                    : Color.white;
             }
 
             // Estresse alto é o que antecede uma Aflição: precisa saltar aos olhos.

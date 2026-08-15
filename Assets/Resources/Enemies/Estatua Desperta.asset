@@ -11,10 +11,10 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd23677091f512d968131b44c8025a7d, type: 3}
   m_Name: Estatua Desperta
-  m_EditorClassIdentifier:
-  enemyName: 'Estátua Desperta'
-  description: 'Estava de costas quando vocês entraram. Agora não está mais.'
-  portrait: {fileID: 0}
+  m_EditorClassIdentifier: 
+  enemyName: "Est\xE1tua Desperta"
+  description: "Estava de costas quando voc\xEAs entraram. Agora n\xE3o est\xE1 mais."
+  portrait: {fileID: 4723107735738678597, guid: 1018b0ba13578bf459bd254ae1a2be99, type: 3}
   biome: 7
   isBoss: 0
   maxHp: 34
@@ -26,3 +26,5 @@ MonoBehaviour:
   stressWeight: 15
   attackAllWeight: 5
   goldReward: 35
+  portraitTint: {r: 0.62, g: 0.63, b: 0.66, a: 1}
+  portraitScale: 2.3

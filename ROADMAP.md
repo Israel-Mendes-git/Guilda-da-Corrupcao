@@ -578,6 +578,85 @@ aberto a pausa de outro jeito, que não existe.
 
 ---
 
+### Fase 3.6 — O combate ganha campo de batalha ✅ *concluída em 15/08*
+
+**Pedido do autor:** deixar o combate mais parecido com *Darkest Dungeon* e *Slay the Spire*, com os
+personagens aparecendo e a ordem de combate visível.
+
+#### As três decisões do autor
+
+| Decisão | Escolha | Consequência |
+|---|---|---|
+| Modelo de turno | **Barra informativa; a regra do combate não muda** | O grupo continua agindo junto com 5 de energia. Vez-por-personagem mudaria energia, posse de carta, simulador e todo o balanceamento medido em mortes/combate |
+| Layout | **Frente a frente, estilo DD** | Party à esquerda, inimigos à direita. A posição 1 fica encostada no inimigo |
+| Arte | **Catálogo + pose parada** | Sem Animator; o primeiro quadro do Idle de cada criatura |
+
+#### O que ficou
+
+- **`TurnOrderBar`** — a fila do round: `GRUPO` e uma ficha por inimigo vivo, com a criatura, o nome
+  e a marca de quem age agora. Remontada a cada round, porque **inimigo morto sai da fila** — uma
+  fila que não encurta mente sobre o que ainda vem. Homônimos ganham numeral (`Carniçal I`, `II`).
+- **Campo de batalha frente a frente.** A fila do grupo é invertida (`reverseArrangement`): a posição
+  1 fica **à direita**, encostada nos inimigos, porque é ela que está na linha de frente. Numa fila
+  normal o herói mais exposto apareceria no canto mais distante do perigo.
+- **Figuras grandes dos dois lados**, com moldes próprios do combate. O `PartyStatusPrefab` e o
+  `EnemyCardPrefab` continuam servindo à jornada, onde o card pequeno é o certo.
+- **O retrato do herói deixou de ser fundo.** Era um marca-d'água a 34% atrás dos números; agora é a
+  figura, e o estado continua na cor (cinza para morto, vermelho para Beira da Morte).
+- **`EnemyArt`** — os 11 inimigos ganharam corpo. Ver a tabela em `ASSETS.md`.
+- **Intenção acima da cabeça**, como no Slay the Spire, com fundo próprio para continuar legível
+  sobre a criatura ampliada.
+
+#### ⚠️ O achado: o inventário afirmava que a arte não existia
+
+O `ASSETS.md` dizia, sobre `EnemyData.portrait`: *"Nenhum dos pacotes traz criatura 2D."* **Era
+falso.** O `Monsters Creatures Fantasy` estava no disco com quatro criaturas em pixel art — esqueleto,
+goblin, cogumelo e olho voador —, todas já fatiadas em Idle, Attack, Take Hit e Death, e o
+`War/Slime Enemy` com mais três. O combate passou meses com caixas vazias no lugar dos monstros por
+causa de uma linha de inventário errada que ninguém reconferiu.
+
+São 11 inimigos para 7 criaturas: quatro usam arte emprestada, separada por **cor** e **tamanho**.
+Lobo, aranha e golem de pedra continuam sem nada que os represente — está registrado no `ASSETS.md`
+como compra a fazer.
+
+#### ⚠️ O achado que custou duas rodadas: o "Montar Cena" na cena errada
+
+O teste de Play Mode agora termina no título (Fase 3.5), e ao sair do Play Mode o Editor fica com a
+`MainMenu` aberta. O gatilho `RunSceneSetup` monta **na cena ativa** — e como há Canvas nas duas,
+nada falhou: o comando construiu o jogo inteiro (combate, jornada, sala de mapas) dentro da cena de
+título, que engordou de 250 KB para 800 KB, em silêncio.
+
+Corrigido em dois lugares: o gatilho **abre a cena do jogo** antes de montar, e o `GuildSceneSetup`
+**recusa** rodar em qualquer outra cena, dizendo qual esperava e qual encontrou.
+
+#### Outras armadilhas desta fase
+
+- **Pivô depois do rect move o retângulo.** Trocar o pivô mantém a `anchoredPosition`, então o
+  retrato subiu meia altura e abriu um vazio de 80px entre a figura e o nome — sem erro nenhum.
+  Pivô **antes** do rect.
+- **Quem nasce depois é desenhado por cima.** A criatura ampliada cobria a intenção; o retrato passou
+  a ser criado antes dela. É a terceira vez que ordem de irmãos custa tempo neste projeto.
+- **`preserveAspect` encaixa o quadro inteiro**, com toda a transparência em volta da criatura. Por
+  isso existe `EnemyData.portraitScale`: sem ela o esqueleto aparecia como um boneco de 50px dentro
+  de um card de 370.
+
+#### Verificação executada (15/08)
+
+`PLAY MODE OK — nenhum erro capturado`, **0 falhas**, jornada vitoriosa com 3 combates travados.
+
+| Prova | Resultado |
+|---|---|
+| Fila do round | `3 fichas para 2 inimigos (esperado 3) | apontando para o índice 0` |
+| Captura `combate_cartas.png` | party 4-3-2-1 à esquerda, inimigos à direita, intenção acima da cabeça |
+| Inimigos com retrato | 11 de 11 |
+
+**Quatro defeitos que só a captura mostrou**, com o relatório em 0 falhas: o retrato deslocado pelo
+pivô, os inimigos de 50px, a intenção coberta pela criatura, e o popup "Prepare-se com cartas…" da
+jornada plantado no meio do campo de batalha — este último anterior a esta sessão, e corrigido no
+`EnterCombatScreen`.
+
+---
+
 ### Fase 3 — planejamento original
 
 1. **`RunManager`** (novo, `DontDestroyOnLoad` como os outros): número do ciclo, corrupção global,
@@ -655,7 +734,7 @@ Fase 0 (limpeza)  →  Fase 1 (XP)  →  Fase 2 (carta ⨯ escolha, chefe, simul
                                           ↓
                      Fase 3 (run, corrupção global, fim de run)
                                           ↓
-                     Fase 3.5 (menus, save, Santuário)
+                     Fase 3.5 (menus, save, Santuário)  →  Fase 3.6 (campo de batalha)
                                           ↓
                      Fase 4 (peso) e Fase 5 (conteúdo/arte/áudio)
 ```

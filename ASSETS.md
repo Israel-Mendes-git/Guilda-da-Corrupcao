@@ -9,8 +9,8 @@ campo novo para nada abaixo:
 
 | Campo | Onde | Estado |
 |---|---|---|
-| `CardData.cardImage` | as 17 cartas | **17 de 17 vazios** |
-| `EnemyData.portrait` | os 11 inimigos | **11 de 11 vazios** |
+| `CardData.cardImage` | as 17 cartas | ✅ preenchidos (`CardArt.cs`) |
+| `EnemyData.portrait` | os 11 inimigos | ✅ preenchidos (`EnemyArt.cs`) — ver §Inimigos |
 | `EventData.eventImage` | os 25 eventos | **25 de 25 vazios** |
 | `HeroData.portrait` | heróis gerados pela `HeroFactory` | vazio |
 | `QuestData.biomeIcon` | missões | vazio — é o `opcionais vazios: biomeIcon` que aparece em toda run de Play Mode |
@@ -198,7 +198,12 @@ Nada do que foi importado resolve:
 - **Retratos de herói** (`HeroData.portrait`). Os ícones da Blink são objetos e símbolos, não rostos.
   Dá para usar o ícone da classe como identidade visual do herói — é melhor que a cor sólida de hoje —
   mas não é retrato, e a ficha do herói vai continuar sem cara.
-- **Retratos de inimigo** (`EnemyData.portrait`, 11 vazios). Nenhum dos pacotes traz criatura 2D.
+- ~~**Retratos de inimigo** (`EnemyData.portrait`, 11 vazios). Nenhum dos pacotes traz criatura 2D.~~
+  **Corrigido em 15/08: isto estava errado.** Há criatura 2D em dois pacotes — `Monsters Creatures
+  Fantasy` (esqueleto, goblin, cogumelo, olho voador, todos em pixel art com Idle/Attack/Hurt/Death
+  já fatiados) e `War/Slime Enemy` (três cores). Os 11 inimigos foram preenchidos a partir daí pelo
+  `EnemyArt.cs`. Ver a tabela abaixo — e a lição: **o inventário disse "não existe" sobre um pacote
+  que estava no disco**, e por isso o combate ficou meses com caixas vazias no lugar dos monstros.
 - **Ilustração de evento** (`EventData.eventImage`, 25 vazios).
 - **Biomas restantes**: Pântano, Deserto, Tundra e Vulcão seguem sem fundo próprio.
 
@@ -260,3 +265,37 @@ o código do jogo.
    ajustando os import settings antes.
 5. **VFX de combate**, ligando cada prefab ao `CombatEffectType` correspondente pela tabela do §3.
 6. **Limpar o peso morto** do §8.
+
+---
+
+## Inimigos — quem empresta a cara de quem
+
+Preenchido por `EnemyArt.cs` (Tools ▸ Guild of Legends ▸ Aplicar Arte nos Inimigos, ou o gatilho
+`RunEnemyArt.trigger`). São **11 inimigos para 7 criaturas desenhadas**: quatro do *Monsters
+Creatures Fantasy* e três slimes. Onde falta, a criatura mais próxima é emprestada e separada por
+**cor** e **tamanho** — a mesma arte em cinza-pedra e maior não se confunde com a original.
+
+| Inimigo | Criatura | Escala | Cor | Por quê |
+|---|---|---|---|---|
+| Aranha da Copa | Flying eye | 2,0 | — | criatura que espreita do alto |
+| Carniçal | Skeleton | 2,0 | — | morto-vivo armado; literal |
+| Estátua Desperta | Skeleton | 2,3 | pedra | figura de pedra que empunha arma |
+| Lobo Esfomeado | Goblin | 2,0 | fulvo | **não há canídeo em pacote nenhum** |
+| Salteador da Serra | Goblin | 2,0 | — | bandido pequeno e ágil |
+| Sanguessuga Gigante | Slime verde | 3,2 | esverdeado | massa sem forma que suga |
+| CHEFE — A Coisa da Mata | Mushroom | 3,0 | musgo | fungo da mata; literal |
+| CHEFE — O Afogado | Slime azul | 3,4 | água | o que engole |
+| CHEFE — O Bibliotecário Cego | Flying eye | 2,8 | pergaminho | o olho que tudo vê, para quem é cego |
+| CHEFE — O Gigante de Pedra | Skeleton | 3,0 | pedra | **não há golem em pacote nenhum** |
+| CHEFE — O Guardião Sem Nome | Skeleton | 2,8 | sombra | guardião morto que não larga o posto |
+
+**Ainda a comprar ou encomendar:** lobo, aranha e golem de pedra — três dos onze usam arte que não
+os representa. `portrait`, `portraitTint` e `portraitScale` são campos serializados: trocar qualquer
+escolha no Inspector sobrevive a rodar a ferramenta de novo.
+
+**Ficaram de fora, e por quê:**
+
+- **Dark Knight** — é um conjunto de *peças* para animação esqueletal (elmo, braço, perna, capa),
+  não uma criatura inteira; e o traço vetorial briga com o pixel art dos retratos de herói.
+- **100 Fantasy Characters** (Blackthornprod) — pintado e colorido demais para a paleta dessaturada.
+- **SPUM** — montador de personagem por partes; exigiria montar cada criatura à mão.

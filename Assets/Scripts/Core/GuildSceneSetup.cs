@@ -62,6 +62,24 @@ public static class GuildSceneSetup
     /// <param name="interactive">false para rodar sem nenhum diálogo.</param>
     public static void Setup(bool interactive)
     {
+        // Esta montagem é da **cena do jogo**, e o Editor pode estar em qualquer
+        // outra — o teste de Play Mode agora passa pelo título, e ao sair deixa a
+        // MainMenu aberta. Sem esta guarda o comando construiu o jogo inteiro
+        // dentro da cena de menu, em silêncio: há Canvas nas duas, então nada
+        // falhava; a cena de título só engordou de 250 KB para 800 KB com um
+        // painel de combate escondido dentro dela.
+        string cenaAtual = EditorSceneManager.GetActiveScene().path;
+        if (cenaAtual != MenuSceneSetup.CaminhoDoJogo)
+        {
+            string erro = $"Montar Cena precisa da cena do jogo aberta.\n\n"
+                        + $"Aberta agora: {(string.IsNullOrEmpty(cenaAtual) ? "(cena sem arquivo)" : cenaAtual)}\n"
+                        + $"Esperada: {MenuSceneSetup.CaminhoDoJogo}";
+
+            if (interactive) EditorUtility.DisplayDialog("Montar Cena", erro, "Ok");
+            else Debug.LogError("Montar Cena: " + erro.Replace("\n\n", " — ").Replace("\n", " | "));
+            return;
+        }
+
         Canvas canvas = Object.FindObjectsOfType<Canvas>()
             .FirstOrDefault(c => c.transform.parent == null || c.GetComponent<CanvasScaler>() != null);
 
@@ -80,7 +98,7 @@ public static class GuildSceneSetup
         var cardPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CardPath);
 
         GameObject journeyPanel = BuildJourney(canvas, choiceBtn, mapNode, partyStatus, cardPrefab);
-        GameObject combatPanel = BuildCombat(canvas, enemyCard, partyStatus, cardPrefab);
+        GameObject combatPanel = BuildCombat(canvas, cardPrefab);
         BuildJourneyResult(canvas);
         BuildRunEnd(canvas);
         GameObject mapRoomPanel = BuildMapRoom(canvas);
@@ -451,25 +469,74 @@ public static class GuildSceneSetup
 
     #region Combate
 
-    static GameObject BuildCombat(Canvas canvas, GameObject enemyCard, GameObject partyStatus, GameObject cardPrefab)
+    /// <summary>
+    /// A tela de combate, disposta como a de Darkest Dungeon: o grupo à esquerda
+    /// em fila, os inimigos à direita, encarando-se.
+    ///
+    /// Antes os inimigos ficavam numa faixa no alto e a party numa fileira de
+    /// cards pequenos embaixo deles — leitura de Slay the Spire, em que só existe
+    /// um lado. Aqui há dois lados e **posição importa**: a formação decide quem
+    /// apanha e quanta força cada carta tem. Pôr os dois grupos frente a frente é
+    /// o que torna essa regra visível sem uma linha de explicação.
+    ///
+    /// A ordem da fila do grupo é invertida de propósito (<c>reverseArrangement</c>):
+    /// a posição 1 fica **à direita**, encostada nos inimigos, porque é ela que
+    /// está na linha de frente. Numa fila da esquerda para a direita o herói mais
+    /// exposto apareceria no canto mais distante do perigo.
+    /// </summary>
+    static GameObject BuildCombat(Canvas canvas, GameObject cardPrefab)
     {
         GameObject panel = FindOrCreatePanel(canvas, "Panel_Combat");
 
         var turn = EnsureText(panel.transform, "Txt_Turn", "Turno 0", 26,
-            new Vector2(0, 1), new Vector2(0.4f, 1), new Vector2(20, -60), new Vector2(0, -16));
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -58), new Vector2(240, -16));
         var energy = EnsureText(panel.transform, "Txt_Energy", "", 26,
-            new Vector2(0.4f, 1), new Vector2(0.7f, 1), new Vector2(0, -60), new Vector2(0, -16));
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(252, -58), new Vector2(440, -16));
+
+        // A ordem do round, logo abaixo do cabeçalho: é a primeira coisa a se
+        // olhar antes de decidir a jogada.
+        TurnOrderBar ordem = BuildTurnOrder(panel);
+
         var instruction = EnsureText(panel.transform, "Txt_Instruction", "", 20,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -96), new Vector2(-20, -62));
+            new Vector2(0, 1), new Vector2(0.64f, 1), new Vector2(24, -176), new Vector2(0, -140));
 
-        var enemies = EnsureRow(panel.transform, "EnemyContainer", new Vector2(0, 1), new Vector2(1, 1),
-            new Vector2(20, -360), new Vector2(-20, -104), 14);
-
+        // O log sobe para o canto: no rodapé ele disputava espaço com a mão, e a
+        // mão é onde o jogador olha.
         var log = EnsureText(panel.transform, "Txt_CombatLog", "", 17,
-            new Vector2(0.62f, 0), new Vector2(1, 0), new Vector2(0, 540), new Vector2(-20, 710));
+            new Vector2(0.66f, 1), new Vector2(1, 1), new Vector2(0, -176), new Vector2(-24, -16));
+        log.alignment = TextAlignmentOptions.TopRight;
+        log.color = SubtleTextColor;
 
-        var heroes = EnsureRow(panel.transform, "HeroContainer", new Vector2(0, 0), new Vector2(0.6f, 0),
-            new Vector2(20, 540), new Vector2(0, 710), 10);
+        // --- O campo de batalha: dois lados, frente a frente ------------------
+        var heroes = EnsureRow(panel.transform, "HeroContainer", new Vector2(0, 1), new Vector2(0.5f, 1),
+            new Vector2(30, -566), new Vector2(-10, -196), 12);
+
+        var filaDoGrupo = heroes.GetComponent<HorizontalLayoutGroup>();
+        if (filaDoGrupo != null)
+        {
+            Undo.RecordObject(filaDoGrupo, "Montar Cena");
+            filaDoGrupo.childAlignment = TextAnchor.LowerRight;
+            filaDoGrupo.reverseArrangement = true;
+            EditorUtility.SetDirty(filaDoGrupo);
+        }
+
+        var enemies = EnsureRow(panel.transform, "EnemyContainer", new Vector2(0.5f, 1), new Vector2(1, 1),
+            new Vector2(10, -566), new Vector2(-30, -196), 16);
+
+        var filaInimiga = enemies.GetComponent<HorizontalLayoutGroup>();
+        if (filaInimiga != null)
+        {
+            Undo.RecordObject(filaInimiga, "Montar Cena");
+            filaInimiga.childAlignment = TextAnchor.LowerLeft;
+            filaInimiga.reverseArrangement = false;
+            EditorUtility.SetDirty(filaInimiga);
+        }
+
+        // Os dois lados usam moldes próprios, montados aqui: o PartyStatusPrefab
+        // e o EnemyCardPrefab continuam servindo à jornada, onde o card pequeno é
+        // o certo. No combate a figura é o assunto.
+        GameObject moldeHeroi = EnsureCombatHeroTemplate(panel.transform);
+        GameObject moldeInimigo = EnsureCombatEnemyTemplate(panel.transform);
 
         // O leque encolhe a carta até ela caber na altura desta faixa, então é a
         // faixa que decide o corpo do texto: com 284px a carta saía a ~60% e a
@@ -506,9 +573,10 @@ public static class GuildSceneSetup
         Undo.RecordObject(cm, "Montar Cena");
         cm.combatPanel = panel;
         cm.enemyContainer = enemies.transform;
-        cm.enemyPrefab = enemyCard;
+        cm.enemyPrefab = moldeInimigo;
         cm.heroContainer = heroes.transform;
-        cm.heroStatusPrefab = partyStatus;
+        cm.heroStatusPrefab = moldeHeroi;
+        cm.turnOrder = ordem;
         cm.handContainer = hand.transform;
         cm.cardPrefab = cardPrefab;
         cm.turnText = turn;
@@ -523,6 +591,360 @@ public static class GuildSceneSetup
 
         panel.SetActive(false);
         return panel;
+    }
+
+    #endregion
+
+    #region Figuras do combate
+
+    /// <summary>Altura das duas figuras. Igual dos dois lados: é um duelo.</summary>
+    const float AlturaDaFigura = 370f;
+
+    /// <summary>
+    /// O herói no combate: retrato grande em cima, nome e barras embaixo.
+    ///
+    /// Os nomes dos filhos são contrato com o <c>CombatManager</c>, que os busca
+    /// por <c>transform.Find</c> — "Portrait", "Name", "HP", "HPBar/Fill",
+    /// "Stress", "StressBar/Fill" e "Block". Renomear qualquer um aqui apaga a
+    /// informação na tela sem erro nenhum no console.
+    /// </summary>
+    static GameObject EnsureCombatHeroTemplate(Transform parent)
+    {
+        GameObject go = EnsureFigureTemplate(parent, "CombatHeroTemplate", 200f);
+
+        EnsurePortrait(go.transform, new Vector2(0, 1), new Vector2(1, 1),
+                       new Vector2(20, -184), new Vector2(-20, -18));
+
+        var nome = EnsureText(go.transform, "Name", "", 19,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -218), new Vector2(-6, -188));
+        nome.alignment = TextAlignmentOptions.Center;
+
+        var hp = EnsureText(go.transform, "HP", "", 17,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -246), new Vector2(-6, -220));
+        hp.alignment = TextAlignmentOptions.Center;
+
+        EnsureBar(go.transform, "HPBar", new Vector2(10, -266), new Vector2(-10, -250),
+                  new Color(0.62f, 0.16f, 0.16f));
+
+        var estresse = EnsureText(go.transform, "Stress", "", 15,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -294), new Vector2(-6, -270));
+        estresse.alignment = TextAlignmentOptions.Center;
+        estresse.color = SubtleTextColor;
+
+        EnsureBar(go.transform, "StressBar", new Vector2(10, -312), new Vector2(-10, -298),
+                  new Color(0.55f, 0.52f, 0.45f));
+
+        var bloqueio = EnsureText(go.transform, "Block", "", 16,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -342), new Vector2(-6, -316));
+        bloqueio.alignment = TextAlignmentOptions.Center;
+
+        go.SetActive(false);
+        return go;
+    }
+
+    /// <summary>
+    /// O inimigo no combate: a intenção **acima da cabeça**, como no Slay the
+    /// Spire — é o dado com que o jogador decide entre atacar e se defender, e
+    /// ele precisa estar junto de quem vai executá-la, não numa lista à parte.
+    /// </summary>
+    static GameObject EnsureCombatEnemyTemplate(Transform parent)
+    {
+        GameObject go = EnsureFigureTemplate(parent, "CombatEnemyTemplate", 240f);
+
+        // A área do retrato ocupa quase todo o card: os quadros dos pacotes têm
+        // muita transparência em volta da criatura, e com preserveAspect é o
+        // quadro inteiro que é encaixado — dar pouco espaço encolhe o bicho a um
+        // boneco de 50px, que foi como o esqueleto apareceu na primeira captura.
+        //
+        // O retrato é criado ANTES da intenção porque quem nasce depois é
+        // desenhado por cima: com a criatura ampliada crescendo para o topo do
+        // card, a intenção ficava atrás dela e sumia. É a mesma regra de ordem de
+        // irmãos que já custou caro na sessão do kit visual.
+        EnsurePortrait(go.transform, new Vector2(0, 1), new Vector2(1, 1),
+                       new Vector2(10, -250), new Vector2(-10, -46));
+
+        // Fundo próprio para a intenção continuar legível sobre a criatura.
+        GameObject faixaIntencao = EnsureBox(go.transform, "IntentBox",
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(4, -46), new Vector2(-4, -6));
+
+        var fundoIntencao = faixaIntencao.GetComponent<Image>();
+        if (fundoIntencao != null)
+        {
+            fundoIntencao.color = new Color(0.06f, 0.055f, 0.07f, 0.88f);
+            fundoIntencao.raycastTarget = false;
+        }
+
+        // "Intent" fica como filho direto da view: é assim que o CombatManager o
+        // encontra (transform.Find, um nível só). Dentro da caixa, a intenção
+        // ficaria em branco a luta inteira sem erro nenhum no console.
+        var intencao = EnsureText(go.transform, "Intent", "", 18,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(8, -44), new Vector2(-8, -8));
+        intencao.alignment = TextAlignmentOptions.Center;
+
+        // Fundo e texto por último, nesta ordem: quem nasce depois é desenhado
+        // por cima, e a criatura ampliada passa por trás dos dois.
+        faixaIntencao.transform.SetAsLastSibling();
+        intencao.transform.SetAsLastSibling();
+
+        var nome = EnsureText(go.transform, "Name", "", 19,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -282), new Vector2(-6, -252));
+        nome.alignment = TextAlignmentOptions.Center;
+
+        var hp = EnsureText(go.transform, "HP", "", 17,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -310), new Vector2(-6, -284));
+        hp.alignment = TextAlignmentOptions.Center;
+
+        EnsureBar(go.transform, "HPBar", new Vector2(10, -330), new Vector2(-10, -314),
+                  new Color(0.62f, 0.16f, 0.16f));
+
+        var estado = EnsureText(go.transform, "Block", "", 16,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -362), new Vector2(-6, -334));
+        estado.alignment = TextAlignmentOptions.Center;
+
+        // Alvo de carta arrastada: precisa de Image com raycast e de um Button,
+        // que o CombatManager desliga para não engolir o drop.
+        if (go.GetComponent<Button>() == null) Undo.AddComponent<Button>(go);
+
+        go.SetActive(false);
+        return go;
+    }
+
+    /// <summary>Base comum das duas figuras: fundo, tamanho fixo e lugar na fila.</summary>
+    static GameObject EnsureFigureTemplate(Transform parent, string nome, float largura)
+    {
+        Transform existente = parent.Find(nome);
+        GameObject go;
+
+        if (existente != null)
+        {
+            go = existente.gameObject;
+        }
+        else
+        {
+            go = new GameObject(nome, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(go, "Criar figura de combate");
+            go.transform.SetParent(parent, false);
+        }
+
+        var img = go.GetComponent<Image>();
+        if (img == null) img = go.AddComponent<Image>();
+
+        // Quase transparente de propósito: o fundo existe para receber o arrasto
+        // da carta e para marcar o lugar da figura, não para desenhar uma caixa.
+        img.color = new Color(0.13f, 0.12f, 0.14f, 0.55f);
+        img.raycastTarget = true;
+
+        go.GetComponent<RectTransform>().sizeDelta = new Vector2(largura, AlturaDaFigura);
+
+        var elemento = go.GetComponent<LayoutElement>();
+        if (elemento == null) elemento = go.AddComponent<LayoutElement>();
+        elemento.minWidth = largura;
+        elemento.preferredWidth = largura;
+        elemento.minHeight = AlturaDaFigura;
+        elemento.preferredHeight = AlturaDaFigura;
+
+        return go;
+    }
+
+    /// <summary>O retrato, ancorado pelo pé: criatura grande cresce para cima.</summary>
+    static void EnsurePortrait(Transform parent, Vector2 anchorMin, Vector2 anchorMax,
+                               Vector2 offsetMin, Vector2 offsetMax)
+    {
+        Transform existente = parent.Find("Portrait");
+        GameObject go;
+
+        if (existente != null)
+        {
+            go = existente.gameObject;
+        }
+        else
+        {
+            go = new GameObject("Portrait", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(go, "Criar retrato");
+            go.transform.SetParent(parent, false);
+        }
+
+        var img = go.GetComponent<Image>();
+        if (img == null) img = go.AddComponent<Image>();
+
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+
+        var rt = go.GetComponent<RectTransform>();
+
+        // O pivô vem ANTES do rect, e a ordem não é detalhe: trocar o pivô depois
+        // mantém a anchoredPosition e **move** o retângulo meia altura para cima.
+        // Foi o que jogou o retrato para fora do card e abriu um vazio de 80px
+        // entre a figura e o nome — sem erro nenhum, só uma tela torta.
+        //
+        // Pé como pivô é o que faz o chefe ampliado crescer para cima em vez de
+        // afundar no chão; a escala vem do EnemyData.portraitScale.
+        rt.pivot = new Vector2(0.5f, 0f);
+
+        ApplyRect(rt, anchorMin, anchorMax, offsetMin, offsetMax);
+    }
+
+    /// <summary>Trilho com preenchimento, no formato que o CombatManager espera.</summary>
+    static void EnsureBar(Transform parent, string nome, Vector2 offsetMin, Vector2 offsetMax, Color corDoFill)
+    {
+        Transform existente = parent.Find(nome);
+        GameObject trilho;
+
+        if (existente != null)
+        {
+            trilho = existente.gameObject;
+        }
+        else
+        {
+            trilho = new GameObject(nome, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(trilho, "Criar barra");
+            trilho.transform.SetParent(parent, false);
+        }
+
+        var fundo = trilho.GetComponent<Image>();
+        if (fundo == null) fundo = trilho.AddComponent<Image>();
+        fundo.color = TrackColor;
+        fundo.raycastTarget = false;
+
+        ApplyRect(trilho.GetComponent<RectTransform>(),
+                  new Vector2(0, 1), new Vector2(1, 1), offsetMin, offsetMax);
+
+        Transform achado = trilho.transform.Find("Fill");
+        GameObject fill;
+
+        if (achado != null)
+        {
+            fill = achado.gameObject;
+        }
+        else
+        {
+            fill = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(fill, "Criar preenchimento");
+            fill.transform.SetParent(trilho.transform, false);
+        }
+
+        ApplyRect(fill.GetComponent<RectTransform>(), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+        var img = fill.GetComponent<Image>();
+        if (img == null) img = fill.AddComponent<Image>();
+        img.color = corDoFill;
+        img.raycastTarget = false;
+        img.type = Image.Type.Filled;
+        img.fillMethod = Image.FillMethod.Horizontal;
+        img.fillAmount = 1f;
+    }
+
+    #endregion
+
+    #region Ordem do round
+
+    /// <summary>
+    /// A fila do round: uma ficha para o grupo e uma para cada inimigo vivo.
+    ///
+    /// O <c>BarSkin</c> veste as barras depois; esta faixa nasce chapada de
+    /// propósito, porque a cor dela **é** informação (azul = grupo, vermelho =
+    /// inimigo, apagado = já agiu) e um sprite por cima a apagaria.
+    /// </summary>
+    static TurnOrderBar BuildTurnOrder(GameObject panel)
+    {
+        GameObject faixa = EnsureFreeArea(panel.transform, "TurnOrder",
+            new Vector2(0, 1), new Vector2(0.64f, 1), new Vector2(24, -134), new Vector2(0, -74));
+
+        GameObject fila = EnsureRow(faixa.transform, "Chips",
+            new Vector2(0, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, 8);
+
+        var layout = fila.GetComponent<HorizontalLayoutGroup>();
+        if (layout != null)
+        {
+            Undo.RecordObject(layout, "Montar Cena");
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            EditorUtility.SetDirty(layout);
+        }
+
+        GameObject molde = EnsureTurnChipTemplate(faixa.transform);
+
+        var barra = faixa.GetComponent<TurnOrderBar>();
+        if (barra == null) barra = Undo.AddComponent<TurnOrderBar>(faixa);
+
+        Undo.RecordObject(barra, "Montar Cena");
+        barra.container = fila.transform;
+        barra.chipTemplate = molde;
+        EditorUtility.SetDirty(barra);
+
+        return barra;
+    }
+
+    /// <summary>Molde de uma ficha da fila: arte pequena, nome e a marca do "agora".</summary>
+    static GameObject EnsureTurnChipTemplate(Transform parent)
+    {
+        Transform existente = parent.Find("TurnChipTemplate");
+        GameObject go;
+
+        if (existente != null)
+        {
+            go = existente.gameObject;
+        }
+        else
+        {
+            go = new GameObject("TurnChipTemplate", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(go, "Criar ficha de ordem");
+            go.transform.SetParent(parent, false);
+        }
+
+        // 148px cortavam "Salteador da Serra" em "Salteador d…". Nome de inimigo
+        // é o que a ficha existe para dizer.
+        go.GetComponent<RectTransform>().sizeDelta = new Vector2(190, 48);
+
+        var elemento = go.GetComponent<LayoutElement>();
+        if (elemento == null) elemento = go.AddComponent<LayoutElement>();
+        elemento.minWidth = 190;
+        elemento.preferredWidth = 190;
+        elemento.minHeight = 48;
+        elemento.preferredHeight = 48;
+
+        var img = go.GetComponent<Image>();
+        if (img == null) img = go.AddComponent<Image>();
+        img.raycastTarget = false;
+
+        if (go.GetComponent<CanvasGroup>() == null) go.AddComponent<CanvasGroup>();
+
+        // Arte à esquerda, nome à direita — a mesma leitura de uma ficha de
+        // iniciativa de mesa.
+        Transform arte = go.transform.Find("Art");
+        GameObject artGo;
+
+        if (arte != null)
+        {
+            artGo = arte.gameObject;
+        }
+        else
+        {
+            artGo = new GameObject("Art", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(artGo, "Criar arte da ficha");
+            artGo.transform.SetParent(go.transform, false);
+        }
+
+        ApplyRect(artGo.GetComponent<RectTransform>(),
+                  new Vector2(0, 0), new Vector2(0, 1), new Vector2(6, 6), new Vector2(44, -6));
+
+        var artImg = artGo.GetComponent<Image>();
+        if (artImg == null) artImg = artGo.AddComponent<Image>();
+        artImg.preserveAspect = true;
+        artImg.raycastTarget = false;
+
+        var rotulo = EnsureText(go.transform, "Label", "", 14,
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(48, 4), new Vector2(-6, -4));
+        rotulo.alignment = TextAlignmentOptions.Left;
+        rotulo.enableWordWrapping = false;
+        rotulo.overflowMode = TextOverflowModes.Ellipsis;
+
+        var agora = EnsureText(go.transform, "Now", "▼", 16,
+            new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-14, 0), new Vector2(14, 22));
+        agora.alignment = TextAlignmentOptions.Center;
+        agora.color = ButtonLabelColor;
+
+        go.SetActive(false);
+        return go;
     }
 
     #endregion
