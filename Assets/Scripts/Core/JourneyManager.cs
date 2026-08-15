@@ -202,6 +202,8 @@ public class JourneyManager : MonoBehaviour
                              int startingRations = -1, int startingTorches = -1,
                              CardOwnership cardOwnership = null)
     {
+        GameAudio.Tocar(MusicContext.Journey);
+
         currentQuest = quest;
 
         // A ordem da lista é a formação escolhida na preparação — copiar preservando-a

@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24fc6a333a825b74a9c568f48a963c2d, type: 3}
+  m_Name: AudioCatalog
+  m_EditorClassIdentifier: 
+  musicas:
+  - context: 0
+    clip: {fileID: 8300000, guid: 9b011b261451448059f85fb2648a1655, type: 3}
+  - context: 1
+    clip: {fileID: 8300000, guid: e8223e27612fb4a68a77694a4012fbad, type: 3}
+  - context: 2
+    clip: {fileID: 8300000, guid: dcaa49c56a6674229829c944cf6ff2f8, type: 3}
+  - context: 3
+    clip: {fileID: 8300000, guid: 4bd6a4d545d9c474294a51d9b20bbda7, type: 3}
+  efeitos:
+  - sfx: 0
+    clip: {fileID: 8300000, guid: e25a74df780365a4b9f55b99d83cfb5d, type: 3}
+    volume: 0.7
+  - sfx: 1
+    clip: {fileID: 8300000, guid: b0f430c1fd46319499a10af2b0496b67, type: 3}
+    volume: 0.4
+  - sfx: 2
+    clip: {fileID: 8300000, guid: eda6215e9a4275743aea96edb6b4b9e5, type: 3}
+    volume: 0.8
+  - sfx: 3
+    clip: {fileID: 8300000, guid: f862c048dc8f3d742be355910716b880, type: 3}
+    volume: 0.7
+  - sfx: 4
+    clip: {fileID: 8300000, guid: aad16fc86c2f90b4c8f044393f8e3d3e, type: 3}
+    volume: 0.6
+  - sfx: 5
+    clip: {fileID: 8300000, guid: 292729ddd43c27f4980965fe7cf07740, type: 3}
+    volume: 0.9
+  - sfx: 6
+    clip: {fileID: 8300000, guid: fd87192c45de042439ce4d94d1686459, type: 3}
+    volume: 0.5
+  - sfx: 7
+    clip: {fileID: 8300000, guid: a1d3e9f778ec7634592f4e9cd8f857a5, type: 3}
+    volume: 0.5

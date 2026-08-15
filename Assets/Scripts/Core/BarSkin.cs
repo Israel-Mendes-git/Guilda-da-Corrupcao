@@ -167,6 +167,7 @@ public static class SceneToolsTriggerWatcher
     const string BiomeArtTrigger = "RunBiomeArt.trigger";
     const string UiPrefabsTrigger = "RunUiSkinPrefabs.trigger";
     const string HeroPanelTrigger = "RunHeroPanelSkin.trigger";
+    const string AudioTrigger = "RunAudioCatalog.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -197,6 +198,7 @@ public static class SceneToolsTriggerWatcher
         Consumir(BiomeArtTrigger, BiomeArtBuilder.Montar);
         Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);
         Consumir(HeroPanelTrigger, HeroPanelSkin.Vestir);
+        Consumir(AudioTrigger, AudioCatalogBuilder.Montar);
     }
 
     static void Consumir(string arquivo, System.Action acao)

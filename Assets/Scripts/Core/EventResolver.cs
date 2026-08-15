@@ -237,6 +237,10 @@ public static class EventResolver
         result.died.Add(hero);
         result.lines.Add($"⚰️ {hero.heroName} MORREU.");
 
+        // A morte é permanente e até agora acontecia em silêncio absoluto — o
+        // momento em que o jogo mais precisa doer passava como uma linha de log.
+        GameAudio.Efeito(Sfx.HeroDeath);
+
         StressParty(party, hero, StressWitnessDeath, result);
     }
 
