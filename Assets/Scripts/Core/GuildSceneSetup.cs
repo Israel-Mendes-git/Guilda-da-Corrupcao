@@ -174,7 +174,7 @@ public static class GuildSceneSetup
 
         // Coluna esquerda: as decisões.
         var choices = EnsureColumn(panel.transform, "ChoiceContainer",
-            new Vector2(0, 0), new Vector2(0.55f, 0), new Vector2(20, 515), new Vector2(0, 740), 8);
+            new Vector2(0, 0), new Vector2(0.55f, 0), new Vector2(20, 575), new Vector2(0, 740), 8);
 
         // As opções dividem a altura disponível em vez de manter o tamanho do
         // prefab: eventos de combate têm quatro botões e, com altura fixa, a
@@ -190,19 +190,25 @@ public static class GuildSceneSetup
 
         // Coluna direita: narrativa e informação, empilhadas.
         var evDesc = EnsureText(panel.transform, "Txt_EventDescription", "", 19,
-            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 640), new Vector2(-20, 740));
+            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 677), new Vector2(-20, 740));
         var log = EnsureText(panel.transform, "Txt_ResolutionLog", "", 17,
-            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 555), new Vector2(-20, 635));
+            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 610), new Vector2(-20, 672));
         var upcoming = EnsureText(panel.transform, "Txt_Upcoming", "", 16,
-            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 515), new Vector2(-20, 550));
+            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 575), new Vector2(-20, 605));
 
         // Status da party: faixa alta o bastante para o card de 165px.
         var partyRow = EnsureRow(panel.transform, "PartyStatus", new Vector2(0, 0), new Vector2(1, 0),
-            new Vector2(20, 340), new Vector2(-20, 505), 10);
+            new Vector2(20, 400), new Vector2(-20, 565), 10);
 
         // Mão de cartas: área livre (o leque posiciona sozinho).
+        //
+        // A altura daqui é o que decide o tamanho da carta: HandFanLayout escala
+        // pela altura disponível, então uma faixa curta encolhe a mão inteira.
+        // Com os 240px de antes a carta saía a ~0,49 — metade do tamanho que tem
+        // no combate, onde a faixa é de 444px. O combate já tinha recebido esse
+        // ajuste e a jornada ficou para trás.
         var hand = EnsureFreeArea(panel.transform, "HandContainer", new Vector2(0, 0), new Vector2(1, 0),
-            new Vector2(20, 90), new Vector2(-20, 330));
+            new Vector2(20, 90), new Vector2(-20, 400));
 
         // Recursos e contadores
         var rations = EnsureText(panel.transform, "Txt_Rations", "", 20, new Vector2(0, 0), new Vector2(0.2f, 0), new Vector2(20, 50), new Vector2(0, 82));

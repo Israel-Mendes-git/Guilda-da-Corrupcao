@@ -1345,6 +1345,7 @@ public class PlayModeProbe : MonoBehaviour
         // do desgaste da estrada (fome, eventos, clima).
         bool emCombateAntes = false;
         bool combateCapturado = false;
+        bool jornadaCapturada = false;
         int hpAnterior = PartyHp(party);
 
         // A jornada sai da tela enquanto o combate acontece, então "painel da
@@ -1408,6 +1409,16 @@ public class PlayModeProbe : MonoBehaviour
             Button choice = FindFirstChoiceButton(jm);
             if (choice != null)
             {
+                // Uma captura da estrada com a mão na tela. Faltava: só o combate
+                // era fotografado, e por isso a mão da jornada saía pela metade do
+                // tamanho sem ninguém ver — o leque escala pela altura do
+                // container, e as duas telas tinham medidas diferentes.
+                if (!jornadaCapturada)
+                {
+                    jornadaCapturada = true;
+                    yield return Capture("jornada_mao");
+                }
+
                 choice.onClick.Invoke();
                 eventsResolved++;
                 clicksSemProgresso++;

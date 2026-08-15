@@ -173,6 +173,26 @@ public class TavernManager : MonoBehaviour
                 text.text = GetTraitText(hero.trait);
         }
 
+        // O card tinha um slot de retrato que ninguém preenchia: ficava um
+        // retângulo branco ocupando o topo, justamente sobre o nome e a classe.
+        // Com o rosto ali, a taverna passa a mostrar quem se está contratando —
+        // é o que faz um candidato ser diferente do outro além dos números.
+        Image slot = card.transform.Find("BackgroundHero/Image")?.GetComponent<Image>();
+        if (slot != null)
+        {
+            if (hero.portrait != null)
+            {
+                slot.sprite = hero.portrait;
+                slot.color = Color.white;
+                slot.preserveAspect = true;
+            }
+            else
+            {
+                // Sem retrato, o branco continuaria gritando: apaga o slot.
+                slot.color = new Color(0.16f, 0.15f, 0.14f);
+            }
+        }
+
         Button recruitBtn = card.GetComponent<Button>();
         if (recruitBtn != null)
         {
