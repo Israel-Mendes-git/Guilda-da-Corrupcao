@@ -1,4 +1,4 @@
-# Handoff — Guilda da Corrupção: fases 0–2.5 fechadas, KPI decidido, Fase 3 a começar (2026-08-15)
+# Handoff — Guilda da Corrupção: arte, áudio, UI e a Fase 3 (2026-08-15)
 
 ## Objetivo
 
@@ -7,166 +7,217 @@ guilda, mistura declarada de *Darkest Dungeon* com *Slay the Spire*.
 
 Projeto: `C:\Users\Israel\Documents\GitHub\Guilda-da-Corrupcao`.
 
-O plano de trabalho vive em **[`ROADMAP.md`](ROADMAP.md)** e o design em **[`GDD.md`](GDD.md)**
-(v1.1). Leia os dois antes de continuar — este handoff só cobre o que eles não contam.
+Plano completo em **[`ROADMAP.md`](ROADMAP.md)**, design em **[`GDD.md`](GDD.md)** (v1.1), inventário
+dos assets importados em **[`ASSETS.md`](ASSETS.md)**. Leia os três — este handoff só cobre o que
+eles não contam.
 
 ---
 
 ## Estado atual
 
-### ✅ Tudo que estava pendente foi fechado
+**Árvore limpa. 12 commits nesta sessão** (de `915ebe4` a `c7b2a76`), nenhum enviado a remoto.
 
-**Fases 0, 1, 2 e 2.5** — implementadas, validadas e **commitadas**. Nada em aberto do ciclo
-anterior. A run que faltava (`PlayModeReport.run43-fase25-validada.txt`, 15/08 01:18) confirmou os
-três pontos que o handoff anterior deixou como "não verificado":
+**Validado agora:** `PLAY MODE OK — nenhum erro capturado` e `SMOKE TEST OK — 41 verificações,
+0 falhas`.
 
-| Prova | Resultado |
+### ✅ Fases 0, 1, 2, 2.5 e **3** concluídas e verificadas
+
+A **Fase 3 (a run)** foi implementada e testada nesta sessão. O jogo deixou de ser sandbox infinito:
+tem relógio (Corrupção global), Chefe Supremo alcançável, três condições de derrota, tela de fim de
+run e meta-progressão. Detalhes e a régua medida estão no `ROADMAP.md`.
+
+### ✅ Arte, áudio e UI (Fase 5, parcial)
+
+| Área | Estado |
 |---|---|
-| Painel da sala, 2ª abertura | `ordem entre irmãos: 7 de 7 — na frente`, alcançável — **o bug reportado saiu** |
-| Tela de balanço | `jornada encerrada pela tela de balanço: '🏆 A GUILDA VOLTA VITORIOSA'` |
-| Escolha de despojo | 2 opções, botão travado até escolher, liberado depois, ouro 2855 → 2956 |
-| Jornada termina sozinha | `painel ainda ativo ao fim: False (iterações: 134)` |
-| Console | 0 erros, 0 exceções |
+| Ícones das 17 cartas | ✅ todas preenchidas, aparecendo na tela |
+| Retratos de herói | ✅ 500 catalogados; aparecem na taverna e como fundo do card do grupo |
+| Barras HP/estresse/XP | ✅ vestidas com o kit Bloodlines |
+| Molduras de carta | ✅ frente com o kit; sleeve reservado ao verso |
+| Biomas | ✅ 5 dos 7 (falta Deserto e Vulcão — sem arte em nenhum pacote) |
+| Áudio | ✅ trilha por contexto + SFX; o jogo era **totalmente mudo** |
+| UI prefab a prefab | 🔄 **2 de 12** (`HeroPanel`, `PartyStatusPrefab`) |
 
-**Smoke test:** `41 verificações, 0 falhas` e — pela primeira vez — **nenhum aviso de balanceamento**.
-Letalidade em 0,47 mortes/jornada (alvo 0,33–0,67).
+### 🔄 Não feito — pedido explícito do autor que ficou pendente
 
-### Commits desta sessão
+O autor pediu cinco blocos; três foram entregues. **Faltam:**
 
-O projeto tinha 4 commits e nenhum do trabalho novo. Agora tem, separados por origem como combinado:
+1. **Etapas da jornada** e **posições das coisas na jornada** — ajuste fino de layout.
+2. **Clareza: o jogador saber o que fazer** — destacar a ação principal, indicar o que está pronto.
 
-```
-6299a30 KPI de combate passa a ser mortes por combate, nao taxa de vitoria
-ed584c1 Identidade do projeto e pacotes trazidos pelo autor
-0d8e9ab Importa o ESave, pacote de save de terceiros
-d786d6d Fases 0-2.5: XP, carta cruza escolha, chefe rebalanceado e pos-jornada
-```
-
-Árvore limpa. **Nada foi enviado para remoto** — nenhum `push` foi dado.
+Ele marcou os quatro eixos de "fluxo" (clareza, ritmo, estrutura, feedback). **Estrutura** (Fase 3) e
+**feedback** (áudio) foram feitos; **clareza** e **ritmo** não.
 
 ---
 
 ## Próximos passos
 
-1. **Fase 3 — a run** (`ROADMAP.md`): `RunManager`, Corrupção global como relógio, três condições de
-   fim de run, Chefe Supremo plugado (`QuestGenerator.GenerateBossQuest` existe e nunca é chamado) e
-   meta-progressão. **O ESave está no projeto e commitado**, então a meta-progressão deixou de estar
-   bloqueada — falta confirmar se é ele mesmo que deve ser usado (ver pendências).
-2. **Vigiar a letalidade a cada mudança de conteúdo.** O ponto de equilíbrio se move: com 1,2 lutas
-   por jornada a energia certa era 4; com 2,7, é 5. Ao acrescentar ou remover combates, **remeça**.
+1. **Clareza e ritmo** (o que o autor pediu e não foi feito). O ponto mais visível: na captura
+   `Assets/Screenshots/sala_taverna.png` há um botão genérico escrito **"Button"** no topo da tela —
+   sobrou de algum layout e não faz nada de óbvio.
+2. **Continuar a UI prefab a prefab.** Faltam 10. Por retorno visual: `CardPurchasePrefab`
+   (biblioteca), `QuestItemPrefab` (quadro de missões), `PartyMemberSelectPrefab` (preparação) —
+   as três aparecem a cada ciclo. **Receita que funciona** na seção "Pegadinhas".
+3. **Ajuste fino pendente no `HeroPanel`:** nome, classe e nível ficam sobrepostos ao retrato. É
+   reposicionamento dentro do prefab.
+4. **Fase 4** (`ROADMAP.md`): dar efeito a `corruptionExposure`, traços e personalidades — tudo já
+   acumula e ninguém lê.
 
 ---
 
 ## Decisões tomadas (e por quê)
 
-- **O KPI de combate é `mortes por combate`, não taxa de vitória** (escolha do autor, 15/08). O alvo
-  de 35–75% veio do *Slay the Spire*, onde perder a luta encerra a run; aqui a party só perde quando
-  os quatro caem e a Beira da Morte segura cada um por um golpe. A régua nova e o porquê de cada
-  alvo estão no `ROADMAP.md`. **O detalhe que importa:** o *piso* do chefe mora na simulação de
-  **jornada** (0,10, medido 0,23) e não na de combate, porque no combate isolado ele cobra de 0,02 a
-  0,06 conforme a execução — ruído que reprovaria por sorteio. Os *tetos* ficam no combate isolado.
-- **Commits separados por origem**, não por fase (escolha do autor, 15/08): as fases 0–2.5 mexeram
-  nos mesmos arquivos, e separá-las exigiria dividir hunks à mão, com risco de commits que não
-  compilam.
-- Mantidas de sessões anteriores: alvo de letalidade 0,33–0,67 para a jornada inteira; a alavanca é
-  dar ferramentas ao jogador, não enfraquecer o inimigo (energia 5, mão 6); o chefe mantém a saída
-  narrativa, mas cara; opção travada nunca some da tela; `Revive` não ressuscita; ferimento não sara
-  por sorteio; quem fica na guilda descansa; moldes de linha da tela de balanço são objetos inativos
-  na cena, não prefabs em disco; ordem de irmãos (não `sortingOrder`); a ordem de `selectedParty`
-  **é** a formação; acrescentar valor de enum **só no fim**; `-batchmode` rejeitado.
+- **Sleeves só no verso** (escolha do autor). A frente da carta usa o kit Bloodlines; os dois versos
+  do `Card_Shirts_Lite` são madeira e metal alaranjados, e puxariam a carta para longe da paleta
+  dessaturada. **Rejeitado:** usar Card_Shirts na frente.
+- **Retrato do herói sai do NOME, não de sorteio** — assim o mesmo herói mantém a cara entre
+  execuções, e o elenco vira reconhecível. É o efeito Darkest Dungeon.
+- **Catálogos guardam referências, não cópias** (`PortraitCatalog`, `BiomeArtCatalog`,
+  `AudioCatalog`). **Rejeitado:** copiar 500 retratos para `Resources` — duplicaria 10 MB e criaria
+  duas cópias para manter em sincronia.
+- **Meta-progressão em `PlayerPrefs`, não ESave.** O ESave está no projeto e **nunca foi confirmado**
+  pelo autor como o save oficial. `MetaProgression` é o único ponto a trocar quando for.
+- **"Sem heróis" sozinho não encerra a run** — enquanto houver ouro para recrutar, a guilda tem
+  saída. É o que torna o ouro uma reserva de vida.
+- **Barra de vida é sangue** — o código tingia o preenchimento de verde/amarelo/vermelho por faixa de
+  HP, o que pintava de verde um sprite que é vermelho. Agora só a Beira da Morte escurece.
+- **763 MB de binários entraram no histórico do git** (decisão do autor de commitar). Funciona, mas
+  não sai fácil depois — vale considerar Git LFS antes que cresça.
+- Mantidas: alvo de letalidade 0,33–0,67 mortes/jornada; KPI de combate é **mortes por combate**, não
+  taxa de vitória; energia 5 / mão 6; acrescentar valor de enum **só no fim**; `-batchmode` rejeitado.
 
 ---
 
 ## Pegadinhas / lições desta sessão
 
-- **O instrumento envelhece junto com a tela que ele mede.** Duas runs seguidas pararam no limite de
-  600 iterações com a jornada aparentemente sem fim — 305 eventos numa jornada de 6 dias, party
-  morta, estresse em 92. Parecia regressão grave de letalidade. **Não era o jogo:** a Fase 2.5 trocou
-  a saída da jornada de `UIManager.resultPopup` para `JourneyResultUI`, e o laço do `PlayModeProbe`
-  só sabia fechar os popups do `UIManager`. A jornada terminava certo, a tela de balanço abria, e o
-  probe clicava um botão morto até estourar. **Ao trocar a tela por onde um fluxo termina, atualize
-  quem o dirige automaticamente.**
-- **Um detector de travamento cego ao caminho que trava é pior que nenhum.** O detector contava
-  cliques em opções de evento e nós de mapa, mas não no `endTurnButton` — e `EndTurn` é um no-op
-  quando a jornada não espera escolha. O laço girava sem nunca acusar. Corrigido, e o
-  `DumpStuckState` agora despeja a máquina de estados inteira: foi a linha `jornadaEncerrada=True`
-  com o painel ainda ativo que resolveu o caso em segundos.
-- **Amostra pequena não sustenta piso.** O primeiro alvo que escrevi para o chefe (piso 0,02
-  mortes/combate) passou raspando numa execução e teria reprovado na seguinte: 4 a 12 mortes em 200
-  lutas é ruído. Piso exige sinal forte; teto tolera ruído. **Antes de fixar um alvo, rode duas
-  vezes e veja a oscilação.**
-- **Mudança de fim de linha polui o `git status`.** Nove dos "95 arquivos modificados" eram só LF→
-  CRLF, sem mudança de conteúdo — o `git add -A` normalizou e eles sumiram. Confira com
-  `git diff HEAD --stat` antes de tratar volume de diff como trabalho.
-- **O Unity não recompila sem foco**, e perde o foco de volta assim que outro comando roda. O que
-  funciona é trazer a janela à frente **e esperar dentro do mesmo comando**, em laço, até a
-  `Library/ScriptAssemblies/Assembly-CSharp.dll` ficar mais nova que o `.cs`. Fazer o foco e a espera
-  em comandos separados falha.
-- **`Remove-Item` na mesma chamada que um caminho em `C:\Program Files` é bloqueado** pelo sandbox.
-  Separe em dois comandos.
-- Continuam valendo: `Tools ▸ Card Creator` sobrescreve assets de carta se a opção for marcada;
-  gatilho esquecido dispara Play Mode ao ganhar foco; campo público é serializado (mudar no script
-  **não** muda a cena); uma run de Play Mode é n=1 — balanceamento se mede no simulador.
+### O padrão que mais custou tempo: dado certo, exibição ausente
+
+**Quatro vezes** nesta sessão o dado estava correto e não havia quem o mostrasse. Em todos os casos o
+`PlayModeReport` dizia "0 erros" — **só a captura de tela denunciou**:
+
+1. As 17 cartas tinham `cardImage` preenchido e nada aparecia (faltava quem exibisse).
+2. A barra de estresse mostrava 100 para um herói com 0 — bug que existia **antes** desta sessão.
+3. `biomeIcon` tinha campo e nunca foi montado na cena.
+4. O `ApplyKit` existia e não pegava quase nada.
+
+**Sempre olhe `Assets/Screenshots/*.png` depois de rodar o Play Mode.** O relatório de texto não
+substitui isso.
+
+### UI: a ordem de irmãos manda, e varredura genérica não funciona
+
+Duas tentativas de vestir as caixas brancas por regra genérica foram **revertidas por piorarem**:
+
+- Vestir o fundo com a pedra do kit **apagou o texto** — em vários prefabs o fundo não é o pai dos
+  textos, e sim um irmão desenhado **depois** deles.
+- Só pintar de `BoxColor` deixou **texto escuro sobre fundo escuro**, porque a cor do texto vem do
+  prefab e não acompanha.
+
+**A receita que funciona** (usada em `HeroPanelSkin.cs` e `PartyCardSkin.cs`): extrair a hierarquia do
+prefab **com a ordem de irmãos**, vestir o fundo **pelo nome** (nunca por tamanho), e clarear o texto
+**no mesmo passo**. Arte grande sempre entra **atrás** e, em card pequeno, **translúcida** — retrato
+em tamanho cheio no card do grupo ficou ilegível e virou fundo a 34%.
+
+### Fase 3: medir o efeito, não o mecanismo
+
+O `RunManager` estava certo desde o começo e o teste passou em tudo — menos numa linha:
+`corrupção das missões: 1–39 (global 61)`. O relógio andava e o quadro de missões ficava parado, então
+o mundo piorar **não mudava nada do que o jogador via**. Corrigido com `RenovarQuadro()` a cada ciclo.
+
+### Erro de compilação que trava tudo
+
+O pacote **Dark Knight** foi escrito para Unity 6 e usava `Rigidbody2D.linearVelocity`, que não existe
+no 2022.3. As 3 ocorrências **travavam o `Assembly-CSharp` inteiro** — o código do jogo não compilava
+por causa de um asset de terceiros. **Se o pacote for reimportado, o erro volta** (commit `d7ef2c4`).
+
+### Automação sem o MCP do Unity
+
+O **MCP do Unity não estava conectado** nesta sessão. Todo o trabalho foi feito por **gatilhos de
+arquivo** + foco de janela. Ver "Arquivos e comandos".
+
+- **O Unity não recompila sem foco**, e perde o foco assim que outro comando roda. O que funciona é
+  trazer a janela à frente **e esperar dentro do mesmo comando**, em laço, até a
+  `Library/ScriptAssemblies/Assembly-CSharp.dll` ficar mais nova que o `.cs`. Foco e espera em
+  comandos separados **falham**.
+- **O Unity foi reiniciado por fora** no meio da sessão (pid mudou). Scripts que guardam o pid dão
+  "não recompilou" falso — sempre redescubra o processo.
+- **Compilar por fora**: o script precisa incluir as `<ProjectReference>` do `.csproj`, não só as
+  `<HintPath>`. Sem isso o ESave dá 7 erros falsos.
+- `Remove-Item` na mesma chamada PowerShell que um caminho em `C:\Program Files` é **bloqueado** pelo
+  sandbox. Separe em dois comandos.
+- Mensagem de commit com aspas quebra a here-string do PowerShell. Use `git commit -F arquivo.txt`.
+- `git add <pasta>` **não inclui o `.meta` da própria pasta**. Sem ele o Unity regenera GUIDs em
+  qualquer clone e quebra todas as referências.
 
 ---
 
 ## Arquivos e comandos relevantes
 
-**Documentação** — `ROADMAP.md` (plano, diagnóstico e resultados medidos), `GDD.md` (design, v1.1).
+**Documentação** — `ROADMAP.md` (plano e resultados medidos), `GDD.md` (design), `ASSETS.md` (o que
+cada pacote traz e onde entra).
 
-**Compilar sem abrir o Editor** (segundos). O `.rsp` precisa ser **regerado quando um `.cs` novo é
-criado**:
+### Ferramentas criadas nesta sessão (todas em `Assets/Scripts/Core/`)
+
+| Arquivo | O que faz |
+|---|---|
+| `BarSkin.cs` | veste as barras **e hospeda o watcher de todos os gatilhos** |
+| `CardArt.cs` | preenche `cardImage` das 17 cartas |
+| `PortraitCatalogBuilder.cs` / `Data/PortraitCatalog.cs` | catálogo dos 500 retratos |
+| `BiomeArtBuilder.cs` / `Data/BiomeArtCatalog.cs` | arte por bioma |
+| `AudioCatalogBuilder.cs` / `Data/AudioCatalog.cs` | trilhas e SFX + import settings |
+| `GameAudio.cs` | tocador (música com fade + efeitos) |
+| `RunManager.cs`, `RunFlow.cs`, `MetaProgression.cs`, `UI/RunEndUI.cs` | a Fase 3 |
+| `HeroPanelSkin.cs`, `PartyCardSkin.cs`, `CardFrameSkin.cs`, `UiSkinPrefabs.cs` | UI |
+
+### Gatilhos (arquivo vazio na raiz + trazer o Unity à frente)
+
+`RunPlayModeTest.trigger` · `RunSmokeTest.trigger` · `RunSceneSetup.trigger` · `RunBarSkin.trigger` ·
+`RunCardArt.trigger` · `RunPortraitCatalog.trigger` · `RunBiomeArt.trigger` · `RunUiSkinPrefabs.trigger` ·
+`RunHeroPanelSkin.trigger` · `RunPartyCardSkin.trigger` · `RunCardFrameSkin.trigger` · `RunAudioCatalog.trigger`
+
+Todos no `.gitignore`. Relatórios: `PlayModeReport.txt` e `SmokeTestReport.txt` (também ignorados).
+
+**Depois de mexer na cena**, rode nesta ordem: `RunSceneSetup` → `RunBarSkin` → `RunPlayModeTest`.
+O `Montar Cena` recria objetos e o `BarSkin` repõe os sprites das barras.
+
+### Compilar sem abrir o Editor (segundos)
 
 ```powershell
 $root = "C:\Users\Israel\Documents\GitHub\Guilda-da-Corrupcao"
 $out  = "C:\Users\Israel\AppData\Local\Temp\gol-build"
 $csproj = Get-Content "$root\Assembly-CSharp.csproj" -Raw
 $refs = [regex]::Matches($csproj, '<HintPath>(.*?)</HintPath>') | ForEach-Object { $_.Groups[1].Value }
+$projRefs = [regex]::Matches($csproj, '<ProjectReference Include="([^"]+)\.csproj"') | ForEach-Object { $_.Groups[1].Value }
 $defines = [regex]::Match($csproj, '<DefineConstants>(.*?)</DefineConstants>').Groups[1].Value
+$asmdefDirs = Get-ChildItem "$root\Assets" -Recurse -Filter *.asmdef | ForEach-Object { $_.Directory.FullName }
+$todos = Get-ChildItem "$root\Assets" -Recurse -Filter *.cs | Where-Object {
+  $f = $_.FullName; $dentro = $false
+  foreach ($d in $asmdefDirs) { if ($f.StartsWith($d)) { $dentro = $true; break } }
+  -not $dentro -and $f -notmatch '\\Editor\\' -and $f -notmatch 'DOTween\\Modules'
+}
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add('-target:library'); $lines.Add('-nostdlib+'); $lines.Add('-langversion:9.0')
-$lines.Add('-out:"C:/Users/Israel/AppData/Local/Temp/gol-build/AssemblyCheck.dll"')
+$lines.Add("-out:`"$out/Check.dll`"")
 foreach ($d in $defines -split ';') { if ($d.Trim()) { $lines.Add("-define:$($d.Trim())") } }
 foreach ($r in $refs) { $lines.Add("-r:`"$r`"") }
-foreach ($f in (Get-ChildItem "$root\Assets\Scripts" -Recurse -Filter *.cs)) { $lines.Add("`"$($f.FullName)`"") }
+foreach ($p in $projRefs) { $dll = "$root\Library\ScriptAssemblies\$p.dll"; if (Test-Path $dll) { $lines.Add("-r:`"$dll`"") } }
+foreach ($f in $todos) { $lines.Add("`"$($f.FullName)`"") }
 $lines | Out-File "$out\build.rsp" -Encoding utf8
 Set-Location $root
 & "C:\Program Files\Unity\Hub\Editor\2022.3.62f3\Editor\Data\NetCoreRuntime\dotnet.exe" `
-  "C:\Program Files\Unity\Hub\Editor\2022.3.62f3\Editor\Data\DotNetSdkRoslyn\csc.dll" `
-  "@C:/Users/Israel/AppData/Local/Temp/gol-build/build.rsp"
-```
-
-**Os dois testes rodam por gatilho de arquivo**, sem tocar no menu do Editor. Crie o arquivo vazio na
-raiz e traga a janela do Unity à frente; ele é consumido em ~1 s e grava o relatório na raiz:
-
-| Gatilho | Relatório | O que mede | Custo |
-|---|---|---|---|
-| `RunSmokeTest.trigger` | `SmokeTestReport.txt` | 41 verificações + 200 jornadas + 800 combates | ~1 min |
-| `RunPlayModeTest.trigger` | `PlayModeReport.txt` | telas por raycast, jornada completa, console limpo | ~2 min |
-
-Ambos estão no `.gitignore`. **Não** chame refresh depois de criar o gatilho. Varreduras de
-parâmetro continuam por `execute_code` do MCP (que **não estava conectado** nesta sessão):
-
-```csharp
-GuildSmokeTest.VarrerCombate(new int[]{4,5,6}, new int[]{5,6}, 300)   // energia × mão
-GuildSmokeTest.VarrerEscalaDeChefe(new float[]{1.0f,1.3f,1.6f}, 200)  // força do chefe
-```
-
-**Aplicar mudanças de layout na cena** — editar `GuildSceneSetup.cs`, recompilar, e então:
-
-```csharp
-GuildSceneSetup.Setup(false);
-UnityEditor.AssetDatabase.SaveAssets();
-UnityEditor.SceneManagement.EditorSceneManager.SaveScene(
-    UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+  "C:\Program Files\Unity\Hub\Editor\2022.3.62f3\Editor\Data\DotNetSdkRoslyn\csc.dll" "@$out/build.rsp"
 ```
 
 ---
 
 ## Pendências que dependem do usuário
 
-- **Confirmar o ESave como o pacote de save da Fase 3.** Está em `Assets/Esper/ESave`, commitado, e
-  **ainda não integrado**: a persistência do jogo segue limitada aos decks (`PlayerPrefs`,
-  `DeckRepository`).
-- **Push**: os 4 commits novos estão só no repositório local.
-- **Arte e áudio**: seguem placeholder e inexistente, respectivamente.
+- **Confirmar o ESave** como save oficial. Está em `Assets/Esper/ESave`, commitado e **não
+  integrado**. A meta-progressão usa `PlayerPrefs` até lá.
+- **Deserto e Vulcão sem arte de bioma** — nenhum pacote importado cobre. Precisa de compra ou
+  encomenda.
+- **Retratos de inimigo** (`EnemyData.portrait`, 11 vazios) e **ilustração de evento**
+  (`EventData.eventImage`, 25 vazios) continuam sem arte.
+- **Git LFS** — 763 MB de binários no histórico.
+- **Push** — 12 commits só no repositório local.
+- **Conflito de estilo**: os retratos são **pixel art**, os ícones de carta e a UI são **pintados**.
+  Funciona (retrato em moldura), mas é uma escolha estética que o autor pode querer revisar.
