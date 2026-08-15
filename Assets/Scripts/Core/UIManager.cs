@@ -120,6 +120,10 @@ public class UIManager : MonoBehaviour
 
     public void ShowGuildScreen()
     {
+        // A guilda é o lugar de respirar entre jornadas: a trilha volta aqui
+        // sempre que o jogador retorna, e não reinicia se ele só fechou uma sala.
+        GameAudio.Tocar(MusicContext.Hub);
+
         SetPanelActive(guildPanel, true);
         SetPanelActive(tavernPanel, false);
         SetPanelActive(questSelectionPanel, false);

@@ -170,6 +170,11 @@ public class CombatManager : MonoBehaviour
             return;
         }
 
+        // Chefe tem trilha própria: é o clímax da jornada e precisa soar diferente
+        // de um encontro de estrada.
+        bool contraChefe = lineup.Any(e => e != null && e.isBoss);
+        GameAudio.Tocar(contraChefe ? MusicContext.Boss : MusicContext.Combat);
+
         // A ordem recebida é a formação escolhida na preparação: preservá-la é o
         // que faz as duas primeiras posições serem a linha de frente.
         party = heroes.Where(h => h != null && h.IsAlive).ToList();
@@ -617,8 +622,21 @@ public class CombatManager : MonoBehaviour
         if (!NeedsEnemyTarget(card.combatEffect)) enemy = null;
         if (!NeedsHeroTarget(card.combatEffect)) hero = null;
 
+        // Som pela natureza da carta: lâmina para o que fere, conjuração para o
+        // resto. É a diferença entre jogar uma carta e ver uma carta acontecer.
+        GameAudio.Efeito(EhAtaque(card.combatEffect) ? Sfx.Attack : Sfx.Magic);
+
         ResolveCard(card, enemy, hero);
         return true;
+    }
+
+    /// <summary>Carta que machuca — as demais soam como conjuração.</summary>
+    static bool EhAtaque(CombatEffectType efeito)
+    {
+        return efeito == CombatEffectType.Damage
+            || efeito == CombatEffectType.DamageAll
+            || efeito == CombatEffectType.Poison
+            || efeito == CombatEffectType.ShieldBreak;
     }
 
     /// <summary>Primeiro alvo aceitável para a carta, se houver algum.</summary>
