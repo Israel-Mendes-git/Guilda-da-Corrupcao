@@ -15,7 +15,7 @@ eles não contam.
 
 ## Estado atual
 
-**Árvore limpa. 17 commits locais, nenhum enviado a remoto.** Os 5 desta sessão:
+**Árvore limpa. 28 commits locais, nenhum enviado a remoto.** Os 6 desta sessão:
 
 | Hash | O quê |
 |---|---|
@@ -24,6 +24,7 @@ eles não contam.
 | `a668fec` | ROADMAP, GDD e handoff da Fase 3.5 |
 | `df27c7d` | Campo de batalha frente a frente + arte dos inimigos |
 | `adef518` | Handoff da Fase 3.6 |
+| `1ee51f5` | Handoff reescrito + `unity-run.ps1` trazido para o repositório |
 
 **Validado:** `PlayModeReport.txt` de 15/08 20:02 — `PLAY MODE OK — nenhum erro capturado`,
 **0 falhas**, jornada vitoriosa com 3 combates travados.
@@ -325,7 +326,7 @@ nunca atribuídos, mais dezenas de avisos de pacotes de terceiros.
 - **Animação dos inimigos** — os spritesheets já trazem Idle, Attack, Take Hit e Death; hoje só o
   primeiro quadro do Idle é usado. Decisão de escopo do autor, não limitação de material.
 - **Git LFS** — 763 MB de binários no histórico. Funciona, mas não sai fácil depois.
-- **Push** — 17 commits só no repositório local.
+- **Push** — 28 commits só no repositório local.
 - **ESave e Bench**: importados, commitados e agora oficialmente **não usados**. Removê-los
   economizaria repositório — decisão do autor.
 - **Conflito de estilo**: os retratos e os inimigos são **pixel art**, os ícones de carta e a UI são
