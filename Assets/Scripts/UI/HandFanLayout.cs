@@ -42,6 +42,16 @@ public class HandFanLayout : MonoBehaviour
     /// <summary>Ordem lógica do leque — estável, independente da hierarquia.</summary>
     private readonly List<RectTransform> cartas = new List<RectTransform>();
 
+    /// <summary>
+    /// O que o leque enxerga. Só para diagnóstico: uma mão empilhada na origem
+    /// pode ser "o leque não rodou", "ele viu uma carta só" ou "a carta mede
+    /// zero", e da tela as três são idênticas.
+    /// </summary>
+    public int CartasNoLeque => cartas.Count;
+    public float UltimaEscala { get; private set; } = -1f;
+    public float UltimoEspacamento { get; private set; } = -1f;
+    public float UltimaAlturaDeCarta { get; private set; } = -1f;
+
     private RectTransform hovered;
 
     /// <summary>Evita que a reordenação feita aqui seja lida como "a mão mudou".</summary>
@@ -146,6 +156,10 @@ public class HandFanLayout : MonoBehaviour
 
         float spacing = count > 1 ? Mathf.Min(espacoIdeal, maxWidth / (count - 1)) : 0f;
         float inicio = -(spacing * (count - 1)) * 0.5f;
+
+        UltimaEscala = baseScale;
+        UltimoEspacamento = spacing;
+        UltimaAlturaDeCarta = AlturaCarta();
 
         RectTransform paraFrente = null;
 

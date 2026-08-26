@@ -72,6 +72,16 @@ public class CombatManager : MonoBehaviour
     [Header("Ordem do round")]
     public TurnOrderBar turnOrder;
 
+    /// <summary>
+    /// O campo de batalha filmado: os corpos que se mexem no lugar dos retratos.
+    ///
+    /// Opcional de propósito. Sem ele — cena antiga, palco que não subiu, pacote
+    /// de arte removido — cada figura volta a ser o retrato parado dentro da
+    /// view, que é como o combate funcionou até aqui. A luta não pode depender
+    /// de arte para acontecer.
+    /// </summary>
+    public BattleFieldUI battleField;
+
     [Header("Botões")]
     public Button endTurnButton;
     public Button fleeButton;
@@ -124,6 +134,13 @@ public class CombatManager : MonoBehaviour
     private int groupDamageBonusTurns;     // turnos que ainda restam ao bônus
     private float nextCardMultiplier = 1f; // gasto pela próxima carta que causar dano
     private readonly HashSet<HeroData> evading = new HashSet<HeroData>();
+
+    /// <summary>
+    /// Quem já jogou uma carta neste combate — só serve ao desconto do Anel do
+    /// Ímpeto, que vale uma vez por luta e não uma vez por turno.
+    /// </summary>
+    private readonly HashSet<HeroData> jaJogouNesteCombate = new HashSet<HeroData>();
+
 
     // Alvos vivos na tela, para acender e apagar durante o arrasto.
     private readonly List<CombatDropTarget> activeTargets = new List<CombatDropTarget>();
@@ -196,6 +213,7 @@ public class CombatManager : MonoBehaviour
         groupDamageBonusTurns = 0;
         nextCardMultiplier = 1f;
         evading.Clear();
+        jaJogouNesteCombate.Clear();
 
         enemies.Clear();
         foreach (var data in lineup)
@@ -232,6 +250,12 @@ public class CombatManager : MonoBehaviour
         }
 
         BuildEnemyViews();
+
+        // O palco entra depois das views existirem, mas antes do primeiro
+        // refresh: é o refresh que registra em que retângulo cada corpo cabe, e
+        // registrar num palco que ainda não tem elenco não guardaria ninguém.
+        if (battleField != null) battleField.Preparar(party, enemies);
+
         RollAllIntents();
         AddLog("O combate começa!");
 
@@ -253,6 +277,27 @@ public class CombatManager : MonoBehaviour
         int reward = victory ? enemies.Sum(e => e.data.goldReward) : 0;
         LastCombatReward = reward;
 
+        if (victory) DistribuirEspolio();
+
+        // O unguento age no fôlego entre lutas, não durante a luta: curar no
+        // meio do combate seria uma segunda barra de vida, e a letalidade toda
+        // do jogo está calibrada sobre o desgaste que se acumula de um encontro
+        // para o outro.
+        if (victory)
+        {
+            foreach (var hero in party.Where(h => h != null && h.IsAlive))
+            {
+                int unguento = ItemCatalog.Total(hero, RelicEffect.CuraPosCombate);
+                if (unguento <= 0) continue;
+
+                int curado = Mathf.Min(unguento, hero.maxHp - hero.currentHp);
+                if (curado <= 0) continue;
+
+                hero.currentHp += curado;
+                AddLog($"🧴 {hero.heroName} se trata ({curado}).");
+            }
+        }
+
         if (victory && reward > 0 && GuildManager.Instance != null)
             GuildManager.Instance.AddGold(reward);
 
@@ -271,6 +316,11 @@ public class CombatManager : MonoBehaviour
             if (combatPanel != null)
                 combatPanel.SetActive(false);
 
+            // Os corpos saem de cena junto com o painel. Sem isto o palco
+            // continuaria filmando a luta anterior, e a próxima entraria com os
+            // mortos da última ainda no chão.
+            if (battleField != null) battleField.Encerrar();
+
             // Devolve à tela exatamente o que foi escondido ao entrar.
             UIManager.Instance?.ExitCombatScreen();
 
@@ -282,6 +332,44 @@ public class CombatManager : MonoBehaviour
             UIManager.Instance.ShowResult(title, message, finish);
         else
             finish();
+    }
+
+    /// <summary>
+    /// O que a luta larga ao ser vencida.
+    ///
+    /// <b>Chefe garante relíquia; encontro comum às vezes larga um frasco.</b>
+    /// É a distribuição do Slay the Spire, e existe pela mesma razão: o item
+    /// permanente precisa estar preso ao risco que se correu, ou vira renda. Um
+    /// combate comum acontece duas ou três vezes por jornada — se cada um
+    /// largasse relíquia, os dois slots de todo mundo estariam cheios antes do
+    /// segundo ciclo, e a escolha de quem leva o quê deixaria de existir.
+    ///
+    /// O espólio vai para a prateleira da guilda, e não direto para um herói: no
+    /// meio da estrada não há tela para escolher quem recebe, e entregar ao
+    /// primeiro da fila decidiria pelo jogador o que é decisão dele.
+    /// </summary>
+    void DistribuirEspolio()
+    {
+        var guilda = GuildManager.Instance;
+        if (guilda == null) return;
+
+        bool eraChefe = enemies.Any(e => e?.data != null && e.data.isBoss);
+
+        if (eraChefe)
+        {
+            var reliquia = ItemCatalog.Reliquias[UnityEngine.Random.Range(0, ItemCatalog.Reliquias.Count)];
+            guilda.GuardarReliquia(reliquia.id);
+            AddLog($"🏺 O chefe deixou {reliquia.nome}.");
+            return;
+        }
+
+        // Uma em cada três lutas comuns. Com 2,7 combates por jornada medidos no
+        // simulador, é aproximadamente um frasco por viagem.
+        if (UnityEngine.Random.value > 0.34f) return;
+
+        var pocao = ItemCatalog.Pocoes[UnityEngine.Random.Range(0, ItemCatalog.Pocoes.Count)];
+        guilda.GuardarPocao(pocao.id);
+        AddLog($"🧪 Entre os despojos: {pocao.nome}.");
     }
 
     void ConfirmFlee()
@@ -320,6 +408,21 @@ public class CombatManager : MonoBehaviour
         // Bloqueio não acumula entre turnos.
         foreach (var hero in party.ToList())
             heroBlock[hero] = 0;
+
+        // O broquel vale uma vez, no primeiro turno: bloqueio reposto todo turno
+        // faria o herói entrar em cada rodada com uma armadura de graça, e o
+        // teto de dano do inimigo é calibrado em cima de quem não tem nenhuma.
+        if (turn == 1)
+        {
+            foreach (var hero in party.ToList())
+            {
+                int inicial = ItemCatalog.Total(hero, RelicEffect.BloqueioInicial);
+                if (inicial <= 0) continue;
+
+                heroBlock[hero] = heroBlock[hero] + inicial;
+                AddLog($"🛡️ {hero.heroName} entra protegido ({inicial}).");
+            }
+        }
 
         int toDraw = Mathf.Max(0, cardsPerTurn - cards.hand.Count);
         for (int i = 0; i < toDraw; i++)
@@ -464,6 +567,12 @@ public class CombatManager : MonoBehaviour
     {
         var resolution = new EventResolver.Resolution();
 
+        // Defender é a única intenção que não é um bote: nas outras três a
+        // criatura avança, e é esse avanço que diz de quem foi o golpe quando
+        // três números sobem ao mesmo tempo em heróis diferentes.
+        if (battleField != null && enemy.intent != EnemyIntent.Defend)
+            battleField.CriaturaAtaca(enemy);
+
         switch (enemy.intent)
         {
             case EnemyIntent.Attack:
@@ -473,7 +582,7 @@ public class CombatManager : MonoBehaviour
 
                 // AttackDamage, não data.attackDamage: é aqui que o
                 // enfraquecimento aplicado pelo jogador vira menos dano de fato.
-                DamageHero(target, enemy.AttackDamage, resolution);
+                DamageHero(target, enemy.AttackDamage, resolution, enemy);
                 AddLog(enemy.IsWeakened
                     ? $"{enemy.data.enemyName} ataca {target.heroName} — enfraquecido."
                     : $"{enemy.data.enemyName} ataca {target.heroName}.");
@@ -484,7 +593,7 @@ public class CombatManager : MonoBehaviour
             {
                 int dmg = Mathf.Max(1, Mathf.RoundToInt(enemy.AttackDamage * 0.6f));
                 foreach (var hero in party.Where(h => h.IsAlive).ToList())
-                    DamageHero(hero, dmg, resolution);
+                    DamageHero(hero, dmg, resolution, enemy);
                 AddLog($"{enemy.data.enemyName} atinge o grupo inteiro!");
                 break;
             }
@@ -610,7 +719,26 @@ public class CombatManager : MonoBehaviour
     /// <summary>Turno do jogador, combate em andamento e energia suficiente.</summary>
     public bool CanAffordCard(CardData card)
     {
-        return !combatOver && isPlayerTurn && card != null && energy >= card.energyCost;
+        return !combatOver && isPlayerTurn && card != null && energy >= CustoDe(card);
+    }
+
+    /// <summary>
+    /// O que esta carta custa agora — que não é sempre o que está impresso nela.
+    ///
+    /// O Anel do Ímpeto barateia a <b>primeira</b> carta do dono em cada combate,
+    /// e por isso o custo precisa ser perguntado, nunca lido direto do asset:
+    /// quem lê <c>energyCost</c> por conta própria cobra o preço cheio e o
+    /// desconto some sem deixar rastro no console.
+    /// </summary>
+    public int CustoDe(CardData card)
+    {
+        if (card == null) return 0;
+
+        HeroData dono = CardOwner(card);
+        if (dono == null || jaJogouNesteCombate.Contains(dono)) return card.energyCost;
+
+        int desconto = ItemCatalog.Total(dono, RelicEffect.PrimeiraCartaBarata);
+        return Mathf.Max(0, card.energyCost - desconto);
     }
 
     /// <summary>
@@ -724,10 +852,17 @@ public class CombatManager : MonoBehaviour
 
     void ResolveCard(CardData card, EnemyInstance enemyTarget, HeroData heroTarget)
     {
-        if (energy < card.energyCost) return;
+        int custo = CustoDe(card);
+        if (energy < custo) return;
 
-        energy -= card.energyCost;
+        energy -= custo;
         pendingCard = null;
+
+        // Marcado depois de cobrar: é esta jogada que gasta o desconto, não a
+        // seguinte.
+        HeroData dono = CardOwner(card);
+        if (dono != null && jaJogouNesteCombate.Add(dono) && custo < card.energyCost)
+            AddLog($"⚡ {card.cardName} sai por {custo} — ímpeto de {dono.heroName}.");
 
         // Uma carta vale o quanto vale a posição de quem a trouxe: o guerreiro
         // empurrado para trás continua atacando, só que sem alcançar de verdade.
@@ -748,6 +883,10 @@ public class CombatManager : MonoBehaviour
         {
             damage += ForgeManager.WeaponBonus(CardOwner(card));
 
+            // A relíquia do dono entra junto com a arma dele, e pela mesma razão:
+            // é o aço de quem empresta a carta, não a carta.
+            damage += ItemCatalog.Total(CardOwner(card), RelicEffect.DanoDeCarta);
+
             if (groupDamageBonusTurns > 0)
                 damage += groupDamageBonus;
 
@@ -761,6 +900,12 @@ public class CombatManager : MonoBehaviour
 
         if (power < 1f)
             AddLog($"⤵ {card.cardName} sai enfraquecida — {DescribeOwnerPlacement(card)}.");
+
+        // Quem golpeia é o dono da carta, não o grupo: é o mesmo herói de quem a
+        // posição na formação acabou de decidir a força do golpe, e ver o corpo
+        // dele avançar é o que liga uma coisa à outra sem explicação escrita.
+        if (battleField != null && DealsDamage(card.combatEffect))
+            battleField.HeroiAtaca(CardOwner(card));
 
         switch (card.combatEffect)
         {
@@ -994,16 +1139,26 @@ public class CombatManager : MonoBehaviour
         {
             fx.ShowDamage(enemy.view, remaining);
             fx.Shake(enemy.view);
+            if (battleField != null) battleField.CriaturaApanha(enemy);
         }
 
         if (!enemy.IsAlive)
         {
             AddLog($"☠️ {enemy.data.enemyName} foi derrotado!");
             fx.ShowText(enemy.view, "☠️", Color.white);
+
+            // A morte vem depois do dano e vence a animação dele: quem morreu
+            // não volta ao parado.
+            if (battleField != null) battleField.CriaturaMorre(enemy);
         }
     }
 
-    void DamageHero(HeroData hero, int amount, EventResolver.Resolution resolution)
+    /// <param name="agressor">
+    /// Quem desferiu o golpe, quando há alguém — é o que a Armadura de Espinhos
+    /// precisa saber para devolver o dano. Nulo em dano sem dono, como veneno.
+    /// </param>
+    void DamageHero(HeroData hero, int amount, EventResolver.Resolution resolution,
+                    EnemyInstance agressor = null)
     {
         if (hero == null || !hero.IsAlive || amount <= 0) return;
 
@@ -1039,7 +1194,76 @@ public class CombatManager : MonoBehaviour
             EventResolver.DealDamage(hero, remaining, party, resolution);
             fx.ShowDamage(view, remaining);
             fx.Shake(view);
+
+            if (battleField != null)
+            {
+                // Beira da Morte cai em cena junto com a morte: nos dois casos o
+                // herói está fora da luta, e continuar de pé enquanto o resto do
+                // grupo age esconderia o estado mais importante da tela.
+                if (hero.isDead || hero.isOnDeathsDoor) battleField.HeroiCai(hero);
+                else battleField.HeroiApanha(hero);
+
+                battleField.AtualizarPresenca();
+            }
+
+            // Os espinhos só ferem quem encostou: dano de veneno e de evento não
+            // tem agressor, e devolver golpe ao nada mataria inimigos sozinhos.
+            int espinhos = ItemCatalog.Total(hero, RelicEffect.Retaliacao);
+            if (espinhos > 0 && agressor != null && agressor.IsAlive)
+            {
+                AddLog($"🌵 {hero.heroName} fere quem o atingiu.");
+                DamageEnemy(agressor, espinhos);
+            }
         }
+    }
+
+    /// <summary>
+    /// O herói bebe um dos frascos que carrega.
+    ///
+    /// <b>Não custa energia e não gasta o turno</b> — escolha do autor, e a mesma
+    /// do Slay the Spire: a poção é o que se tem quando o plano deu errado, e
+    /// competir com as cartas pelo mesmo recurso faria dela uma carta pior.
+    ///
+    /// Devolve false quando não há o que beber, para a interface saber que o
+    /// frasco não foi consumido em vez de sumir com ele.
+    /// </summary>
+    public bool UsarPocao(HeroData hero, string potionId)
+    {
+        if (hero == null || !hero.IsAlive || combatOver) return false;
+        if (hero.potions == null || !hero.potions.Contains(potionId)) return false;
+
+        PotionDef def = ItemCatalog.Pocao(potionId);
+        if (def == null) return false;
+
+        hero.potions.Remove(potionId);
+
+        switch (def.efeito)
+        {
+            case PotionEffect.Cura:
+                HealHero(hero, def.valor);
+                break;
+
+            case PotionEffect.Bloqueio:
+                heroBlock[hero] = (heroBlock.TryGetValue(hero, out int b) ? b : 0) + def.valor;
+                CombatFeedback.Get().ShowBlock(GetHeroView(hero), def.valor);
+                break;
+
+            case PotionEffect.ForcaNaProximaCarta:
+                // Divide o mesmo campo da carta "Olhar de Águia": duas fontes de
+                // reforço que se somassem dariam um golpe fora de qualquer escala
+                // medida. A última pedida é a que vale.
+                nextCardMultiplier = 1f + def.valor / 100f;
+                break;
+
+            case PotionEffect.Calma:
+                EventResolver.AddStress(hero, -def.valor, new EventResolver.Resolution());
+                CombatFeedback.Get().ShowText(GetHeroView(hero), $"🧠 -{def.valor}", Color.white);
+                break;
+        }
+
+        AddLog($"🧪 {hero.heroName} bebe {def.nome}.");
+        RefreshAll();
+        return true;
     }
 
     void HealHero(HeroData hero, int amount)
@@ -1053,6 +1277,10 @@ public class CombatManager : MonoBehaviour
         {
             hero.isOnDeathsDoor = false;
             AddLog($"✨ {hero.heroName} saiu da Beira da Morte.");
+
+            // Quem caiu e foi socorrido levanta: sem isto o boneco ficaria no
+            // chão o resto da luta, contando uma coisa que os números negam.
+            if (battleField != null) battleField.HeroiLevanta(hero);
         }
         else if (healed > 0)
         {
@@ -1081,7 +1309,25 @@ public class CombatManager : MonoBehaviour
         RefreshHeroes();
         RefreshHand();
         RefreshCounters();
+        RefreshPotions();
     }
+
+    /// <summary>
+    /// A cinta de frascos. Nasce na primeira luta e é redesenhada a cada
+    /// refresh: beber muda a lista, e quem morre leva os dele embora.
+    /// </summary>
+    void RefreshPotions()
+    {
+        if (potionBelt == null && combatPanel != null)
+            potionBelt = PotionBeltUI.Montar(combatPanel);
+
+        if (potionBelt != null) potionBelt.Desenhar(party);
+    }
+
+    PotionBeltUI potionBelt;
+
+    /// <summary>Para o teste: quantos frascos o grupo tem à mão nesta luta.</summary>
+    public int FrascosEmCombate => potionBelt != null ? potionBelt.Frascos : 0;
 
     void BuildEnemyViews()
     {
@@ -1129,9 +1375,19 @@ public class CombatManager : MonoBehaviour
                 hpBar.color = alvo <= 0.25f ? new Color(0.55f, 0.15f, 0.15f) : Color.white;
             }
 
+            // A área do retrato é onde a criatura entra em cena. Registrar aqui,
+            // e não uma vez só ao montar, é o que mantém a figura em cima da
+            // view quando a fila se refaz — ela se refaz a cada morte.
+            if (battleField != null && battleField.EmCena)
+                battleField.RegistrarCriatura(enemy, enemy.view.transform.Find("Portrait") as RectTransform);
+
             Image portrait = enemy.view.transform.Find("Portrait")?.GetComponent<Image>();
             if (portrait != null && enemy.data.portrait != null)
             {
+                // Com o palco em cena, o retrato parado sairia por trás da
+                // criatura animada, como um fantasma dela mesma.
+                portrait.enabled = battleField == null || !battleField.EmCena;
+
                 portrait.sprite = enemy.data.portrait;
                 portrait.preserveAspect = true;
 
@@ -1139,8 +1395,15 @@ public class CombatManager : MonoBehaviour
                 // mesma arte: há 11 inimigos e 7 desenhos. Ver EnemyArt.
                 portrait.color = enemy.data.portraitTint;
 
+                // Com o palco em cena a ampliação é dele, e este retângulo passa
+                // a ser só a área reservada: ampliado, ele mede 2 a 3 vezes o
+                // que reservou, e a criatura filmada saía do mesmo tamanho da
+                // mentira — a de 3× aparecia como um pedaço de perna ocupando a
+                // tela. Quem lê a área por GetWorldCorners lê a escala junto.
+                bool palcoEmCena = battleField != null && battleField.EmCena;
+
                 float escala = enemy.data.portraitScale > 0f ? enemy.data.portraitScale : 1f;
-                portrait.transform.localScale = Vector3.one * escala;
+                portrait.transform.localScale = palcoEmCena ? Vector3.one : Vector3.one * escala;
             }
 
             // Alvo de drop: é assim que a carta chega ao inimigo.
@@ -1248,9 +1511,19 @@ public class CombatManager : MonoBehaviour
             //
             // O estado continua na cor: morto apaga para o cinza, Beira da Morte
             // puxa para o vermelho — aviso que se capta sem parar para ler.
+            // Onde o corpo deste herói entra em cena. A view é recriada a cada
+            // refresh, então o registro é refeito junto — a área velha morreu
+            // com o objeto anterior.
+            if (battleField != null && battleField.EmCena)
+                battleField.RegistrarHeroi(hero, view.transform.Find("Portrait") as RectTransform);
+
             Image retrato = view.transform.Find("Portrait")?.GetComponent<Image>();
             if (retrato != null && hero.portrait != null)
             {
+                // Com o palco em cena quem aparece é o corpo; o retrato parado
+                // fica de reserva para quando não houver boneco para a classe.
+                retrato.enabled = battleField == null || !battleField.EmCena;
+
                 retrato.sprite = hero.portrait;
                 retrato.color = hero.isDead ? new Color(0.38f, 0.34f, 0.36f, 0.55f)
                               : hero.isOnDeathsDoor ? new Color(1f, 0.62f, 0.60f, 1f)

@@ -16,9 +16,12 @@ public class CombatDropTarget : MonoBehaviour, IDropHandler, IPointerEnterHandle
     /// <summary>Preenchido para alvos aliados; nulo em alvos inimigos.</summary>
     public HeroData hero;
 
+    // Translúcidos porque o que acende é o fundo da figura, e a figura agora é
+    // um corpo desenhado atrás dele: com alfa cheio, apontar um alvo pintava uma
+    // chapa verde por cima do herói que se queria mirar.
     [Header("Destaque")]
-    public Color validHighlight = new Color(0.45f, 0.85f, 0.5f, 1f);
-    public Color hoverHighlight = new Color(0.95f, 0.85f, 0.4f, 1f);
+    public Color validHighlight = new Color(0.45f, 0.85f, 0.5f, 0.28f);
+    public Color hoverHighlight = new Color(0.95f, 0.85f, 0.4f, 0.42f);
 
     private Image frame;
     private Color baseColor;

@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: "O Bibliotec\xE1rio Cego"
   description: "N\xE3o tem olhos, mas vira a cabe\xE7a na dire\xE7\xE3o exata de
     quem entra."
-  portrait: {fileID: -4795363162621231457, guid: 6d7cd4f7505dc674c891ca8946cfd98b, type: 3}
+  portrait: {fileID: 21300000, guid: 93a7524c26c0b404bbd9b4f638e594f5, type: 3}
   biome: 7
   isBoss: 1
   maxHp: 80
@@ -27,5 +27,39 @@ MonoBehaviour:
   stressWeight: 40
   attackAllWeight: 10
   goldReward: 310
-  portraitTint: {r: 0.8, g: 0.75, b: 0.55, a: 1}
-  portraitScale: 2.8
+  portraitTint: {r: 1.6, g: 1.5, b: 1.25, a: 1}
+  portraitScale: 2.6
+  animation:
+    idle:
+    - {fileID: 21300000, guid: 93a7524c26c0b404bbd9b4f638e594f5, type: 3}
+    - {fileID: 21300000, guid: 0fba8eed8cb94a147b7f9acb2a053141, type: 3}
+    - {fileID: 21300000, guid: e9b010c796c6bfa4db122419cf846455, type: 3}
+    - {fileID: 21300000, guid: 22e94f418cc30314082ff31aea632337, type: 3}
+    attack:
+    - {fileID: 21300000, guid: 03a421cc347fd6542be362d1dc628a6e, type: 3}
+    - {fileID: 21300000, guid: c0c5dfff9ed74f549ae97fd4b0b392a9, type: 3}
+    - {fileID: 21300000, guid: a13eba1ce49a30842a5c6e417c7e6da6, type: 3}
+    - {fileID: 21300000, guid: b7416d2dc4f89654eabab9b8a66adb55, type: 3}
+    - {fileID: 21300000, guid: 410f71c00b293b34fbce0e47739793cb, type: 3}
+    - {fileID: 21300000, guid: 0adde9101373f9e46abc6277a5bfeea0, type: 3}
+    - {fileID: 21300000, guid: b48ff70e4231eb24385e68365708e918, type: 3}
+    - {fileID: 21300000, guid: 8ab961a574b6db24a94a7aed9c42f377, type: 3}
+    - {fileID: 21300000, guid: 9d60aa38979c44848bd9804d7d38b6ce, type: 3}
+    - {fileID: 21300000, guid: cad705ba079cf2743ad8872547c9f762, type: 3}
+    hit:
+    - {fileID: 21300000, guid: da57a1d9496dd24468ba8d150bb4bc8f, type: 3}
+    - {fileID: 21300000, guid: fe31e7f7fb44bc042b7ca712c417a7fd, type: 3}
+    death:
+    - {fileID: 21300000, guid: 8fb5b77c81d96f94c8f74faf7d9d5d43, type: 3}
+    - {fileID: 21300000, guid: 0a3a3738c13f94849aab1b1e2bb96ce9, type: 3}
+    - {fileID: 21300000, guid: 55b0f2dafd5323141a4e22009a6638fb, type: 3}
+    - {fileID: 21300000, guid: b528217cd9f2a104ab03ebe1aea81196, type: 3}
+    - {fileID: 21300000, guid: d58d2acdf25b9a649a4f8e7c8410e5c3, type: 3}
+    - {fileID: 21300000, guid: fd18546b917ba2545a61ce3ca57d5e86, type: 3}
+    - {fileID: 21300000, guid: 44865a8df6adadc4b9b80b5f1630db49, type: 3}
+    - {fileID: 21300000, guid: 77a2d61ac3bc179438fc289f50422a19, type: 3}
+    - {fileID: 21300000, guid: 21fd06d05a0a97b44b741984e1443be0, type: 3}
+    frameRate: 10
+    desenhadaOlhandoParaDireita: 0
+    baseVisivel: 0
+    alturaVisivel: 0.6458333

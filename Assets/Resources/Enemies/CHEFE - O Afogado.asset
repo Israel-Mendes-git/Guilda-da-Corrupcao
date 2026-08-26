@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: O Afogado
   description: "A \xE1gua escorre dele sem parar, e n\xE3o h\xE1 \xE1gua por perto."
-  portrait: {fileID: -7078261816480267791, guid: bfeede70efd14484683f5956b4f1194b, type: 3}
+  portrait: {fileID: 21300000, guid: e20edcd91d029a14f999a2317ecfa2ea, type: 3}
   biome: 3
   isBoss: 1
   maxHp: 90
@@ -26,5 +26,32 @@ MonoBehaviour:
   stressWeight: 35
   attackAllWeight: 15
   goldReward: 290
-  portraitTint: {r: 0.55, g: 0.72, b: 0.85, a: 1}
-  portraitScale: 3.4
+  portraitTint: {r: 1.35, g: 1.5, b: 1.75, a: 1}
+  portraitScale: 3
+  animation:
+    idle:
+    - {fileID: 21300000, guid: e20edcd91d029a14f999a2317ecfa2ea, type: 3}
+    - {fileID: 21300000, guid: 8e4a70cce386350468874c9ebbc03a59, type: 3}
+    - {fileID: 21300000, guid: 6474c3044067d2643b759f5a3b444100, type: 3}
+    - {fileID: 21300000, guid: 414de197b3930ee4581e1bd7c7986cc4, type: 3}
+    attack:
+    - {fileID: 21300000, guid: dc6844c98dcc323418398d466ba52213, type: 3}
+    - {fileID: 21300000, guid: 885ab110edcc33440a477f44b2760799, type: 3}
+    - {fileID: 21300000, guid: d6a7cec94459d754e8970f8f90149fe5, type: 3}
+    hit:
+    - {fileID: 21300000, guid: 98b649fbdcf20f4438b43103d498f581, type: 3}
+    - {fileID: 21300000, guid: c2a8042041f26744f9aae79e7d599f3e, type: 3}
+    death:
+    - {fileID: 21300000, guid: 2d1fd79b5c6f85a4599aa7394e63e609, type: 3}
+    - {fileID: 21300000, guid: 1e983958811ff2d45961e19ef3baffda, type: 3}
+    - {fileID: 21300000, guid: bfa237adae5a58e4b92d3709d7658c64, type: 3}
+    - {fileID: 21300000, guid: 46d839e871854c144bd968e5a8895b90, type: 3}
+    - {fileID: 21300000, guid: 53685c2a421bbe54eb6b1a19825d8f18, type: 3}
+    - {fileID: 21300000, guid: 1e55d800c57184b4689297de24369577, type: 3}
+    - {fileID: 21300000, guid: c25e8a815f43b1f4ebfacec962896b9b, type: 3}
+    - {fileID: 21300000, guid: 6a70359ea7ba7d04b8f9006eb62e2d9b, type: 3}
+    - {fileID: 21300000, guid: f06974903c4c8fa4fbb0cf283588e59d, type: 3}
+    frameRate: 10
+    desenhadaOlhandoParaDireita: 0
+    baseVisivel: 0.015625
+    alturaVisivel: 0.5625

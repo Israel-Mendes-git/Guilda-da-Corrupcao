@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: Lobo Esfomeado
   description: "Costelas \xE0 mostra e olhos fixos. O inverno o deixou sem medo de
     homens."
-  portrait: {fileID: 4723107735738678597, guid: c1cdd26cc09ad224884556bc4d8296ae, type: 3}
+  portrait: {fileID: 21300000, guid: cfac536acc37b794a87b1890c73015fa, type: 3}
   biome: 1
   isBoss: 0
   maxHp: 22
@@ -27,5 +27,35 @@ MonoBehaviour:
   stressWeight: 12
   attackAllWeight: 10
   goldReward: 18
-  portraitTint: {r: 0.72, g: 0.66, b: 0.52, a: 1}
-  portraitScale: 2
+  portraitTint: {r: 1.55, g: 1.4, b: 1.35, a: 1}
+  portraitScale: 2.2
+  animation:
+    idle:
+    - {fileID: 21300000, guid: cfac536acc37b794a87b1890c73015fa, type: 3}
+    - {fileID: 21300000, guid: a064a7192ee3d744786890d81dbc8562, type: 3}
+    - {fileID: 21300000, guid: b18904584f232144593f3b57e0ca9b89, type: 3}
+    - {fileID: 21300000, guid: 5daa0261ca2c96b45a9a1c2b09714de3, type: 3}
+    attack:
+    - {fileID: 21300000, guid: 3c6e1908eee706340a2702c582f6c252, type: 3}
+    - {fileID: 21300000, guid: 6dda8e624a858e54098615a2a66e2cc0, type: 3}
+    - {fileID: 21300000, guid: 53b18f36dbde7b644a977835b96f9c86, type: 3}
+    - {fileID: 21300000, guid: 0f96c013b051c24469c1f76ebefa1fff, type: 3}
+    - {fileID: 21300000, guid: bf71ab0b0fb34e046a36926a3ccb8f71, type: 3}
+    - {fileID: 21300000, guid: 03c848b0e3f4e7546902cf635de6d013, type: 3}
+    hit:
+    - {fileID: 21300000, guid: 4bab342f15c72df4b8ca78921392e9af, type: 3}
+    - {fileID: 21300000, guid: 7135df671d7159d4091fd19c2f993908, type: 3}
+    death:
+    - {fileID: 21300000, guid: 53e617afa5eb63849bfe8a67c3a601df, type: 3}
+    - {fileID: 21300000, guid: d61bdb1e61c9559498596d1fe936bfb6, type: 3}
+    - {fileID: 21300000, guid: 99a4e8821e03ae24bbbf2ee790a697a9, type: 3}
+    - {fileID: 21300000, guid: bdf2e819b05b34649b52659cf2695e7f, type: 3}
+    - {fileID: 21300000, guid: bf7e7a7fb6c197e4ab741fa7395a19c2, type: 3}
+    - {fileID: 21300000, guid: 341708a64ef0de941b77704725d41617, type: 3}
+    - {fileID: 21300000, guid: ddcd5e800f9bf294b97a205817545c9d, type: 3}
+    - {fileID: 21300000, guid: 8a4e14fba56e4054da9ed35dfb508860, type: 3}
+    - {fileID: 21300000, guid: d9a404880b1a94e4f914a8ff044cc3e5, type: 3}
+    frameRate: 10
+    desenhadaOlhandoParaDireita: 0
+    baseVisivel: 0
+    alturaVisivel: 0.46875
