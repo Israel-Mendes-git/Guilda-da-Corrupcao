@@ -53,10 +53,12 @@ MonoBehaviour:
     triggersCorruption: 0
     requiredEffect: 8
     empoweredConsequences:
-      goldChange: 0
-      reputationChange: 0
+      goldChange: 76
+      reputationChange: 38
       heroEffects: []
-      moraleChanges: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 30
     empoweredText: A carta certa abre esse caminho.
   - optionText: "\U0001F525 Incendiar o p\xE2ntano inteiro"
     consequences:

@@ -53,9 +53,13 @@ MonoBehaviour:
     triggersCorruption: 0
     requiredEffect: 1
     empoweredConsequences:
-      goldChange: 0
-      reputationChange: 0
-      heroEffects: []
+      goldChange: 143
+      reputationChange: 15
+      heroEffects:
+      - heroName: Random
+        hpChange: 0
+        addInjury: 0
+        addTrait: 0
       moraleChanges: []
     empoweredText: A carta certa abre esse caminho.
   - optionText: "\U0001F56F\uFE0F Pagar o ped\xE1gio antigo em ouro"

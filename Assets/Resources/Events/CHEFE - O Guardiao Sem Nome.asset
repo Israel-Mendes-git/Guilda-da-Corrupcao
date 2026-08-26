@@ -53,9 +53,13 @@ MonoBehaviour:
     triggersCorruption: 0
     requiredEffect: 10
     empoweredConsequences:
-      goldChange: 0
-      reputationChange: 0
-      heroEffects: []
+      goldChange: 126
+      reputationChange: 15
+      heroEffects:
+      - heroName: All
+        hpChange: 0
+        addInjury: 0
+        addTrait: 0
       moraleChanges: []
     empoweredText: A carta certa abre esse caminho.
   - optionText: "\U0001F3C3 Pegar o que der e fugir"
