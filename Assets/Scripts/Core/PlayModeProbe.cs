@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -178,12 +179,40 @@ public class PlayModeProbe : MonoBehaviour
         // estiver jogando neste computador — rodar o teste não pode custar o
         // save do autor.
         SaveSystem.AutosaveSuspenso = true;
+
+        // <b>Nenhum reimport enquanto o jogo roda.</b> O teste grava as capturas
+        // dentro de Assets/Screenshots, e cada arquivo novo ali acorda o Asset
+        // Pipeline **em pleno Play Mode**: ele reimporta a textura, descarrega e
+        // recarrega assets e faz hot reload com o jogo no ar.
+        //
+        // Isso sempre foi frágil e passou anos sem cobrar. Cobrou em 21/08: com
+        // dois palcos de RenderTexture vivos e 60 texturas de mapa recém
+        // reimportadas, o refresh disparado por três capturas derrubou o Editor
+        // com SIGSEGV — crash nativo, sem stack gerenciado, no meio de uma
+        // jornada. A última coisa no log antes do sinal era o refresh.
+        //
+        // As capturas continuam sendo gravadas onde estavam; só entram no
+        // AssetDatabase quando o teste acaba e o Editor volta a si.
+        AssetDatabase.DisallowAutoRefresh();
+        refreshSuspenso = true;
     }
+
+    /// <summary>O auto-refresh foi desligado por nós? Só religa quem desligou.</summary>
+    bool refreshSuspenso;
 
     void OnDestroy()
     {
         Application.logMessageReceived -= OnLog;
         SaveSystem.AutosaveSuspenso = false;
+
+        // Religa mesmo se o teste morreu no meio: deixar o projeto sem
+        // auto-refresh seria pior que o crash — o Editor pararia de enxergar
+        // qualquer arquivo novo, em silêncio.
+        if (refreshSuspenso)
+        {
+            AssetDatabase.AllowAutoRefresh();
+            refreshSuspenso = false;
+        }
     }
 
     /// <summary>
@@ -262,6 +291,13 @@ public class PlayModeProbe : MonoBehaviour
         yield return TestRooms();
 
         Section("JORNADA AUTOMATICA");
+
+        // Um frasco em cada herói antes de partir: a cinta do combate só existe
+        // se alguém do grupo carregar algum, e sem isto a tela nunca seria
+        // exercitada — o teste passaria em silêncio sobre a metade nova do
+        // sistema de itens.
+        EquiparGrupoParaOTeste();
+
         if (hasJourney)
             yield return RunJourney();
         else
@@ -296,6 +332,14 @@ public class PlayModeProbe : MonoBehaviour
         }
 
         WriteReport();
+
+        // Religa antes de sair do Play Mode: as capturas e o relatório entram no
+        // AssetDatabase com o jogo já parado, que é quando isso é seguro.
+        if (refreshSuspenso)
+        {
+            AssetDatabase.AllowAutoRefresh();
+            refreshSuspenso = false;
+        }
 
         yield return null;
         EditorApplication.isPlaying = false;
@@ -634,8 +678,8 @@ public class PlayModeProbe : MonoBehaviour
     /// tudo e restaura errado passa em qualquer verificação de campo — é o mesmo
     /// erro das fases anteriores, em que o dado estava certo e ninguém o exibia.
     ///
-    /// O perfil do jogador (relíquias e destraves) é fotografado antes e reposto
-    /// no fim: testar uma compra não pode custar as relíquias de quem programa.
+    /// O perfil do jogador (memórias e destraves) é fotografado antes e reposto
+    /// no fim: testar uma compra não pode custar as memórias de quem programa.
     /// </summary>
     IEnumerator TestSaveAndMenus()
     {
@@ -964,15 +1008,15 @@ public class PlayModeProbe : MonoBehaviour
 
     /// <summary>
     /// O Santuário cobra o que promete? O perfil é reposto no fim — testar uma
-    /// compra não pode custar as relíquias de quem está programando.
+    /// compra não pode custar as memórias de quem está programando.
     /// </summary>
     void TestShrine()
     {
-        int relicasAntes = MetaProgression.Relics;
+        int memoriasAntes = MetaProgression.Memorias;
         var niveisAntes = MetaProgression.Catalogo
             .ToDictionary(u => u.id, u => MetaProgression.NivelDe(u.id));
 
-        Line($"relíquias do perfil: {relicasAntes} | destraves: "
+        Line($"memórias do perfil: {memoriasAntes} | destraves: "
            + string.Join(", ", niveisAntes.Select(p => $"{p.Key} {p.Value}")));
 
         Unlock alvo = MetaProgression.Catalogo[0];
@@ -987,21 +1031,21 @@ public class PlayModeProbe : MonoBehaviour
             int custo = alvo.CustoDoNivel(nivelInicial + 1);
 
             // Sem saldo, a compra tem que recusar.
-            PlayerProfile.Dados.relics = 0;
+            PlayerProfile.Dados.memories = 0;
             bool semSaldo = MetaProgression.Comprar(alvo.id);
             Line($"  compra sem saldo recusada: {!semSaldo}");
-            if (semSaldo) Line("FALHA: comprou destrave sem relíquias.");
+            if (semSaldo) Line("FALHA: comprou destrave sem memórias.");
 
             // Com saldo exato, compra e desconta.
-            PlayerProfile.Dados.relics = custo;
+            PlayerProfile.Dados.memories = custo;
             bool comprou = MetaProgression.Comprar(alvo.id);
 
             Line($"  compra de '{alvo.nome}' por {custo}: {comprou}"
                + $" | nível {nivelInicial} → {MetaProgression.NivelDe(alvo.id)}"
-               + $" | saldo restante {MetaProgression.Relics}");
+               + $" | saldo restante {MetaProgression.Memorias}");
 
             if (!comprou) Line("FALHA: compra com saldo exato recusada.");
-            if (MetaProgression.Relics != 0) Line("FALHA: o custo não foi descontado.");
+            if (MetaProgression.Memorias != 0) Line("FALHA: o custo não foi descontado.");
         }
 
         // O destrave chega à guilda?
@@ -1011,7 +1055,7 @@ public class PlayModeProbe : MonoBehaviour
            + $" | quadro: {(QuestManager.Instance != null ? QuestManager.Instance.TamanhoDoQuadro : 0)}");
 
         // Repõe o perfil como estava.
-        PlayerProfile.Dados.relics = relicasAntes;
+        PlayerProfile.Dados.memories = memoriasAntes;
         PlayerProfile.Dados.unlocks.Clear();
         foreach (var par in niveisAntes)
             if (par.Value > 0)
@@ -1019,7 +1063,7 @@ public class PlayModeProbe : MonoBehaviour
 
         PlayerProfile.Salvar();
 
-        bool reposto = MetaProgression.Relics == relicasAntes
+        bool reposto = MetaProgression.Memorias == memoriasAntes
                     && MetaProgression.Catalogo.All(u => MetaProgression.NivelDe(u.id) == niveisAntes[u.id]);
 
         Line($"  perfil do autor reposto: {reposto}");
@@ -1196,6 +1240,15 @@ public class PlayModeProbe : MonoBehaviour
                 + $" | nome no painel: '{TextOf(hd.heroNameText)}'"
                 + $" | estresse: '{TextOf(hd.moraleText)}'");
 
+        // O mapa da rota: quanto da tela ele ocupa durante a travessia.
+        var jmui = JourneyMapUI.Instance;
+        if (jmui != null && jmui.nodeContainer != null)
+            Line($"janela do mapa da jornada: {jmui.nodeContainer.rect.width:0}×{jmui.nodeContainer.rect.height:0}px");
+
+        // Relíquias e frascos: a ficha é a única tela onde se equipa, e a
+        // prateleira da guilda é a única porta de entrada deles.
+        yield return ExercitarEquipamento(hd);
+
         yield return Capture("ficha_heroi");
 
         // Confirma que a ficha continua aberta no frame seguinte: o Start() dela
@@ -1233,11 +1286,36 @@ public class PlayModeProbe : MonoBehaviour
         qs.RefreshAllData();
         yield return new WaitForSeconds(0.3f);
 
-        // Passo 1: escolher a primeira missão e avançar.
-        Button quest = FirstEnabledButton(qs.questListContainer);
+        // Passo 1: escolher o destino e avançar.
+        //
+        // O destino agora se aponta no mapa de regiões, então o botão vive nos
+        // marcadores dele. A lista antiga continua sendo consultada em seguida:
+        // ela é a rede de segurança de quando o mapa não pode ser montado, e o
+        // teste precisa cobrir os dois caminhos pelo mesmo motivo.
+        Button quest = null;
+
+        var mapa = UnityEngine.Object.FindObjectOfType<RegionMapUI>(true);
+        if (mapa != null)
+        {
+            // O tamanho do mapa na tela, e o do painel que o hospeda. Sem estes
+            // dois números não dá para saber se ele está pequeno porque as
+            // âncoras o encolhem ou porque o hospedeiro já é pequeno — e o mapa
+            // é a tela onde o jogador escolhe para onde vai.
+            var rtMapa = mapa.GetComponent<RectTransform>();
+            var rtPai = mapa.transform.parent as RectTransform;
+
+            Line($"mapa de regiões: {rtMapa.rect.width:0}×{rtMapa.rect.height:0}px"
+               + (rtPai != null ? $" dentro de '{rtPai.name}' de {rtPai.rect.width:0}×{rtPai.rect.height:0}px" : ""));
+
+            quest = FirstEnabledButton(mapa.transform);
+        }
+
+        if (quest == null)
+            quest = FirstEnabledButton(qs.questListContainer);
+
         if (quest == null)
         {
-            Line("tela de formação: nenhuma missão clicável");
+            Line("tela de formação: nenhum destino clicável (mapa e lista vazios)");
             yield break;
         }
 
@@ -1459,36 +1537,123 @@ public class PlayModeProbe : MonoBehaviour
         yield return new WaitForSeconds(0.3f);
 
         Line($"forja visível: {(ui.forgePanel != null && ui.forgePanel.activeInHierarchy)}");
-        Line($"heróis na bancada: {CountRows(forge.heroContainer)}");
-        yield return Capture("sala_forja");
+        Line($"heróis na fila: {CountRows(forge.heroContainer)}");
 
-        HeroData alvo = GuildManager.Instance.roster.FirstOrDefault(h => h != null && !h.isDead);
+        // A sala escolhe alguém sozinha ao abrir: uma bancada vazia esperando
+        // clique seria a mesma tela morta de antes.
+        Line($"na bigorna ao abrir: {(forge.NaBigorna != null ? forge.NaBigorna.heroName : "ninguém")}");
+
+        // Trocar quem está na bigorna é a interação nova da sala. Clicar na
+        // segunda ficha da fila prova que a bancada acompanha a escolha.
+        HeroData outro = GuildManager.Instance.roster
+            .Where(h => h != null && !h.isDead && h != forge.NaBigorna)
+            .FirstOrDefault();
+
+        if (outro != null)
+        {
+            Button ficha = FirstEnabledButton(forge.heroContainer, outro.heroName);
+            if (ficha == null)
+            {
+                Line($"FALHA: {outro.heroName} está na fila, mas a ficha dele não responde ao clique");
+            }
+            else
+            {
+                ReportarAlcancavel(ficha);
+                ficha.onClick.Invoke();
+                yield return new WaitForSeconds(0.2f);
+                Line($"clique na ficha de {outro.heroName}: na bigorna agora = "
+                   + $"{(forge.NaBigorna != null ? forge.NaBigorna.heroName : "ninguém")}");
+            }
+        }
+
+        HeroData alvo = forge.NaBigorna;
         if (alvo == null)
         {
             Line("pulada: roster sem heróis vivos");
+            ui.CloseForge();
             yield break;
         }
 
-        int armaAntes = alvo.weaponLevel;
-        int hpMaxAntes = alvo.maxHp;
+        // A peça é o retorno visível da compra: sem sprite, a bigorna volta a ser
+        // um rótulo de nível, e isso não aparece em erro nenhum no console.
+        Line($"peça na bigorna: arma={Desenho(forge.weaponIcon)} | armadura={Desenho(forge.armorIcon)}");
+        Line($"cartas na prateleira: {CountRows(forge.cardShelf)} (as que a arma afeta)");
+        yield return Capture("sala_forja");
 
-        Button upgrade = FirstEnabledButton(forge.heroContainer);
-        if (upgrade == null)
+        int armaAntes = alvo.weaponLevel;
+        int bonusAntes = ForgeManager.WeaponBonus(alvo);
+
+        if (forge.weaponButton == null || !forge.weaponButton.interactable)
         {
-            Line("FALHA: nenhuma melhoria disponível na forja");
+            Line("FALHA: o botão de forjar arma não está disponível");
         }
         else
         {
-            upgrade.onClick.Invoke();
-            yield return new WaitForSeconds(0.2f);
+            ReportarAlcancavel(forge.weaponButton);
+            forge.weaponButton.onClick.Invoke();
+            yield return new WaitForSeconds(0.3f);
 
-            Line($"melhoria em {alvo.heroName}: arma {armaAntes} → {alvo.weaponLevel}"
-               + $" | HP máx {hpMaxAntes} → {alvo.maxHp}"
-               + $" | bônus de dano das cartas dele: +{ForgeManager.WeaponBonus(alvo)}");
+            Line($"forjar arma de {alvo.heroName}: nível {armaAntes} → {alvo.weaponLevel}"
+               + $" | bônus nas cartas dele: +{bonusAntes} → +{ForgeManager.WeaponBonus(alvo)}");
+            Line($"a carta mostra o ganho: {CartaMostraForja(forge)}");
         }
+
+        int hpMaxAntes = alvo.maxHp;
+
+        if (forge.armorButton == null || !forge.armorButton.interactable)
+        {
+            Line("FALHA: o botão de reforçar armadura não está disponível");
+        }
+        else
+        {
+            forge.armorButton.onClick.Invoke();
+            yield return new WaitForSeconds(0.3f);
+            Line($"reforçar armadura de {alvo.heroName}: HP máx {hpMaxAntes} → {alvo.maxHp}");
+        }
+
+        yield return Capture("sala_forja_forjada");
 
         ui.CloseForge();
         yield return new WaitForSeconds(0.2f);
+    }
+
+    /// <summary>
+    /// O que aquele slot está realmente mostrando. Sprite ausente e sprite
+    /// desenhado a 8px dão o mesmo "0 erros" no console — o tamanho em pixels é
+    /// o que denuncia os dois.
+    /// </summary>
+    static string Desenho(Image img)
+    {
+        if (img == null) return "sem componente";
+        if (img.sprite == null || !img.enabled) return "SEM SPRITE";
+
+        var rect = img.rectTransform.rect;
+        return $"{img.sprite.name} ({rect.width:0}×{rect.height:0}px)";
+    }
+
+    /// <summary>
+    /// A prova de que a compra ficou visível: alguma carta da prateleira precisa
+    /// dizer o ganho da forja. Sem isso a sala volta a ser um rótulo de nível.
+    /// </summary>
+    static string CartaMostraForja(ForgeManager forge)
+    {
+        if (forge == null || forge.cardShelf == null) return "sem prateleira";
+
+        foreach (var texto in forge.cardShelf.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (texto.text == null || !texto.text.Contains("da forja")) continue;
+
+            // A nota vem colada na descrição da carta e com tag de cor: o
+            // relatório mostra só a última linha, já limpa.
+            string[] linhas = texto.text.Split('\n');
+            string nota = linhas[linhas.Length - 1]
+                .Replace("</color>", "")
+                .Replace("<color=#7FB069>", "");
+
+            return $"sim — \"{nota.Trim()}\"";
+        }
+
+        return "NÃO — nenhuma carta anuncia o ganho";
     }
 
     IEnumerator TestCemetery(UIManager ui)
@@ -1546,6 +1711,283 @@ public class PlayModeProbe : MonoBehaviour
 
         if (cm.turnOrder.Atual != 0)
             Line("FALHA: é a vez do jogador e a fila não está no GRUPO.");
+    }
+
+    /// <summary>
+    /// Põe um item na prateleira, equipa pelo clique e confere que o efeito
+    /// existe de verdade.
+    ///
+    /// O caminho inteiro é exercitado pela interface, e não pelo manager: o
+    /// <c>GuildManager</c> equipar direto não prova nada sobre a ficha, e é na
+    /// ficha que o jogador faz isso. Foi assim que o projeto descobriu, mais de
+    /// uma vez, telas cujo dado estava certo e a exibição não existia.
+    /// </summary>
+    IEnumerator ExercitarEquipamento(HeroDetailPanel ficha)
+    {
+        var guilda = GuildManager.Instance;
+        if (ficha == null || guilda == null || ficha.CurrentHero == null)
+        {
+            Line("FALHA: sem ficha ou sem guilda para testar relíquias.");
+            yield break;
+        }
+
+        HeroData heroi = ficha.CurrentHero;
+
+        // Estado de partida conhecido: o teste não pode depender do que a jornada
+        // já largou na prateleira.
+        var reliquia = ItemCatalog.Reliquias[0];
+        var pocao = ItemCatalog.Pocoes[0];
+        guilda.GuardarReliquia(reliquia.id);
+        guilda.GuardarPocao(pocao.id);
+
+        int reliquiasAntes = heroi.relics.Count;
+        int prateleiraAntes = guilda.relicStock.Count;
+
+        // Redesenha com a prateleira já cheia — a ficha foi montada antes disto.
+        ficha.ShowHeroDetails(heroi);
+        yield return null;
+
+        var gear = ficha.panel != null ? ficha.panel.GetComponentInChildren<HeroGearUI>(true) : null;
+        if (gear == null)
+        {
+            Line("FALHA: a ficha do herói não tem a seção de relíquias.");
+            yield break;
+        }
+
+        Line($"ficha: seção de itens com {gear.LinhasClicaveis} linha(s) clicável(is)"
+           + $" | prateleira: {guilda.relicStock.Count} relíquia(s), {guilda.potionStock.Count} frasco(s)");
+
+        // Clica na linha da relíquia guardada. Procurar pelo texto é o que prova
+        // que ela chegou à tela: equipar pelo manager passaria com a lista vazia.
+        Button linha = BotaoComTexto(gear.transform, reliquia.nome);
+        if (linha == null)
+        {
+            Line("FALHA: a relíquia da prateleira não apareceu na ficha.");
+            yield break;
+        }
+
+        ReportarAlcancavel(linha);
+        linha.onClick.Invoke();
+        yield return null;
+
+        bool equipou = heroi.relics.Count == reliquiasAntes + 1 && ItemCatalog.Tem(heroi, reliquia.id);
+        Line($"equipar pelo clique: relíquias do herói {reliquiasAntes} → {heroi.relics.Count}"
+           + $" | prateleira {prateleiraAntes} → {guilda.relicStock.Count}"
+           + (equipou ? "" : "  <<< FALHA"));
+
+        int bonus = ItemCatalog.Total(heroi, RelicEffect.DanoDeCarta);
+        Line($"efeito em vigor: +{bonus} de dano nas cartas de {heroi.heroName}"
+           + (bonus == reliquia.valor ? "" : "  <<< FALHA: a relíquia não conta"));
+
+        // O frasco vai para a mochila do herói, que é o que a cinta do combate lê.
+        Button frasco = BotaoComTexto(gear.transform, pocao.nome);
+        if (frasco != null)
+        {
+            frasco.onClick.Invoke();
+            yield return null;
+        }
+
+        Line($"frascos com {heroi.heroName}: {heroi.potions.Count}"
+           + (heroi.potions.Count > 0 ? "" : "  <<< FALHA: o frasco não foi entregue"));
+    }
+
+    /// <summary>
+    /// Dá um frasco de cura a cada herói do roster antes da jornada de teste.
+    ///
+    /// Passa pelo <c>GuildManager</c>, e não pela lista do herói: é o mesmo
+    /// caminho que a ficha usa, então uma quebra ali aparece aqui também.
+    /// </summary>
+    void EquiparGrupoParaOTeste()
+    {
+        var guilda = GuildManager.Instance;
+        if (guilda == null) return;
+
+        var cura = ItemCatalog.Pocoes[0];
+        int entregues = 0;
+
+        foreach (var heroi in guilda.roster)
+        {
+            if (heroi == null || !heroi.IsAlive) continue;
+
+            guilda.GuardarPocao(cura.id);
+            if (guilda.EntregarPocao(heroi, cura.id)) entregues++;
+        }
+
+        Line($"frascos entregues ao roster para o teste: {entregues}");
+    }
+
+    /// <summary>O primeiro botão cujo texto contenha este trecho.</summary>
+    static Button BotaoComTexto(Transform raiz, string trecho)
+    {
+        if (raiz == null || string.IsNullOrEmpty(trecho)) return null;
+
+        foreach (var botao in raiz.GetComponentsInChildren<Button>(true))
+        {
+            var texto = botao.GetComponentInChildren<TMPro.TMP_Text>(true);
+            if (texto != null && texto.text.Contains(trecho)) return botao;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// O campo de batalha tem corpo para cada lutador?
+    ///
+    /// O palco é filmado por uma câmera fora do enquadramento do jogo: se o
+    /// boneco de uma classe sumir da tabela do <c>TrailCast</c>, ou a criatura
+    /// ficar sem quadros de animação, nada estoura — a luta acontece com um lado
+    /// invisível e o relatório continua em 0 falhas. É o padrão de erro mais
+    /// caro deste projeto, e por isso a contagem é conferida aqui.
+    ///
+    /// A altura em pixels é o segundo número: corpo minúsculo ou estourando a
+    /// janela aparece aqui sem precisar de captura, do mesmo jeito que na
+    /// estrada.
+    /// </summary>
+    void ReportarCampoDeBatalha()
+    {
+        var cm = CombatManager.Instance;
+        if (cm == null) return;
+
+        if (cm.battleField == null)
+        {
+            Line("FALHA: combate sem campo de batalha filmado — rode 'Montar Cena'.");
+            return;
+        }
+
+        int inimigosVivos = cm.enemyContainer == null ? 0 : CountRows(cm.enemyContainer);
+        int heroisEmCena = cm.heroContainer == null ? 0 : CountRows(cm.heroContainer);
+        int esperado = inimigosVivos + heroisEmCena;
+
+        // Os frascos que o grupo levou: a cinta só aparece se alguém carregar
+        // algum, e o teste equipa um herói antes de partir.
+        Line($"frascos à mão no combate: {cm.FrascosEmCombate}");
+
+        // Quem está em campo: com a arte trocada, saber qual criatura apareceu é
+        // o que liga o número da captura ao inimigo certo.
+        if (cm.enemyContainer != null)
+        {
+            var nomes = new List<string>();
+            foreach (Transform filho in cm.enemyContainer)
+            {
+                if (!filho.gameObject.activeSelf) continue;
+
+                var texto = filho.Find("Name")?.GetComponent<TMPro.TMP_Text>();
+                if (texto != null) nomes.Add(texto.text);
+            }
+
+            if (nomes.Count > 0) Line($"inimigos em campo: {string.Join(", ", nomes)}");
+        }
+
+        Line($"campo de batalha: {cm.battleField.CorposEmCena} corpos"
+           + $" para {heroisEmCena} heróis e {inimigosVivos} inimigos"
+           + $" | criaturas animadas: {cm.battleField.CriaturasAnimadas}/{inimigosVivos}"
+           + $" | herói com {cm.battleField.AlturaDoHeroiEmPixels:0}px");
+
+        if (cm.battleField.CorposEmCena < esperado)
+            Line("FALHA: falta corpo no campo de batalha — alguém está lutando invisível.");
+
+        if (cm.battleField.CriaturasAnimadas < inimigosVivos)
+            Line("AVISO: criatura sem quadros de animação — rode 'Aplicar Arte nos Inimigos'.");
+
+        if (cm.battleField.AlturaDoHeroiEmPixels < 60f)
+            Line("FALHA: o herói saiu miniatura no campo de batalha.");
+    }
+
+    /// <summary>
+    /// As cartas da mão estão espalhadas em leque, ou empilhadas na origem?
+    ///
+    /// Uma pilha na origem é indistinguível de "só há uma carta" numa captura de
+    /// tela, e o contador do HUD continua dizendo 5. O que denuncia é a distância
+    /// entre a primeira e a última: leque tem largura, pilha não tem.
+    /// </summary>
+    void ReportarMao(JourneyManager jm)
+    {
+        if (jm == null || jm.handContainer == null) return;
+
+        var cartas = new List<RectTransform>();
+        foreach (Transform c in jm.handContainer)
+            if (c is RectTransform rt && c.gameObject.activeSelf) cartas.Add(rt);
+
+        if (cartas.Count == 0)
+        {
+            Line("mão: nenhuma carta no container");
+            return;
+        }
+
+        float esquerda = cartas.Min(c => c.anchoredPosition.x);
+        float direita = cartas.Max(c => c.anchoredPosition.x);
+        float escala = cartas[0].localScale.x;
+
+        var leque = jm.handContainer.GetComponent<HandFanLayout>();
+
+        Line($"mão: {cartas.Count} cartas | leque de {direita - esquerda:F0}px"
+           + $" | escala {escala:F2} | container {jm.handContainer.GetComponent<RectTransform>().rect.size}"
+           + $" | HandFanLayout={(leque != null ? (leque.enabled ? "ligado" : "desligado") : "AUSENTE")}"
+           + $" | container ativo={jm.handContainer.gameObject.activeInHierarchy}");
+
+        if (leque != null)
+            Line($"     leque por dentro: vê {leque.CartasNoLeque} cartas"
+               + $" | escala calculada {leque.UltimaEscala:F2}"
+               + $" | espaçamento {leque.UltimoEspacamento:F0}"
+               + $" | altura da carta {leque.UltimaAlturaDeCarta:F0}"
+               + $" (-1 = o cálculo nunca chegou até aqui)");
+
+        if (cartas.Count > 1 && direita - esquerda < 40f)
+            Line("FALHA: as cartas da mão estão empilhadas — o leque não se aplicou.");
+    }
+
+    /// <summary>
+    /// A estrada tem corpo para cada herói?
+    ///
+    /// O palco é filmado por uma câmera fora do enquadramento do jogo: se um
+    /// prefab do SPUM sumir da tabela, ou o <c>SortingGroup</c> deixar um boneco
+    /// atrás do outro, nada estoura — a faixa fica com gente faltando e o
+    /// relatório continua em 0 falhas. É o padrão de erro mais caro do projeto,
+    /// e por isso a contagem é conferida aqui, não só olhada na captura.
+    /// </summary>
+    void ReportarEstrada(JourneyManager jm)
+    {
+        if (jm == null) return;
+
+        if (jm.trailRoad == null)
+        {
+            Line("FALHA: a jornada não tem estrada ligada — rode 'Montar Cena'.");
+            return;
+        }
+
+        int esperado = jm.PartyAtual != null ? jm.PartyAtual.Count : 0;
+        int corpos = jm.trailRoad.CorposEmCena;
+
+        string elenco = jm.PartyAtual == null ? "" : string.Join(", ",
+            jm.PartyAtual.Select(h => $"{h.heroName} ({h.heroClass})"));
+
+        ReportarMao(jm);
+
+        float altura = jm.trailRoad.AlturaDoGrupoEmPixels;
+        float alturaDaFicha = jm.trailRoad.GetComponent<RectTransform>().rect.height;
+        float ocupacao = alturaDaFicha > 1f ? altura / alturaDaFicha : 0f;
+
+        Line($"estrada: {corpos} corpos para {esperado} heróis"
+           + $" | boneco com {altura:F0}px numa ficha de {alturaDaFicha:F0}px"
+           + $" ({ocupacao:P0}) | {elenco}");
+
+        if (corpos != esperado)
+            Line("FALHA: a fila da estrada não bate com a party.");
+
+        // O que se mede é a proporção, não o tamanho.
+        //
+        // A primeira versão exigia 80px absolutos, medida tirada de quando a
+        // estrada era uma faixa de 300px de altura. Ao virar peça de mapa, a
+        // ficha encolheu e a trava passou a acusar falha num enquadramento
+        // correto. Proporção é invariante ao tamanho da ficha e continua pegando
+        // o defeito de verdade: grupo perdido no canto ou com a cabeça cortada.
+        if (corpos > 0 && (ocupacao < 0.5f || ocupacao > 0.95f))
+            Line("FALHA: o grupo não está enquadrado na ficha — o palco perdeu a medida.");
+
+        // Piso absoluto: proporção certa numa ficha minúscula continua sendo um
+        // formigueiro no mapa.
+        if (corpos > 0 && altura < 45f)
+            Line("FALHA: o grupo ficou pequeno demais para se reconhecer no mapa.");
     }
 
     IEnumerator Capture(string nome)
@@ -1838,10 +2280,25 @@ public class PlayModeProbe : MonoBehaviour
         GameObject topo = hits[0].gameObject;
         bool ehOAlvo = topo == alvo.gameObject || topo.transform.IsChildOf(alvo.transform);
 
-        Line($"  alcançável pelo clique: {ehOAlvo} (quem está por cima: {topo.name})");
+        // O caminho inteiro, não só o nome: a cena tem nove objetos chamados
+        // "Viewport", e um relatório que diz apenas "Viewport cobre o botão" não
+        // aponta a tela culpada — foi preciso caçá-la à mão no arquivo da cena.
+        Line($"  alcançável pelo clique: {ehOAlvo} (quem está por cima: {CaminhoNaCena(topo)})");
 
         if (!ehOAlvo)
-            Line($"  FALHA: '{topo.name}' cobre o botão — o jogador não consegue fechar o popup");
+            Line($"  FALHA: '{CaminhoNaCena(topo)}' cobre o botão — o jogador não consegue clicar nele");
+    }
+
+    /// <summary>Caminho completo do objeto na hierarquia, para relatório.</summary>
+    static string CaminhoNaCena(GameObject go)
+    {
+        if (go == null) return "<nulo>";
+
+        string caminho = go.name;
+        for (Transform t = go.transform.parent; t != null; t = t.parent)
+            caminho = $"{t.name} / {caminho}";
+
+        return caminho;
     }
 
     #endregion
@@ -1924,14 +2381,31 @@ public class PlayModeProbe : MonoBehaviour
         // do desgaste da estrada (fome, eventos, clima).
         bool emCombateAntes = false;
         bool combateCapturado = false;
+        bool golpeCapturado = false;
+        bool meioCapturado = false;
         bool jornadaCapturada = false;
         int hpAnterior = PartyHp(party);
 
         // A jornada sai da tela enquanto o combate acontece, então "painel da
         // jornada inativo" não significa mais que a jornada acabou — significa
         // que ela pode estar apenas cedendo a tela ao combate.
+        // Frames gastos esperando animação, para o relatório poder distinguir
+        // "a jornada é longa" de "a jornada travou".
+        int framesDeTravessia = 0;
+
         while ((jm.journeyPanel.activeSelf || IsCombatOpen()) && guard < 600)
         {
+            // Enquanto o grupo atravessa um trecho não há nada a clicar, e cada
+            // frame de caminhada consumia uma iteração do orçamento — uma
+            // jornada de nove dias acabava o limite antes de chegar ao chefe, e
+            // o relatório acusava travamento onde só havia animação.
+            if (jm.EmTravessia && framesDeTravessia < 3000)
+            {
+                framesDeTravessia++;
+                yield return null;
+                continue;
+            }
+
             guard++;
 
             bool emCombateAgora = IsCombatOpen();
@@ -1984,11 +2458,27 @@ public class PlayModeProbe : MonoBehaviour
                     // montada e o combate continuaria "funcionando" — que é o
                     // padrão de erro mais caro deste projeto.
                     ReportarOrdemDoRound();
+                    ReportarCampoDeBatalha();
 
                     yield return Capture("combate_cartas");
                 }
 
-                PlayCombatStep();
+                CardData jogada = PlayCombatStep();
+
+                // Uma captura no instante do golpe. A tela parada prova que os
+                // corpos estão em cena; só esta prova que eles se mexem — a
+                // animação dura meio segundo e some, e nada no relatório
+                // distingue um boneco que ataca de um que ficou preso no parado.
+                //
+                // Só serve carta que fere: é a única que faz o herói avançar e a
+                // criatura recuar ao mesmo tempo.
+                if (!golpeCapturado && jogada != null && CombatManager.DealsDamage(jogada.combatEffect))
+                {
+                    golpeCapturado = true;
+                    yield return new WaitForSeconds(0.15f);
+                    yield return Capture("combate_golpe");
+                }
+
                 yield return new WaitForSeconds(0.12f);
                 continue;
             }
@@ -2003,6 +2493,18 @@ public class PlayModeProbe : MonoBehaviour
                 if (!jornadaCapturada)
                 {
                     jornadaCapturada = true;
+
+                    // Deixa a tela assentar antes de medir e fotografar.
+                    //
+                    // O botão de escolha aparece no mesmo frame em que o evento
+                    // abre, e nesse instante nada do que é animado já aconteceu:
+                    // o leque da mão só se aplica no Update seguinte (Update roda
+                    // antes das corrotinas), e a descrição do evento ainda está
+                    // sendo digitada letra a letra. Medir aqui acusava as cinco
+                    // cartas como "empilhadas" e fotografava textos com uma letra.
+                    yield return new WaitForSeconds(0.6f);
+
+                    ReportarEstrada(jm);
                     yield return Capture("jornada_mao");
                 }
 
@@ -2020,6 +2522,17 @@ public class PlayModeProbe : MonoBehaviour
                 routeChoices++;
                 clicksSemProgresso++;
                 yield return new WaitForSeconds(0.15f);
+
+                // Uma captura no meio da estrada. A do dia 1 mostra o mapa
+                // vazio à esquerda, e é justamente o **caminho já andado** que
+                // se quer ver: sem esta imagem, ninguém sabe se o percorrido
+                // aparece ou some atrás do grupo.
+                if (!meioCapturado && routeChoices >= 3)
+                {
+                    meioCapturado = true;
+                    yield return Capture("jornada_meio");
+                }
+
                 continue;
             }
 
@@ -2055,10 +2568,26 @@ public class PlayModeProbe : MonoBehaviour
            + $" | cobranças de manutenção: {jm.UpkeepTicks}");
         Line($"trechos com fome: {jm.StarvationTicks} (dano total {jm.StarvationDamage})"
            + $" | trechos no escuro: {jm.DarknessTicks}");
-        Line($"painel ainda ativo ao fim: {jm.journeyPanel.activeSelf} (iterações: {guard})");
+        Line($"painel ainda ativo ao fim: {jm.journeyPanel.activeSelf}"
+           + $" (iterações: {guard} | frames de travessia: {framesDeTravessia})");
 
+        if (framesDeTravessia >= 3000)
+            Line("FALHA: uma travessia não terminou — o grupo ficou preso no meio do caminho.");
+
+        // Jornada que não termina sozinha é quebra, não observação.
+        //
+        // Isto era um "ATENÇÃO", e por isso uma jornada que rodou 600 iterações
+        // sem percorrer um único dia — porque o teste tinha perdido o caminho
+        // para os pontos do mapa — saiu no relatório como PLAY MODE OK, com
+        // zero falhas. O aviso estava lá, no meio de 200 linhas, e passou.
         if (guard >= 600)
-            Line("ATENÇÃO: laço de segurança atingido — a jornada não terminou sozinha");
+        {
+            Line("FALHA: laço de segurança atingido — a jornada não terminou sozinha");
+            DumpStuckState(jm);
+        }
+
+        if (jm.DaysElapsed == 0)
+            Line("FALHA: a jornada não andou um dia sequer — a rota não pôde ser escolhida.");
 
         Section("ESTADO DOS HEROIS APOS A JORNADA");
         foreach (var h in party)
@@ -2175,8 +2704,15 @@ public class PlayModeProbe : MonoBehaviour
         Line("         estado da jornada: "
            + $"esperandoEscolha={PrivField<bool>(jm, "isWaitingForChoice")}"
            + $" | escolhendoRota={PrivField<bool>(jm, "isChoosingRoute")}"
+           + $" | caminhando={PrivField<bool>(jm, "caminhando")}"
            + $" | jornadaEncerrada={PrivField<bool>(jm, "journeyEnded")}"
            + $" | dia={PrivField<int>(jm, "currentDay")}/{PrivField<int>(jm, "totalDays")}");
+
+        // Corrotina só roda em componente habilitado, em objeto ativo. Uma
+        // travessia interrompida no meio deixa a jornada num limbo: não espera
+        // escolha, não espera rota, e não acabou.
+        Line($"         JourneyManager: objetoAtivo={jm.gameObject.activeInHierarchy}"
+           + $" | componenteHabilitado={jm.enabled}");
 
         var ev = PrivField<EventData>(jm, "currentEvent");
         Line($"         evento atual: {(ev != null ? ev.eventTitle : "(nenhum)")}"
@@ -2193,17 +2729,11 @@ public class PlayModeProbe : MonoBehaviour
         }
 
         var mapUI = JourneyMapUI.Instance;
-        if (mapUI != null && mapUI.nodeContainer != null)
+        if (mapUI != null)
         {
-            int nos = 0, nosClicaveis = 0;
-            foreach (Transform c in mapUI.nodeContainer)
-            {
-                if (!c.name.StartsWith("Node_")) continue;
-                nos++;
-                var b = c.GetComponent<Button>();
-                if (b != null && b.interactable && c.gameObject.activeInHierarchy) nosClicaveis++;
-            }
-            Line($"         nós desenhados no mapa: {nos} (clicáveis: {nosClicaveis})");
+            int nosClicaveis = 0;
+            foreach (var _ in mapUI.PontosClicaveis()) nosClicaveis++;
+            Line($"         pontos clicáveis no mapa: {nosClicaveis}");
         }
 
         if (jm.endTurnButton != null)
@@ -2232,15 +2762,10 @@ public class PlayModeProbe : MonoBehaviour
     bool ClickMapNode()
     {
         var map = JourneyMapUI.Instance;
-        if (map == null || map.nodeContainer == null) return false;
+        if (map == null) return false;
 
-        foreach (Transform child in map.nodeContainer)
+        foreach (Button btn in map.PontosClicaveis())
         {
-            if (!child.name.StartsWith("Node_")) continue;
-
-            Button btn = child.GetComponent<Button>();
-            if (btn == null || !btn.interactable || !child.gameObject.activeInHierarchy) continue;
-
             btn.onClick.Invoke();
             return true;
         }
@@ -2266,10 +2791,15 @@ public class PlayModeProbe : MonoBehaviour
     /// de entrada que o drop usa (`TryPlayCardOnAnyTarget`), exercitando as
     /// mesmas regras de energia e de alvo.
     /// </summary>
-    void PlayCombatStep()
+    /// <summary>
+    /// Uma jogada do combate. Devolve a carta que foi jogada, ou null se o turno
+    /// terminou — quem chama precisa saber o que aconteceu para fotografar o
+    /// golpe, e não uma carta de bloqueio.
+    /// </summary>
+    CardData PlayCombatStep()
     {
         var cm = CombatManager.Instance;
-        if (cm == null) return;
+        if (cm == null) return null;
 
         combatTurns++;
 
@@ -2281,16 +2811,19 @@ public class PlayModeProbe : MonoBehaviour
                 if (drag == null || drag.Card == null || !child.gameObject.activeInHierarchy) continue;
                 if (!cm.CanAffordCard(drag.Card)) continue;
 
-                if (cm.TryPlayCardOnAnyTarget(drag.Card))
+                CardData carta = drag.Card;
+                if (cm.TryPlayCardOnAnyTarget(carta))
                 {
                     cardsPlayed++;
-                    return;
+                    return carta;
                 }
             }
         }
 
         if (cm.endTurnButton != null && cm.endTurnButton.interactable)
             cm.endTurnButton.onClick.Invoke();
+
+        return null;
     }
 
     /// <summary>
@@ -2340,13 +2873,7 @@ public class PlayModeProbe : MonoBehaviour
             return;
         }
 
-        string path = popup.name;
-        Transform t = popup.transform.parent;
-        while (t != null)
-        {
-            path = $"{t.name} / {path}";
-            t = t.parent;
-        }
+        string path = CaminhoNaCena(popup);
 
         // Algum ancestral desativado?
         string blocker = "nenhum";

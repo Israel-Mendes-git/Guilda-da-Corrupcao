@@ -21,6 +21,7 @@ public static class GuildSceneSetup
     const string EnemyCardPath = "Assets/Prefabs/UI/EnemyCardPrefab.prefab";
     const string PartyStatusPath = "Assets/Prefabs/UI/PartyStatusPrefab.prefab";
     const string CardPath = "Assets/Prefabs/UI/CardPrefab.prefab";
+    const string CaveBackgroundPath = "Assets/Pixel Fantasy Caves/background3.png";
 
     internal static readonly Color PanelColor = new Color(0.08f, 0.07f, 0.09f, 0.98f);
     internal static readonly Color BoxColor = new Color(0.13f, 0.12f, 0.14f, 1f);
@@ -47,6 +48,10 @@ public static class GuildSceneSetup
     /// <summary>Tingimento das molduras: a textura já é escura, o branco a mostra como é.</summary>
     static readonly Color PanelTint = new Color(1f, 1f, 1f, 0.98f);
     static readonly Color OutlineTint = new Color(0.46f, 0.39f, 0.29f, 0.85f);
+
+    /// <summary>Dourado do realce: a mesma moldura das caixas, acesa. Precisa
+    /// destoar do OutlineTint — se ficasse parecida, "acender" não se notaria.</summary>
+    static readonly Color RealceTint = new Color(0.93f, 0.76f, 0.33f, 1f);
     static readonly Color CheckmarkTint = new Color(0.85f, 0.24f, 0.20f);
 
     [MenuItem("Tools/Guild of Legends/Montar Cena")]
@@ -104,7 +109,7 @@ public static class GuildSceneSetup
         GameObject mapRoomPanel = BuildMapRoom(canvas);
         GameObject marketPanel = BuildMarket(canvas);
         GameObject cemeteryPanel = BuildCemetery(canvas);
-        GameObject forgePanel = BuildForge(canvas);
+        GameObject forgePanel = BuildForge(canvas, cardPrefab);
         BuildTavern(canvas);
         BuildProvisions();
         BuildFormation();
@@ -116,7 +121,15 @@ public static class GuildSceneSetup
         StylePreparation();
         StyleCardPrefab();
         ApplyKit(canvas);
+
+        // Depois do kit: o realce da guilda e os rótulos herdados não são
+        // decoração genérica, e uma varredura de skin passando por cima deles
+        // devolveria o dourado ao marrom das molduras comuns.
+        BuildGuildGuide(canvas);
+        RotularHerdados(canvas);
+
         LiftPopups(canvas);
+        AssentarAviso(canvas);
 
         // Registra os painéis novos no UIManager.
         UIManager ui = Object.FindObjectOfType<UIManager>();
@@ -153,32 +166,36 @@ public static class GuildSceneSetup
     {
         GameObject panel = FindOrCreatePanel(canvas, "Panel_Journey");
 
-        // Cabeçalho
-        var questName = EnsureText(panel.transform, "Txt_QuestName", "Missão", 30,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -60), new Vector2(-20, -14));
-        var day = EnsureText(panel.transform, "Txt_Day", "Dia 0 / 0", 22,
-            new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(20, -96), new Vector2(0, -62));
-        var biome = EnsureText(panel.transform, "Txt_Biome", "", 22,
-            new Vector2(0.5f, 1), new Vector2(1, 1), new Vector2(0, -96), new Vector2(-20, -62));
-
         // ── Composição do painel ───────────────────────────────────────────
-        // Faixas exclusivas, medidas a partir da base da tela (1080 de altura).
-        // A região central é dividida em duas colunas porque empilhar tudo não
-        // cabia: três escolhas somam 222px e cada card de herói tem 165px.
+        // <b>O mapa é a tela.</b> Antes eram sete faixas horizontais disputando
+        // 1080px — mapa, título, escolhas, narrativa, cards, mão, recursos e
+        // botões —, e a rota, que é a decisão da jornada, ficava com 180px no
+        // alto. Agora o mapa ocupa tudo e o resto flutua sobre ele:
         //
-        //   topo   mapa                 800–980
-        //          título do evento     750–795
-        //          ┌ escolhas (esq.)    515–740
-        //          └ narrativa (dir.)   515–740
-        //          status da party      340–505
-        //          mão de cartas         90–330
-        //          recursos              50–82
-        //   base   botões                 8–44
+        //   HUD, medido do teto        missão · bioma · dia | 3 botões
+        //                              provisões e contadores do baralho
+        //   MAPA                       340–984, borda a borda
+        //     └ caixa do evento        flutua à esquerda, só quando há evento
+        //     └ ficha do grupo         anda de ponto em ponto
+        //   RODAPÉ                     vida do grupo (esq.) | mão (dir.)
+
+        // ── HUD ────────────────────────────────────────────────────────────
+        var questName = EnsureText(panel.transform, "Txt_QuestName", "Missão", 26,
+            new Vector2(0, 1), new Vector2(0.36f, 1), new Vector2(20, -48), new Vector2(0, -12));
+        var biome = EnsureText(panel.transform, "Txt_Biome", "", 22,
+            new Vector2(0.36f, 1), new Vector2(0.52f, 1), new Vector2(0, -48), new Vector2(0, -12));
+        var day = EnsureText(panel.transform, "Txt_Day", "Dia 0 / 0", 22,
+            new Vector2(0.52f, 1), new Vector2(0.66f, 1), new Vector2(0, -48), new Vector2(0, -12));
 
         // Mapa: área livre, pois o JourneyMapUI posiciona nós e arestas por
         // coordenada — um LayoutGroup sobrescreveria tudo.
-        var mapRow = EnsureFreeArea(panel.transform, "MapNodes", new Vector2(0, 1), new Vector2(1, 1),
-            new Vector2(20, -280), new Vector2(-20, -100));
+        var mapRow = EnsureFreeArea(panel.transform, "MapNodes", new Vector2(0, 0), new Vector2(1, 1),
+            new Vector2(20, 340), new Vector2(-20, -96));
+
+        // O terreno desliza sob esta janela, e o que sai dela precisa sumir:
+        // sem recorte, um ponto rolado para fora aparece por cima do HUD e dos
+        // cards do grupo, que são objetos de outra faixa da tela.
+        if (mapRow.GetComponent<RectMask2D>() == null) Undo.AddComponent<RectMask2D>(mapRow);
 
         // Fundo do bioma: atrás de tudo e discreto, porque a tela é de leitura —
         // a arte serve para o jogador sentir onde está, não para competir com o
@@ -193,12 +210,41 @@ public static class GuildSceneSetup
         biomeImg.enabled = false; // ligado em runtime, só quando há arte do bioma
         biomeBg.transform.SetAsFirstSibling();
 
-        var evTitle = EnsureText(panel.transform, "Txt_EventTitle", "Evento", 26,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -330), new Vector2(-20, -285));
+        // A ficha do grupo: os heróis filmados pelo palco, andando de ponto a
+        // ponto. Filha do mapa, e não do painel, para partilhar o mesmo sistema
+        // de coordenadas dos nós — mover a ficha é copiar a posição de um nó.
+        TrailRoadUI estrada = BuildTrailRoad(mapRow);
 
-        // Coluna esquerda: as decisões.
-        var choices = EnsureColumn(panel.transform, "ChoiceContainer",
-            new Vector2(0, 0), new Vector2(0.55f, 0), new Vector2(20, 575), new Vector2(0, 740), 8);
+        // ── A caixa do evento, sobre o mapa ────────────────────────────────
+        // Uma caixa só, à esquerda, no lugar das quatro faixas soltas de antes.
+        // Aparece quando o grupo chega a algum lugar e some enquanto ele anda —
+        // é o que dá à viagem um ritmo de "andar, parar, decidir".
+        // Alta o bastante para as quatro escolhas e a narrativa, e não mais:
+        // com 580px de altura a caixa tomava metade da tela para exibir três
+        // linhas de texto, e o vazio no meio dela lia como tela quebrada. O topo
+        // fica abaixo da faixa de aviso, que mora no alto e cobria o título.
+        GameObject eventBox = EnsureFreeArea(panel.transform, "EventBox",
+            new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 360), new Vector2(660, 830));
+
+        var eventBg = eventBox.GetComponent<Image>();
+        if (eventBg == null) eventBg = Undo.AddComponent<Image>(eventBox);
+        eventBg.color = new Color(0.05f, 0.04f, 0.03f, 0.88f);
+        eventBg.raycastTarget = true;   // a caixa segura o clique, o mapa não recebe
+
+        // Os textos existiam soltos no painel. Mudá-los de pai, em vez de criar
+        // outros, preserva o que o Inspector já aponta — e não deixa um par de
+        // objetos órfãos invisíveis na cena a cada montagem.
+        Reparentar(panel.transform, "Txt_EventTitle", eventBox.transform);
+        Reparentar(panel.transform, "Txt_EventDescription", eventBox.transform);
+        Reparentar(panel.transform, "Txt_ResolutionLog", eventBox.transform);
+        Reparentar(panel.transform, "Txt_Upcoming", eventBox.transform);
+        Reparentar(panel.transform, "ChoiceContainer", eventBox.transform);
+
+        var evTitle = EnsureText(eventBox.transform, "Txt_EventTitle", "Evento", 26,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -58), new Vector2(-16, -14));
+
+        var choices = EnsureColumn(eventBox.transform, "ChoiceContainer",
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(16, 16), new Vector2(-16, 240), 8);
 
         // As opções dividem a altura disponível em vez de manter o tamanho do
         // prefab: eventos de combate têm quatro botões e, com altura fixa, a
@@ -212,17 +258,20 @@ public static class GuildSceneSetup
             choicesLayout.childForceExpandWidth = true;
         }
 
-        // Coluna direita: narrativa e informação, empilhadas.
-        var evDesc = EnsureText(panel.transform, "Txt_EventDescription", "", 19,
-            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 677), new Vector2(-20, 740));
-        var log = EnsureText(panel.transform, "Txt_ResolutionLog", "", 17,
-            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 610), new Vector2(-20, 672));
-        var upcoming = EnsureText(panel.transform, "Txt_Upcoming", "", 16,
-            new Vector2(0.57f, 0), new Vector2(1, 0), new Vector2(0, 575), new Vector2(-20, 605));
+        var evDesc = EnsureText(eventBox.transform, "Txt_EventDescription", "", 19,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -160), new Vector2(-16, -64));
+        var log = EnsureText(eventBox.transform, "Txt_ResolutionLog", "", 17,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -212), new Vector2(-16, -164));
+        // "Adiante:" fica colado no alto da fila de escolhas, e não solto no meio
+        // da caixa — na primeira montagem ele caiu por cima do primeiro botão.
+        var upcoming = EnsureText(eventBox.transform, "Txt_Upcoming", "", 16,
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(16, 244), new Vector2(-16, 278));
 
-        // Status da party: faixa alta o bastante para o card de 165px.
-        var partyRow = EnsureRow(panel.transform, "PartyStatus", new Vector2(0, 0), new Vector2(1, 0),
-            new Vector2(20, 400), new Vector2(-20, 565), 10);
+        // ── Rodapé ─────────────────────────────────────────────────────────
+        // Vida e estresse à esquerda, mão à direita, lado a lado. Empilhados
+        // como antes, os dois comiam 475px de altura da tela.
+        var partyRow = EnsureRow(panel.transform, "PartyStatus", new Vector2(0, 0), new Vector2(0.34f, 0),
+            new Vector2(20, 20), new Vector2(0, 190), 10);
 
         // Mão de cartas: área livre (o leque posiciona sozinho).
         //
@@ -231,29 +280,45 @@ public static class GuildSceneSetup
         // Com os 240px de antes a carta saía a ~0,49 — metade do tamanho que tem
         // no combate, onde a faixa é de 444px. O combate já tinha recebido esse
         // ajuste e a jornada ficou para trás.
-        var hand = EnsureFreeArea(panel.transform, "HandContainer", new Vector2(0, 0), new Vector2(1, 0),
-            new Vector2(20, 90), new Vector2(-20, 400));
+        var hand = EnsureFreeArea(panel.transform, "HandContainer", new Vector2(0.34f, 0), new Vector2(1, 0),
+            new Vector2(10, 34), new Vector2(-20, 340));
 
-        // Recursos e contadores
-        var rations = EnsureText(panel.transform, "Txt_Rations", "", 20, new Vector2(0, 0), new Vector2(0.2f, 0), new Vector2(20, 50), new Vector2(0, 82));
-        var torches = EnsureText(panel.transform, "Txt_Torches", "", 20, new Vector2(0.2f, 0), new Vector2(0.4f, 0), new Vector2(0, 50), new Vector2(0, 82));
-        var energy = EnsureText(panel.transform, "Txt_Energy", "", 20, new Vector2(0.4f, 0), new Vector2(0.6f, 0), new Vector2(0, 50), new Vector2(0, 82));
-        var detourCount = EnsureText(panel.transform, "Txt_Detours", "", 20, new Vector2(0.6f, 0), new Vector2(0.75f, 0), new Vector2(0, 50), new Vector2(0, 82));
+        // O leque da jornada nunca foi montado por aqui — só o do combate era.
+        // Enquanto a mão viveu numa faixa larga e sempre ativa isso não apareceu;
+        // com a faixa mais estreita e o container ligando e desligando a cada
+        // parada, as cinco cartas passaram a nascer empilhadas no centro, e a
+        // tela mostrava uma carta só com o contador dizendo 5.
+        var fanJornada = hand.GetComponent<HandFanLayout>();
+        if (fanJornada == null) fanJornada = Undo.AddComponent<HandFanLayout>(hand);
+        Undo.RecordObject(fanJornada, "Montar Cena");
+        fanJornada.overlap = 0.16f;
+        fanJornada.maxWidth = 1000f;
+        EditorUtility.SetDirty(fanJornada);
+
+        // Provisões e contadores: segunda linha do HUD, no alto. Estavam na base
+        // da tela, onde a mão de cartas passava por cima deles.
+        var rations = EnsureText(panel.transform, "Txt_Rations", "", 20, new Vector2(0, 1), new Vector2(0.10f, 1), new Vector2(20, -84), new Vector2(0, -54));
+        var torches = EnsureText(panel.transform, "Txt_Torches", "", 20, new Vector2(0.10f, 1), new Vector2(0.20f, 1), new Vector2(0, -84), new Vector2(0, -54));
+        var energy = EnsureText(panel.transform, "Txt_Energy", "", 20, new Vector2(0.20f, 1), new Vector2(0.30f, 1), new Vector2(0, -84), new Vector2(0, -54));
+        var detourCount = EnsureText(panel.transform, "Txt_Detours", "", 20, new Vector2(0.30f, 1), new Vector2(0.42f, 1), new Vector2(0, -84), new Vector2(0, -54));
 
         // Baralho, mão e descarte: num deckbuilder, saber quantas cartas restam é
         // informação de jogo, não enfeite. Os três campos existiam no script e
         // nunca tinham sido criados na cena, então os contadores não apareciam.
-        var deckCount = EnsureText(panel.transform, "Txt_DeckCount", "", 20, new Vector2(0.75f, 0), new Vector2(0.83f, 0), new Vector2(0, 50), new Vector2(0, 82));
-        var handCount = EnsureText(panel.transform, "Txt_HandCount", "", 20, new Vector2(0.83f, 0), new Vector2(0.91f, 0), new Vector2(0, 50), new Vector2(0, 82));
-        var discardCount = EnsureText(panel.transform, "Txt_DiscardCount", "", 20, new Vector2(0.91f, 0), new Vector2(1f, 0), new Vector2(0, 50), new Vector2(-20, 82));
+        var deckCount = EnsureText(panel.transform, "Txt_DeckCount", "", 20, new Vector2(0.42f, 1), new Vector2(0.50f, 1), new Vector2(0, -84), new Vector2(0, -54));
+        var handCount = EnsureText(panel.transform, "Txt_HandCount", "", 20, new Vector2(0.50f, 1), new Vector2(0.58f, 1), new Vector2(0, -84), new Vector2(0, -54));
+        var discardCount = EnsureText(panel.transform, "Txt_DiscardCount", "", 20, new Vector2(0.58f, 1), new Vector2(0.66f, 1), new Vector2(0, -84), new Vector2(0, -54));
 
-        // Botões
+        // Botões: canto superior direito, ao lado do que eles afetam. Na base da
+        // tela ficavam sob a mão de cartas, que é justamente o que o jogador
+        // arrasta — e "Abandonar" é o botão mais caro do jogo para se clicar sem
+        // querer.
         var abort = EnsureButton(panel.transform, "Btn_Abort", "Abandonar",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 8), new Vector2(200, 36));
+            new Vector2(1, 1), new Vector2(1, 1), new Vector2(-580, -50), new Vector2(-400, -14));
         var endTurn = EnsureButton(panel.transform, "Btn_EndTurn", "Descansar",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(212, 8), new Vector2(392, 36));
+            new Vector2(1, 1), new Vector2(1, 1), new Vector2(-390, -50), new Vector2(-210, -14));
         var detour = EnsureButton(panel.transform, "Btn_Detour", "Desviar",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(404, 8), new Vector2(584, 36));
+            new Vector2(1, 1), new Vector2(1, 1), new Vector2(-200, -50), new Vector2(-20, -14));
 
         // JourneyManager
         JourneyManager jm = Object.FindObjectOfType<JourneyManager>();
@@ -291,6 +356,8 @@ public static class GuildSceneSetup
         jm.abortButton = abort;
         jm.endTurnButton = endTurn;
         jm.detourButton = detour;
+        jm.trailRoad = estrada;
+        jm.eventBox = eventBox;
         EditorUtility.SetDirty(jm);
 
         // Mapa da jornada
@@ -302,10 +369,90 @@ public static class GuildSceneSetup
         map.nodeContainer = mapRow.GetComponent<RectTransform>();
         map.nodePrefab = mapNode;
         map.nodeDetailText = upcoming;
+        map.partyToken = estrada;
+
+        // Espaçamento da rota. São campos serializados: mudar o valor no script
+        // não muda a cena — os dois precisam concordar, e é aqui que a cena é
+        // escrita.
+        //
+        // Foram de 300/185 para 380/215 quando o mapa ganhou o papel por baixo:
+        // com o pergaminho à mostra, a rota apertada lia como um diagrama solto
+        // em cima dele, e não como caminho desenhado no mapa.
+        map.layerSpacing = 380f;
+
+        // 175, e não 215: com três fileiras, 215 espalhava a rota por 430px e a
+        // ficha do grupo — que cresce para cima a partir do ponto — saía pelo
+        // topo do papel. O comprimento da rota pode crescer à vontade, porque
+        // ele rola; a altura tem de caber de uma vez.
+        map.slotSpacing = 175f;
         EditorUtility.SetDirty(map);
 
         panel.SetActive(false);
         return panel;
+    }
+
+    /// <summary>
+    /// A ficha do grupo: os heróis filmados pelo palco, do tamanho de uma peça
+    /// de tabuleiro, andando de ponto a ponto do mapa.
+    ///
+    /// Vive <b>dentro do container do mapa</b>, e não do painel: assim ela e os
+    /// nós compartilham o mesmo referencial, e mover a ficha para um ponto é
+    /// copiar a <c>anchoredPosition</c> dele.
+    ///
+    /// O tamanho é fixo e a textura nasce dele — <c>RawImage</c> não tem
+    /// <c>preserveAspect</c>, então a filmagem preenche o retângulo inteiro e
+    /// qualquer descasamento de proporção deforma os bonecos.
+    /// </summary>
+    static TrailRoadUI BuildTrailRoad(GameObject mapa)
+    {
+        GameObject ficha = EnsureFreeArea(mapa.transform, "PartyToken",
+            new Vector2(0, 0), new Vector2(0, 0), Vector2.zero, new Vector2(FichaLargura, FichaAltura));
+
+        var rt = ficha.GetComponent<RectTransform>();
+        rt.pivot = new Vector2(0.5f, 0.18f);   // o pé da fila é o que encosta no ponto
+
+        var raw = ficha.GetComponent<RawImage>();
+        if (raw == null) raw = Undo.AddComponent<RawImage>(ficha);
+        raw.raycastTarget = false;
+        raw.color = Color.white;
+        raw.enabled = false;   // ligado em runtime, quando a jornada monta o elenco
+
+        var road = ficha.GetComponent<TrailRoadUI>();
+        if (road == null) road = Undo.AddComponent<TrailRoadUI>(ficha);
+
+        Undo.RecordObject(road, "Montar Cena");
+        road.janela = raw;
+        EditorUtility.SetDirty(road);
+
+        // Último irmão: a ficha anda por cima das trilhas e dos pontos.
+        ficha.transform.SetAsLastSibling();
+        return road;
+    }
+
+    /// <summary>
+    /// Tamanho da ficha do grupo, em pixels de canvas.
+    ///
+    /// Peça de tabuleiro, não cena: com 260px de largura a fila cobria o ponto
+    /// vizinho inteiro e o jogador não via para onde podia ir.
+    /// </summary>
+    const float FichaLargura = 210f;
+    const float FichaAltura = 125f;
+
+    /// <summary>
+    /// Move um objeto já existente para outro pai, preservando as referências
+    /// que o Inspector guarda para ele.
+    ///
+    /// A alternativa — deixar o antigo onde está e criar um novo no lugar certo —
+    /// enche a cena de sósias invisíveis a cada remontagem, e o painel passa a
+    /// ter dois "Txt_EventTitle", um deles morto e desenhado em cima do outro.
+    /// </summary>
+    static void Reparentar(Transform de, string nome, Transform para)
+    {
+        Transform alvo = de.Find(nome);
+        if (alvo == null || para == null || alvo.parent == para) return;
+
+        Undo.SetTransformParent(alvo, para, "Montar Cena");
+        alvo.SetParent(para, false);
     }
 
     #endregion
@@ -508,6 +655,12 @@ public static class GuildSceneSetup
         log.color = SubtleTextColor;
 
         // --- O campo de batalha: dois lados, frente a frente ------------------
+
+        // A janela por onde se vê o palco filmado. Vem antes das duas fileiras
+        // na ordem de irmãos, e é isso que põe os corpos **atrás** dos nomes,
+        // das barras e da intenção — quem nasce depois é desenhado por cima.
+        BattleFieldUI campo = BuildBattleField(panel);
+
         var heroes = EnsureRow(panel.transform, "HeroContainer", new Vector2(0, 1), new Vector2(0.5f, 1),
             new Vector2(30, -566), new Vector2(-10, -196), 12);
 
@@ -577,6 +730,7 @@ public static class GuildSceneSetup
         cm.heroContainer = heroes.transform;
         cm.heroStatusPrefab = moldeHeroi;
         cm.turnOrder = ordem;
+        cm.battleField = campo;
         cm.handContainer = hand.transform;
         cm.cardPrefab = cardPrefab;
         cm.turnText = turn;
@@ -595,6 +749,57 @@ public static class GuildSceneSetup
 
     #endregion
 
+    /// <summary>
+    /// A janela do campo de batalha filmado.
+    ///
+    /// Cobre a faixa das duas fileiras com folga em cima: um chefe é desenhado
+    /// muito maior que a área da própria view, e sem essa margem a cabeça dele
+    /// seria cortada pela borda da textura — o corte não daria erro nenhum, só
+    /// um monstro sem topo.
+    ///
+    /// Nasce apagada. Quem acende é o <c>CombatManager</c> ao começar a luta;
+    /// fora do combate não há palco para filmar.
+    /// </summary>
+    static BattleFieldUI BuildBattleField(GameObject panel)
+    {
+        Transform existente = panel.transform.Find("BattleField");
+        GameObject go;
+
+        if (existente != null)
+        {
+            go = existente.gameObject;
+        }
+        else
+        {
+            go = new GameObject("BattleField", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+            Undo.RegisterCreatedObjectUndo(go, "Criar campo de batalha");
+            go.transform.SetParent(panel.transform, false);
+        }
+
+        var raw = go.GetComponent<RawImage>();
+        if (raw == null) raw = go.AddComponent<RawImage>();
+
+        // A carta é solta na view da figura, que fica por cima: a janela captando
+        // o ponteiro engoliria todo drop do combate.
+        raw.raycastTarget = false;
+        raw.color = new Color(1f, 1f, 1f, 0f);
+
+        ApplyRect(go.GetComponent<RectTransform>(), new Vector2(0, 1), new Vector2(1, 1),
+                  new Vector2(0, -610), new Vector2(0, -40));
+
+        var ui = go.GetComponent<BattleFieldUI>();
+        if (ui == null) ui = Undo.AddComponent<BattleFieldUI>(go);
+
+        Undo.RecordObject(ui, "Montar Cena");
+        ui.janela = raw;
+        EditorUtility.SetDirty(ui);
+
+        // Atrás de tudo o que o painel desenha, e à frente só do fundo dele.
+        go.transform.SetAsFirstSibling();
+
+        return ui;
+    }
+
     #region Figuras do combate
 
     /// <summary>Altura das duas figuras. Igual dos dois lados: é um duelo.</summary>
@@ -612,31 +817,36 @@ public static class GuildSceneSetup
     {
         GameObject go = EnsureFigureTemplate(parent, "CombatHeroTemplate", 200f);
 
+        // O bloqueio vai **acima da cabeça**, no lugar em que o inimigo mostra a
+        // intenção. São a mesma pergunta lida em sequência — "quanto vem" e
+        // "quanto eu aparo" —, e ficavam em pontas opostas da figura.
+        var bloqueio = EnsureText(go.transform, "Block", "", 18,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -42), new Vector2(-6, -8));
+        bloqueio.alignment = TextAlignmentOptions.Center;
+
+        // A área da figura tem a mesma altura da do inimigo: é um duelo, e um
+        // lado desenhado maior que o outro já diria quem vence.
         EnsurePortrait(go.transform, new Vector2(0, 1), new Vector2(1, 1),
-                       new Vector2(20, -184), new Vector2(-20, -18));
+                       new Vector2(10, -250), new Vector2(-10, -46));
 
         var nome = EnsureText(go.transform, "Name", "", 19,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -218), new Vector2(-6, -188));
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -282), new Vector2(-6, -252));
         nome.alignment = TextAlignmentOptions.Center;
 
         var hp = EnsureText(go.transform, "HP", "", 17,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -246), new Vector2(-6, -220));
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -306), new Vector2(-6, -284));
         hp.alignment = TextAlignmentOptions.Center;
 
-        EnsureBar(go.transform, "HPBar", new Vector2(10, -266), new Vector2(-10, -250),
+        EnsureBar(go.transform, "HPBar", new Vector2(10, -324), new Vector2(-10, -310),
                   new Color(0.62f, 0.16f, 0.16f));
 
         var estresse = EnsureText(go.transform, "Stress", "", 15,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -294), new Vector2(-6, -270));
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -348), new Vector2(-6, -326));
         estresse.alignment = TextAlignmentOptions.Center;
         estresse.color = SubtleTextColor;
 
-        EnsureBar(go.transform, "StressBar", new Vector2(10, -312), new Vector2(-10, -298),
+        EnsureBar(go.transform, "StressBar", new Vector2(10, -364), new Vector2(-10, -352),
                   new Color(0.55f, 0.52f, 0.45f));
-
-        var bloqueio = EnsureText(go.transform, "Block", "", 16,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(6, -342), new Vector2(-6, -316));
-        bloqueio.alignment = TextAlignmentOptions.Center;
 
         go.SetActive(false);
         return go;
@@ -731,7 +941,11 @@ public static class GuildSceneSetup
 
         // Quase transparente de propósito: o fundo existe para receber o arrasto
         // da carta e para marcar o lugar da figura, não para desenhar uma caixa.
-        img.color = new Color(0.13f, 0.12f, 0.14f, 0.55f);
+        //
+        // Baixou de 55% para 16% quando o campo passou a ser filmado: a figura
+        // agora é desenhada **atrás** desta imagem, e a 55% o corpo aparecia
+        // como se estivesse dentro de um aquário sujo.
+        img.color = new Color(0.13f, 0.12f, 0.14f, 0.16f);
         img.raycastTarget = true;
 
         go.GetComponent<RectTransform>().sizeDelta = new Vector2(largura, AlturaDaFigura);
@@ -1141,17 +1355,97 @@ public static class GuildSceneSetup
         return panel;
     }
 
-    static GameObject BuildForge(Canvas canvas)
+    /// <summary>
+    /// A Forja é a primeira sala que deixou de ser lista, e serve de molde para
+    /// as outras seis.
+    ///
+    /// Três faixas em vez de uma coluna de linhas: a <b>fila</b> à esquerda, com
+    /// quem espera a vez; a <b>bigorna</b> no meio, com um herói de cada vez, a
+    /// arma e o escudo dele; e a <b>prateleira</b> à direita, com as cartas que a
+    /// arma afeta. O que se compra fica visível no mesmo clique — antes, o efeito
+    /// só aparecia no combate seguinte.
+    ///
+    /// O fundo é a silhueta de caverna do <i>Pixel Fantasy Caves</i>, com o miolo
+    /// vazado, sobre a brasa desenhada atrás da bancada. Era a queixa mais direta
+    /// do autor sobre as salas: todas usam o mesmo mármore escuro da guilda e
+    /// nenhuma parece um lugar.
+    /// </summary>
+    static GameObject BuildForge(Canvas canvas, GameObject cardPrefab)
     {
-        GameObject list;
-        TMP_Text feedback;
-        Button close;
-        GameObject panel = BuildRoomShell(canvas, "Panel_Forge", "⚔️ Forja", out list, out feedback, out close);
+        GameObject panel = FindOrCreatePanel(canvas, "Panel_Forge");
+
+        VestirCavernaDaForja(panel);
+
+        EnsureText(panel.transform, "Txt_Title", "⚒️ Forja", 32,
+            new Vector2(0, 1), new Vector2(0.7f, 1), new Vector2(20, -70), new Vector2(0, -20));
 
         var gold = EnsureText(panel.transform, "Txt_Gold", "💰 0", 26,
             new Vector2(0.7f, 1), new Vector2(1, 1), new Vector2(0, -70), new Vector2(-20, -20));
         var hint = EnsureText(panel.transform, "Txt_Hint", "", 18,
             new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -112), new Vector2(-20, -76));
+
+        // ── A fila ────────────────────────────────────────────────────────────
+        GameObject list = EnsureScrollColumn(panel.transform, "List",
+            new Vector2(0, 0), new Vector2(0, 1), new Vector2(20, 110), new Vector2(360, -140), 8);
+
+        var listLayout = list.GetComponent<VerticalLayoutGroup>();
+        if (listLayout != null)
+        {
+            listLayout.childControlWidth = true;
+            listLayout.childForceExpandWidth = true;
+            listLayout.childControlHeight = true;
+            listLayout.childForceExpandHeight = false;
+            listLayout.childAlignment = TextAnchor.UpperCenter;
+        }
+
+        // ── A bigorna ─────────────────────────────────────────────────────────
+        GameObject bench = EnsureFreeArea(panel.transform, "Bench",
+            new Vector2(0, 0), new Vector2(0, 1), new Vector2(380, 110), new Vector2(1060, -140));
+        VestirCaixa(bench, new Color(0.16f, 0.13f, 0.12f, 0.92f));
+
+        // A primeira versão tinha uma "brasa" atrás dos slots: um retângulo laranja
+        // a 13% de alfa que, sobre a caixa escura, virou um bloco marrom chapado
+        // ocupando meia bancada. Sem sprite de fogo, calor não se desenha com
+        // retângulo — some.
+        Transform brasaVelha = bench.transform.Find("Brasa");
+        if (brasaVelha != null) Undo.DestroyObjectImmediate(brasaVelha.gameObject);
+
+        GameObject portraitGo = EnsureFreeArea(bench.transform, "Img_Portrait",
+            new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-130, -290), new Vector2(130, -30));
+        var portrait = EnsureImageComponent(portraitGo);
+        portrait.preserveAspect = true;
+        portrait.raycastTarget = false;
+
+        var heroName = EnsureText(bench.transform, "Txt_HeroName", "", 26,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -344), new Vector2(-16, -296));
+        heroName.alignment = TextAlignmentOptions.Center;
+
+        var heroStats = EnsureText(bench.transform, "Txt_HeroStats", "", 19,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -388), new Vector2(-16, -346));
+        heroStats.alignment = TextAlignmentOptions.Center;
+
+        Image weaponFrame, weaponIcon, armorFrame, armorIcon;
+        TMP_Text weaponLevel, armorLevel;
+        Button weaponBtn, armorBtn;
+
+        BuildAnvilSlot(bench.transform, "Slot_Weapon", 0.02f, 0.49f, "⚔️ FORJAR ARMA",
+                       out weaponFrame, out weaponIcon, out weaponLevel, out weaponBtn);
+        BuildAnvilSlot(bench.transform, "Slot_Armor", 0.51f, 0.98f, "🛡️ REFORÇAR ARMADURA",
+                       out armorFrame, out armorIcon, out armorLevel, out armorBtn);
+
+        // ── A prateleira de cartas ────────────────────────────────────────────
+        var shelfTitle = EnsureText(panel.transform, "Txt_Shelf", "", 19,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(1090, -190), new Vector2(-20, -140));
+        shelfTitle.alignment = TextAlignmentOptions.Center;
+
+        GameObject shelf = EnsureFreeArea(panel.transform, "Shelf",
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(1090, 110), new Vector2(-20, -200));
+
+        var feedback = EnsureText(panel.transform, "Txt_Feedback", "", 18,
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(260, 40), new Vector2(-20, 96));
+
+        var close = EnsureButton(panel.transform, "Btn_Close", "Voltar",
+            new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 20), new Vector2(220, 60));
 
         ForgeManager forge = Object.FindObjectOfType<ForgeManager>();
         if (forge == null)
@@ -1167,9 +1461,312 @@ public static class GuildSceneSetup
         forge.heroContainer = list.transform;
         forge.feedbackText = feedback;
         forge.closeButton = close;
+        forge.benchRoot = bench;
+        forge.portraitImage = portrait;
+        forge.heroNameText = heroName;
+        forge.heroStatsText = heroStats;
+        forge.weaponFrame = weaponFrame;
+        forge.weaponIcon = weaponIcon;
+        forge.weaponLevelText = weaponLevel;
+        forge.weaponButton = weaponBtn;
+        forge.armorFrame = armorFrame;
+        forge.armorIcon = armorIcon;
+        forge.armorLevelText = armorLevel;
+        forge.armorButton = armorBtn;
+        forge.cardShelf = shelf.transform;
+        forge.cardShelfTitle = shelfTitle;
+        forge.cardPrefab = cardPrefab;
         EditorUtility.SetDirty(forge);
 
+        panel.SetActive(false);
         return panel;
+    }
+
+    /// <summary>
+    /// Um lugar para a peça: moldura, o desenho dentro dela, o nível em blocos e
+    /// o botão que paga. A moldura é um <see cref="Image"/> próprio porque é ela
+    /// que muda de cor com o nível — mago e curandeiro têm uma arma só, e sem a
+    /// moldura não haveria o que mudar na tela ao forjar.
+    /// </summary>
+    static void BuildAnvilSlot(Transform bench, string nome, float esquerda, float direita, string rotulo,
+                               out Image frame, out Image icon, out TMP_Text level, out Button button)
+    {
+        GameObject slot = EnsureFreeArea(bench, nome,
+            new Vector2(esquerda, 0), new Vector2(direita, 1), new Vector2(0, 40), new Vector2(0, -404));
+
+        GameObject frameGo = EnsureFreeArea(slot.transform, "Frame",
+            new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-95, -190), new Vector2(95, 0));
+        frame = EnsureImageComponent(frameGo);
+        frame.raycastTarget = false;
+
+        Sprite moldura = AssetDatabase.LoadAssetAtPath<Sprite>(OutlineSpritePath);
+        if (moldura != null)
+        {
+            frame.sprite = moldura;
+            frame.type = Image.Type.Sliced;
+        }
+
+        GameObject iconGo = EnsureFreeArea(frameGo.transform, "Icon",
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(6, 6), new Vector2(-6, -6));
+        icon = EnsureImageComponent(iconGo);
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+
+        // O quadro não é o desenho: os sprites do SPUM são 32×32 com a peça
+        // ocupando um terço do quadro, e `preserveAspect` encaixa o quadro inteiro
+        // — inclusive a transparência. Sem esta escala a varinha saía com 30px
+        // dentro de uma moldura de 140. Mesmo motivo do `portraitScale` dos
+        // inimigos; o que passar da moldura é transparência.
+        iconGo.transform.localScale = Vector3.one * 1.5f;
+
+        level = EnsureText(slot.transform, "Txt_Level", "", 20,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(4, -240), new Vector2(-4, -196));
+        level.alignment = TextAlignmentOptions.Center;
+
+        button = EnsureButton(slot.transform, "Btn_Buy", rotulo,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(10, -312), new Vector2(-10, -252));
+
+        var texto = button.GetComponentInChildren<TMP_Text>();
+        if (texto != null) texto.fontSize = 16;
+    }
+
+    /// <summary>
+    /// O fundo que faz a sala parecer um lugar. A silhueta do pacote tem o miolo
+    /// vazado, então ela emoldura a tela sem cobrir o que importa; o que aparece
+    /// no vão é o mesmo escuro do resto do jogo.
+    /// </summary>
+    static void VestirCavernaDaForja(GameObject panel)
+    {
+        var fundo = panel.GetComponent<Image>();
+        if (fundo != null) fundo.color = PanelColor;
+
+        GameObject cave = EnsureFreeArea(panel.transform, "Bg_Cave",
+            new Vector2(0, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero);
+        cave.transform.SetAsFirstSibling();
+
+        var image = EnsureImageComponent(cave);
+        image.raycastTarget = false;
+        image.color = new Color(0.42f, 0.37f, 0.34f);
+
+        // Pixel art esticada até 1920 precisa de Point: no filtro padrão a rocha
+        // vira borrão cinza, que foi como a primeira montagem saiu.
+        var importer = AssetImporter.GetAtPath(CaveBackgroundPath) as TextureImporter;
+        if (importer != null && (importer.textureType != TextureImporterType.Sprite
+                                 || importer.filterMode != FilterMode.Point))
+        {
+            importer.textureType = TextureImporterType.Sprite;
+            importer.filterMode = FilterMode.Point;
+            importer.SaveAndReimport();
+        }
+
+        Sprite caverna = AssetDatabase.LoadAssetAtPath<Sprite>(CaveBackgroundPath);
+        image.sprite = caverna;
+        image.enabled = caverna != null;
+    }
+
+    /// <summary>Caixa com a moldura do kit, para separar a bancada do fundo.</summary>
+    static void VestirCaixa(GameObject alvo, Color cor)
+    {
+        var image = EnsureImageComponent(alvo);
+        image.color = cor;
+        image.raycastTarget = false;
+
+        Sprite painel = AssetDatabase.LoadAssetAtPath<Sprite>(PanelSpritePath);
+        if (painel == null) return;
+
+        image.sprite = painel;
+        image.type = Image.Type.Sliced;
+    }
+
+    static Image EnsureImageComponent(GameObject alvo)
+    {
+        var image = alvo.GetComponent<Image>();
+        if (image == null) image = Undo.AddComponent<Image>(alvo);
+        return image;
+    }
+
+    #endregion
+
+    #region Clareza: o guia da guilda e o que a cena herdou sem nome
+
+    /// <summary>
+    /// A linha de conselho no alto da guilda e a moldura que acende a porta certa.
+    ///
+    /// O mapa da guilda são sete retângulos escuros de mesmo peso: nada separa a
+    /// porta que faz o jogo andar das que só se visita de vez em quando. O realce
+    /// é um filho de cada sala, criado desligado — quem decide qual acende é o
+    /// <see cref="GuildGuide"/>, em tempo de execução.
+    /// </summary>
+    static void BuildGuildGuide(Canvas canvas)
+    {
+        Transform mapa = canvas.transform.Find("Background/GuildMap");
+        if (mapa == null)
+        {
+            Debug.LogWarning("Montar Cena: GuildMap não encontrado — guia da guilda não montado.");
+            return;
+        }
+
+        // O conselho vive no alto, onde a tela estava vazia, e ocupa a largura
+        // toda: as frases citam nome de herói e chegam a duas linhas.
+        TMP_Text linha = EnsureText(mapa, "Txt_Guia", "", 24,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(60, -108), new Vector2(-60, -34));
+        linha.alignment = TextAlignmentOptions.Center;
+        linha.color = ButtonLabelColor;
+        linha.enableWordWrapping = true;
+
+        Sprite moldura = AssetDatabase.LoadAssetAtPath<Sprite>(OutlineSpritePath);
+
+        GuildGuide guia = mapa.GetComponent<GuildGuide>();
+        if (guia == null) guia = mapa.gameObject.AddComponent<GuildGuide>();
+
+        Undo.RecordObject(guia, "Montar Cena");
+        guia.linha = linha;
+        guia.salas.Clear();
+
+        foreach (Transform sala in mapa)
+        {
+            if (sala.GetComponent<Button>() == null) continue;
+
+            guia.salas.Add(new GuildGuide.Sala
+            {
+                nome = sala.name,
+                realce = EnsureRealce(sala, moldura)
+            });
+        }
+
+        EditorUtility.SetDirty(guia);
+    }
+
+    /// <summary>
+    /// A moldura que acende uma sala. Nasce desligada e por cima de tudo o que a
+    /// sala tem dentro — uma moldura desenhada antes do rótulo fica escondida
+    /// atrás dele, que é a armadilha de ordem de irmãos de sempre neste projeto.
+    /// </summary>
+    static GameObject EnsureRealce(Transform sala, Sprite moldura)
+    {
+        Transform found = sala.Find("Realce");
+        GameObject go;
+
+        if (found != null)
+        {
+            go = found.gameObject;
+        }
+        else
+        {
+            go = new GameObject("Realce", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(go, "Criar realce");
+            go.transform.SetParent(sala, false);
+        }
+
+        go.transform.SetAsLastSibling();
+
+        var img = go.GetComponent<Image>();
+        if (img == null) img = go.AddComponent<Image>();
+
+        img.sprite = moldura;
+        img.type = moldura != null ? Image.Type.Sliced : Image.Type.Simple;
+        img.color = RealceTint;
+        img.raycastTarget = false;
+
+        // Transborda a sala de propósito: uma moldura rente à borda se confunde
+        // com a moldura que o kit já pôs em toda caixa.
+        ApplyRect(go.GetComponent<RectTransform>(), Vector2.zero, Vector2.one,
+                  new Vector2(-10, -10), new Vector2(10, 10));
+
+        go.SetActive(false);
+        return go;
+    }
+
+    /// <summary>
+    /// Dá nome ao que a cena herdou do primeiro protótipo.
+    ///
+    /// São botões e títulos que nunca saíram do texto de fábrica do editor: um
+    /// "Button" e um "New Text" para cada um. O pior deles é o de sair da Taverna
+    /// — o jogador não tem outro caminho de volta, e o botão que o leva embora
+    /// se anuncia como "Button". O título da tela de baralhos, por sua vez, diz
+    /// "Biblioteca", herdado de quando as duas telas eram a mesma.
+    ///
+    /// Os textos são escritos aqui, e não no Inspector, porque a cena é montada
+    /// por código: qualquer edição à mão se perde na próxima montagem.
+    /// </summary>
+    static void RotularHerdados(Canvas canvas)
+    {
+        Rotular(canvas, "Background/Taverna/Image/ReturnBtn", "VOLTAR");
+
+        Rotular(canvas, "Background/Panel_DeckManager/Panel_TopBar/Text_Title", "Baralhos");
+        Rotular(canvas, "Background/Panel_DeckManager/Button_Save", "SALVAR");
+        Rotular(canvas, "Background/Panel_DeckManager/Button_Reset", "DESFAZER");
+        Rotular(canvas, "Background/Panel_DeckManager/Panel_HeroSelector/Text_SelectHero", "Escolha o herói");
+        Rotular(canvas, "Background/Panel_DeckManager/Panel_DeckContent/Panel_CurrentDeck/Text_SectionTitle",
+                "Baralho deste herói");
+        Rotular(canvas, "Background/Panel_DeckManager/Panel_DeckContent/Panel_Collection/Text_SectionTitle",
+                "Cartas guardadas");
+
+        // Os dois "Panel_SectionTitle" da biblioteca estão trocados de lado em
+        // relação ao nome: quem se chama Panel_Right desenha o quadro do meio,
+        // onde ficam as cartas. Descoberto por captura, não por leitura da
+        // hierarquia — o nome mente e a tela não.
+        Rotular(canvas, "Background/Library/Panel_Content/Panel_Right/Text_SectionTitle", "À venda hoje");
+        Rotular(canvas, "Background/Library/Panel_Content/Panel_Left/Text_SectionTitle", "Cartas da biblioteca");
+        Rotular(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_BonusTitle",
+                "Este nível dá");
+
+        // O título do painel de bônus e as duas linhas que ele encabeça nasciam
+        // empilhados no mesmo ponto, um por cima do outro. Três faixas de altura
+        // fixa, do topo para baixo, resolvem sem mexer no resto do painel.
+        Reposicionar(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_BonusTitle",
+                     new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -64), new Vector2(-16, -16));
+        Reposicionar(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_Bonus1",
+                     new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -142), new Vector2(-16, -76));
+        Reposicionar(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_Bonus2",
+                     new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -220), new Vector2(-16, -154));
+    }
+
+    /// <summary>
+    /// Escreve no TMP do caminho — no próprio objeto ou no primeiro filho que
+    /// tiver um, que é o caso dos botões.
+    /// </summary>
+    static void Rotular(Canvas canvas, string caminho, string texto)
+    {
+        Transform alvo = canvas.transform.Find(caminho);
+        if (alvo == null)
+        {
+            Debug.LogWarning($"Rotular: não achei {caminho} — a cena mudou de forma?");
+            return;
+        }
+
+        TMP_Text txt = alvo.GetComponent<TMP_Text>();
+        if (txt == null) txt = alvo.GetComponentInChildren<TMP_Text>(true);
+
+        if (txt == null)
+        {
+            Debug.LogWarning($"Rotular: {caminho} não tem texto nenhum dentro.");
+            return;
+        }
+
+        Undo.RecordObject(txt, "Rotular herdados");
+        txt.text = texto;
+        EditorUtility.SetDirty(txt);
+    }
+
+    /// <summary>Recoloca um retângulo herdado, sem recriar o objeto — as
+    /// referências do Inspector que apontam para ele continuam valendo.</summary>
+    static void Reposicionar(Canvas canvas, string caminho, Vector2 anchorMin, Vector2 anchorMax,
+                             Vector2 offsetMin, Vector2 offsetMax)
+    {
+        Transform alvo = canvas.transform.Find(caminho);
+        if (alvo == null)
+        {
+            Debug.LogWarning($"Reposicionar: não achei {caminho} — a cena mudou de forma?");
+            return;
+        }
+
+        var rt = alvo as RectTransform;
+        if (rt == null) return;
+
+        Undo.RecordObject(rt, "Rotular herdados");
+        ApplyRect(rt, anchorMin, anchorMax, offsetMin, offsetMax);
+        EditorUtility.SetDirty(rt);
     }
 
     #endregion
@@ -1192,6 +1789,64 @@ public static class GuildSceneSetup
     /// suficiente sozinho. "Background" tem o mesmo rect do Canvas, então mudar de
     /// pai não desloca nada.
     /// </summary>
+    /// <summary>
+    /// Tira o aviso passageiro do meio da tela e o põe como faixa no alto.
+    ///
+    /// O <c>PopupMessage</c> é o recado de dois segundos — "Fulano se juntou à
+    /// guilda", "Ouro insuficiente" — e nasceu centralizado e enorme, do tamanho
+    /// de um modal. Ele cobre justamente o que o jogador acabou de fazer: na
+    /// taverna tapa o candidato contratado, na biblioteca as cartas à venda, no
+    /// combate o campo inteiro. Aparece assim em **toda** captura de tela desde
+    /// que existe.
+    ///
+    /// Modal é quem exige decisão (<c>PopupConfirm</c>, <c>PopupResult</c>), e
+    /// esses continuam no centro. Um aviso que se fecha sozinho não pode tomar a
+    /// tela de quem não pediu nada.
+    /// </summary>
+    static void AssentarAviso(Canvas canvas)
+    {
+        var rt = canvas.transform.Find("PopupMessage") as RectTransform;
+        if (rt == null) return;
+
+        Undo.RecordObject(rt, "Assentar aviso");
+
+        // Pivô antes da posição: trocá-lo depois manteria a anchoredPosition e
+        // deslocaria a faixa meia altura — a armadilha de sempre.
+        rt.anchorMin = new Vector2(0.5f, 1f);
+        rt.anchorMax = new Vector2(0.5f, 1f);
+        rt.pivot = new Vector2(0.5f, 1f);
+        rt.sizeDelta = new Vector2(940, 92);
+
+        // Abaixo do HUD, não sobre ele. A jornada passou a ter duas linhas de
+        // informação no alto — missão, dia, provisões e os três botões —, e a
+        // faixa colada no teto cobria justamente o número do dia e o botão de
+        // abandonar a expedição.
+        rt.anchoredPosition = new Vector2(0, -100);
+        EditorUtility.SetDirty(rt);
+
+        // O fundo e o texto acompanham a faixa; o texto encolhe para caber nela.
+        foreach (Transform filho in rt)
+        {
+            var filhoRt = filho as RectTransform;
+            if (filhoRt == null) continue;
+
+            Undo.RecordObject(filhoRt, "Assentar aviso");
+            ApplyRect(filhoRt, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            EditorUtility.SetDirty(filhoRt);
+        }
+
+        var texto = rt.GetComponentInChildren<TMP_Text>(true);
+        if (texto != null)
+        {
+            Undo.RecordObject(texto, "Assentar aviso");
+            texto.fontSize = 28;
+            texto.enableAutoSizing = false;
+            texto.alignment = TextAlignmentOptions.Center;
+            texto.enableWordWrapping = true;
+            EditorUtility.SetDirty(texto);
+        }
+    }
+
     static void LiftPopups(Canvas canvas)
     {
         // Do fundo para a frente: mensagem, confirmação, resultado. O de resultado
@@ -1482,11 +2137,27 @@ public static class GuildSceneSetup
         Transform downBar = root.parent != null ? root.parent.Find("Panel_DownBar") : null;
         if (downBar != null) Repaint(downBar);
 
-        // ── Passo 1: lista de missões ──────────────────────────────────────
+        // ── Passo 1: o mapa do mundo ───────────────────────────────────────
+        //
+        // O passo cabia em 948×599 no canto da tela, herdado de quando era uma
+        // lista de três contratos: uma caixa de texto não precisa de mais que
+        // isso. O mapa precisa — é nele que se lê o estado das sete regiões e se
+        // escolhe para onde a guilda vai, e a 526px de largura cada símbolo de
+        // terreno virava um carimbo com o nome maior que ele.
+        //
+        // Agora o passo ocupa a tela entre o cabeçalho e o rodapé da guilda.
+        Reposition(root, "QuestListContainer",
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(24, 150), new Vector2(-24, -60));
+
+        // O painel de detalhes encosta na direita e vira uma coluna: era ele que
+        // dividia a largura com o mapa meio a meio.
+        Reposition(root, "QuestListContainer/Panel_QuestDetails",
+            new Vector2(0.68f, 0), new Vector2(1, 1), new Vector2(0, 76), new Vector2(0, 0));
+
         Restyle(root, "QuestListContainer/Panel_QuestDetails/QuestDetailsTxt", null, 20,
             new Vector2(0, 0), new Vector2(1, 1), new Vector2(18, 18), new Vector2(-18, -18));
         Reposition(root, "QuestListContainer/Button_Next1",
-            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-220, -88), new Vector2(0, -24));
+            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-220, 16), new Vector2(-20, 60));
 
         // ── Passo 2: escolha dos heróis ────────────────────────────────────
         // Txt_Requirements não é lido por nenhum campo do QuestSelectionUI: ficava
