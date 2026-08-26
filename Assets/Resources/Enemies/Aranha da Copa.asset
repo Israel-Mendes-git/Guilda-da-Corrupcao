@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: Aranha da Copa
   description: "Desce sem ru\xEDdo das \xE1rvores. Voc\xEA s\xF3 percebe quando o
     fio encosta na nuca."
-  portrait: {fileID: -4795363162621231457, guid: 6d7cd4f7505dc674c891ca8946cfd98b, type: 3}
+  portrait: {fileID: 21300000, guid: 74a2f80a70dd6f84b88272359ee740d3, type: 3}
   biome: 1
   isBoss: 0
   maxHp: 18
@@ -27,5 +27,38 @@ MonoBehaviour:
   stressWeight: 35
   attackAllWeight: 10
   goldReward: 22
-  portraitTint: {r: 1, g: 1, b: 1, a: 1}
-  portraitScale: 2
+  portraitTint: {r: 1.55, g: 1.35, b: 1.45, a: 1}
+  portraitScale: 2.2
+  animation:
+    idle:
+    - {fileID: 21300000, guid: 74a2f80a70dd6f84b88272359ee740d3, type: 3}
+    - {fileID: 21300000, guid: d1a193272b532054b8504bb19c86abd7, type: 3}
+    - {fileID: 21300000, guid: c77bfcb3666e07a4682275435a7630a9, type: 3}
+    - {fileID: 21300000, guid: 7cc660b85aae2e94fa1000008f63c486, type: 3}
+    attack:
+    - {fileID: 21300000, guid: fc429be29eaadf54c960f0bdac274da9, type: 3}
+    - {fileID: 21300000, guid: a45528b8febb7c343ab4a2c3a8f3cf75, type: 3}
+    - {fileID: 21300000, guid: e5513d1214c048b4395055d237f3e2ec, type: 3}
+    - {fileID: 21300000, guid: 2d5dd0cf38b424b49ba52c11bd3e58aa, type: 3}
+    - {fileID: 21300000, guid: 0178b806652b1174dbd0aab46e540f25, type: 3}
+    - {fileID: 21300000, guid: d14b0f10b8a28974b953b98586ea7797, type: 3}
+    - {fileID: 21300000, guid: 233557c41750af24caad4c56ea43b691, type: 3}
+    - {fileID: 21300000, guid: 172b778751613f643ae78421bd2896cc, type: 3}
+    - {fileID: 21300000, guid: 6cf22c3d6c173b74e8250f22aea4d6ed, type: 3}
+    hit:
+    - {fileID: 21300000, guid: b50ed01c0cce2f64fbbc33e68c98fcdc, type: 3}
+    - {fileID: 21300000, guid: 228c4ddfdd6cbfa4c90738e686aad5db, type: 3}
+    death:
+    - {fileID: 21300000, guid: 257c28a969396fe4a99c62c32f278667, type: 3}
+    - {fileID: 21300000, guid: 5aa2fef87cb5cf44da7c633183bf81a9, type: 3}
+    - {fileID: 21300000, guid: 0c679bd1f772e80409ebfc032b6725b0, type: 3}
+    - {fileID: 21300000, guid: d46946256e9be1d40926b7179911d8cf, type: 3}
+    - {fileID: 21300000, guid: 73825de7931197c4b89ed8aa0f8e714e, type: 3}
+    - {fileID: 21300000, guid: 3673c04be0e48cf4d82a45b769af299e, type: 3}
+    - {fileID: 21300000, guid: 33c789992d8773742b4f3567475b38a4, type: 3}
+    - {fileID: 21300000, guid: a918942132e064649b4bebb3f6b3b821, type: 3}
+    - {fileID: 21300000, guid: 0e47bcc6c7e388d4a8229f27edfd5357, type: 3}
+    frameRate: 10
+    desenhadaOlhandoParaDireita: 0
+    baseVisivel: 0
+    alturaVisivel: 1

@@ -28,3 +28,32 @@ MonoBehaviour:
   goldReward: 280
   portraitTint: {r: 0.7, g: 0.8, b: 0.55, a: 1}
   portraitScale: 3
+  animation:
+    idle:
+    - {fileID: 4723107735738678597, guid: f8b30c2afe165d645b54d500a9c30862, type: 3}
+    - {fileID: -7385789195546760866, guid: f8b30c2afe165d645b54d500a9c30862, type: 3}
+    - {fileID: 3234629978573100161, guid: f8b30c2afe165d645b54d500a9c30862, type: 3}
+    - {fileID: 6373048116405451881, guid: f8b30c2afe165d645b54d500a9c30862, type: 3}
+    attack:
+    - {fileID: -7008412969330441016, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    - {fileID: -7763475090823894447, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    - {fileID: 302641331129538988, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    - {fileID: -6329420634031446844, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    - {fileID: -910092549403018386, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    - {fileID: 221524225039350300, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    - {fileID: 1290532464073988732, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    - {fileID: 4780903288873104255, guid: 5cdfcef2d5ef97347a8d7935407f81ab, type: 3}
+    hit:
+    - {fileID: -7500690451134026123, guid: dcdda75e148449b4283619583230b32e, type: 3}
+    - {fileID: -889859373511162655, guid: dcdda75e148449b4283619583230b32e, type: 3}
+    - {fileID: -3088938797480143695, guid: dcdda75e148449b4283619583230b32e, type: 3}
+    - {fileID: -9206091644520726168, guid: dcdda75e148449b4283619583230b32e, type: 3}
+    death:
+    - {fileID: 6991849013916550155, guid: 895ce69a98d58464aaaf85c1f9ee9497, type: 3}
+    - {fileID: -276728812324164698, guid: 895ce69a98d58464aaaf85c1f9ee9497, type: 3}
+    - {fileID: 3156895337291164288, guid: 895ce69a98d58464aaaf85c1f9ee9497, type: 3}
+    - {fileID: 1400002288684528572, guid: 895ce69a98d58464aaaf85c1f9ee9497, type: 3}
+    frameRate: 10
+    desenhadaOlhandoParaDireita: 1
+    baseVisivel: 0.32666665
+    alturaVisivel: 0.24666667
