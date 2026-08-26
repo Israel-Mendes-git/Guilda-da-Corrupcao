@@ -42,6 +42,18 @@ public class QuestManager : MonoBehaviour
         onQuestsChanged?.Invoke();
     }
 
+    /// <summary>
+    /// O quadro como está, sem fabricar nada.
+    ///
+    /// <see cref="GetQuests"/> gera missões quando o quadro está vazio, o que é
+    /// certo para quem vai escolher uma — e errado para quem só quer olhar. O
+    /// guia da guilda consulta o quadro a cada moeda gasta; se perguntar criasse
+    /// missões, o quadro nasceria antes da primeira visita ao mural e o Chefe
+    /// Supremo poderia entrar nele fora de hora. Mesmo motivo do
+    /// <see cref="RunManager.Existe"/>.
+    /// </summary>
+    public List<QuestData> QuadroAtual => currentQuests;
+
     public List<QuestData> GetQuests()
     {
         if (!hasQuests || currentQuests == null || currentQuests.Count == 0)
