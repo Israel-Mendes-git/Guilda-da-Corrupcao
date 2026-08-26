@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// O que sobrevive à queda de uma guilda.
 ///
-/// Numa run perdida o jogador perde tudo — heróis, ouro, reputação. As relíquias
+/// Numa run perdida o jogador perde tudo — heróis, ouro, reputação. As memórias
 /// daqui são a única coisa que atravessa: é o que faz a próxima tentativa começar
 /// mais forte e a derrota valer alguma coisa.
 ///
@@ -11,7 +11,7 @@ using UnityEngine;
 /// isto pertence ao jogador e não à partida. Antes vivia em PlayerPrefs, que era
 /// o provisório declarado da Fase 3; a migração é automática.
 ///
-/// <b>Mudança de desenho em relação à Fase 3:</b> as relíquias deixaram de virar
+/// <b>Mudança de desenho em relação à Fase 3:</b> a moeda deixou de virar
 /// ouro sozinhas (<c>Relics × 5</c>, com teto). Agora elas são <i>gastas</i> no
 /// Santuário, e o ouro extra é um destrave entre outros. As duas coisas não podem
 /// coexistir: um bônus automático que também é moeda faz o jogador ser punido por
@@ -19,13 +19,13 @@ using UnityEngine;
 /// </summary>
 public static class MetaProgression
 {
-    /// <summary>Relíquias — a moeda que atravessa as runs.</summary>
-    public static int Relics
+    /// <summary>Memórias — a moeda que atravessa as runs.</summary>
+    public static int Memorias
     {
-        get => PlayerProfile.Dados.relics;
+        get => PlayerProfile.Dados.memories;
         private set
         {
-            PlayerProfile.Dados.relics = Mathf.Max(0, value);
+            PlayerProfile.Dados.memories = Mathf.Max(0, value);
             PlayerProfile.Salvar();
         }
     }
@@ -55,7 +55,7 @@ public static class MetaProgression
 
         var perfil = PlayerProfile.Dados;
 
-        perfil.relics = Mathf.Max(0, perfil.relics + PreviewReward(run));
+        perfil.memories = Mathf.Max(0, perfil.memories + PreviewReward(run));
         perfil.totalRuns++;
         if (run.State == RunState.Won) perfil.totalWins++;
         if (run.Cycle > perfil.bestCycle) perfil.bestCycle = run.Cycle;
@@ -63,16 +63,16 @@ public static class MetaProgression
         PlayerProfile.Salvar();
     }
 
-    /// <summary>Gasta relíquias. Devolve false quando não há saldo.</summary>
+    /// <summary>Gasta memórias. Devolve false quando não há saldo.</summary>
     public static bool Spend(int quanto)
     {
-        if (quanto <= 0 || Relics < quanto) return false;
+        if (quanto <= 0 || Memorias < quanto) return false;
 
-        Relics -= quanto;
+        Memorias -= quanto;
         return true;
     }
 
-    #region Santuário das Relíquias
+    #region Santuário das Memórias
 
     /// <summary>
     /// Os destraves à venda.

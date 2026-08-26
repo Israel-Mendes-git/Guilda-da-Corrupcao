@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// O Santuário das Relíquias — onde o que sobrou das guildas mortas é gasto.
+/// O Santuário das Memórias — onde o que sobrou das guildas mortas é gasto.
 ///
 /// A Fase 3 criou a moeda e a fez virar ouro sozinha, o que dava à
 /// meta-progressão um efeito real mas nenhuma decisão: o jogador nunca escolhia
@@ -59,14 +59,14 @@ public class RelicShrineUI : MonoBehaviour
 
     void Preencher()
     {
-        if (titleText != null) titleText.text = "SANTUÁRIO DAS RELÍQUIAS";
+        if (titleText != null) titleText.text = "SANTUÁRIO DAS MEMÓRIAS";
 
         if (balanceText != null)
-            balanceText.text = $"<color=#D9B85A>◆ {MetaProgression.Relics}</color> "
-                             + "<size=80%>relíquias</size>";
+            balanceText.text = $"<color=#D9B85A>◆ {MetaProgression.Memorias}</color> "
+                             + "<size=80%>memórias</size>";
 
         if (hintText != null)
-            hintText.text = "As relíquias vêm de cada ciclo sobrevivido. "
+            hintText.text = "As memórias vêm de cada ciclo sobrevivido. "
                           + "O que for comprado aqui vale para a próxima guilda fundada.";
 
         Limpar();
@@ -102,7 +102,7 @@ public class RelicShrineUI : MonoBehaviour
         if (comprar == null) return;
 
         SetText(comprar.gameObject, "Text", noTeto ? "Completo" : $"◆ {custo}");
-        comprar.interactable = !noTeto && MetaProgression.Relics >= custo;
+        comprar.interactable = !noTeto && MetaProgression.Memorias >= custo;
 
         string id = destrave.id;
         comprar.onClick.RemoveAllListeners();
