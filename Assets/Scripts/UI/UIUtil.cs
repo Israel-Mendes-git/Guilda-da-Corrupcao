@@ -29,4 +29,46 @@ public static class UIUtil
             Object.Destroy(child.gameObject);
         }
     }
+
+    static Sprite circuloCache;
+
+    /// <summary>
+    /// Um círculo branco desenhado na hora, para marcador de mapa.
+    ///
+    /// Sem sprite, o <c>Image</c> sai quadrado — e um punhado de quadrados
+    /// grandes lê como caixas de menu, não como lugares.
+    ///
+    /// Feito em código, e não com <c>Resources.GetBuiltinResource("UI/Skin/Knob.psd")</c>:
+    /// aquele caminho é recurso de <b>editor</b> e não existe em runtime. Ele
+    /// devolve null e cospe dois erros por marcador — foram 64 numa jornada, com
+    /// a tela funcionando normalmente, porque um sprite nulo apenas volta a ser
+    /// um quadrado.
+    /// </summary>
+    public static Sprite Circulo()
+    {
+        if (circuloCache != null) return circuloCache;
+
+        const int lado = 64;
+        var textura = new Texture2D(lado, lado, TextureFormat.RGBA32, false);
+        textura.filterMode = FilterMode.Bilinear;
+
+        float raio = lado * 0.5f;
+        for (int y = 0; y < lado; y++)
+        {
+            for (int x = 0; x < lado; x++)
+            {
+                float dx = x + 0.5f - raio;
+                float dy = y + 0.5f - raio;
+                float distancia = Mathf.Sqrt(dx * dx + dy * dy);
+
+                // A borda decai em um pixel: sem isso o círculo sai serrilhado.
+                float alfa = Mathf.Clamp01(raio - distancia);
+                textura.SetPixel(x, y, new Color(1f, 1f, 1f, alfa));
+            }
+        }
+        textura.Apply();
+
+        circuloCache = Sprite.Create(textura, new Rect(0f, 0f, lado, lado), new Vector2(0.5f, 0.5f));
+        return circuloCache;
+    }
 }
