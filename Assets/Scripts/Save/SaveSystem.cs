@@ -8,7 +8,7 @@ using UnityEngine;
 ///
 /// Um arquivo JSON por slot em <c>Application.persistentDataPath/saves/</c>.
 /// Escolhido em lugar do PlayerPrefs — que é onde o projeto guardava decks e
-/// relíquias até aqui — por três motivos concretos: o PlayerPrefs no Windows é
+/// memórias até aqui — por três motivos concretos: o PlayerPrefs no Windows é
 /// o registro, que não aguenta um save deste tamanho com folga; não há como ter
 /// vários slots sem inventar prefixos de chave; e um save em arquivo o jogador
 /// consegue copiar, mandar num relatório de bug e apagar.

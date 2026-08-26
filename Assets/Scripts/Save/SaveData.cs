@@ -70,6 +70,13 @@ public class GuildSave
     public int gold;
     public int reputation;
     public int maxRosterSize;
+
+    /// <summary>
+    /// A prateleira: relíquias e frascos que a guilda tem e ninguém carrega.
+    /// Campos no fim, como manda a regra do projeto.
+    /// </summary>
+    public List<string> relicStock = new List<string>();
+    public List<string> potionStock = new List<string>();
 }
 
 [Serializable]
@@ -80,6 +87,15 @@ public class RunSave
     public int state;       // RunState
     public int endReason;   // RunEndReason
     public int fallen;
+
+    /// <summary>
+    /// Corrupção de cada região, na ordem de <see cref="BiomeUtil.Playable"/>.
+    ///
+    /// Campo no fim e lista vazia por padrão: save antigo carrega sem ele e o
+    /// <see cref="RegionMap.Restaurar"/> cai no estado inicial em vez de
+    /// derrubar a partida.
+    /// </summary>
+    public List<float> regionCorruption = new List<float>();
 }
 
 /// <summary>
@@ -117,6 +133,16 @@ public class HeroSave
 
     public int weaponLevel;
     public int armorLevel;
+
+    /// <summary>
+    /// Relíquias e frascos deste herói, por id do <c>ItemCatalog</c>.
+    ///
+    /// Campos no fim da classe, como manda a regra do projeto. Save antigo abre
+    /// sem eles e o herói volta desequipado — que é o estado correto para quem
+    /// jogou antes de os itens existirem.
+    /// </summary>
+    public List<string> relics = new List<string>();
+    public List<string> potions = new List<string>();
 }
 
 /// <summary>

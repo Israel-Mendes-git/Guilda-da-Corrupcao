@@ -60,6 +60,12 @@ public class MarketManager : MonoBehaviour
 
     public void RefreshMarket()
     {
+        // Uma relíquia por vez na prateleira, sorteada na primeira vez que a
+        // sala abre e reposta depois de vendida. Sortear a cada abertura deixaria
+        // o jogador rolando o dado até sair a que ele quer, o que é o contrário
+        // de escolher.
+        if (reliquiaDoDia == null) RenovarReliquia();
+
         UpdateHeader();
         BuildItems();
     }
@@ -171,7 +177,77 @@ public class MarketManager : MonoBehaviour
             }
         });
 
+        // Os frascos de combate, comprados antes de partir. Vão para a
+        // prateleira da guilda; quem os leva na estrada se decide na ficha do
+        // herói, que é onde se vê quem precisa de quê.
+        //
+        // A poção de cura acima é outra coisa e continua onde está: aquela é
+        // atendimento na guilda, some no ato e não entra na mochila de ninguém.
+        foreach (var pocao in ItemCatalog.Pocoes)
+        {
+            PotionDef def = pocao;
+            catalog.Add(new MarketItem
+            {
+                label = $"🧪 {def.nome}",
+                description = $"{def.descricao} Levada na estrada, usada em combate.",
+                cost = def.preco,
+                canBuy = () => true,
+                onBought = () =>
+                {
+                    GuildManager.Instance?.GuardarPocao(def.id);
+                    SetFeedback($"{def.nome} guardada na prateleira da guilda.");
+                }
+            });
+        }
+
+        // Uma relíquia por visita, sorteada: a loja com o catálogo inteiro
+        // sempre à mão transforma escolha em lista de compras, e o preço dela
+        // já é alto o bastante para a decisão doer.
+        if (reliquiaDoDia != null)
+        {
+            RelicDef def = reliquiaDoDia;
+            catalog.Add(new MarketItem
+            {
+                label = $"🏺 {def.nome}",
+                description = def.descricao,
+                cost = def.preco,
+                canBuy = () => true,
+                onBought = () =>
+                {
+                    GuildManager.Instance?.GuardarReliquia(def.id);
+                    reliquiaDoDia = null;
+                    SetFeedback($"{def.nome} está na prateleira — equipe alguém na ficha dele.");
+                }
+            });
+        }
+
         return catalog;
+    }
+
+    /// <summary>
+    /// A relíquia que este mercador tem hoje. Nula depois de comprada, até a
+    /// próxima renovação.
+    /// </summary>
+    RelicDef reliquiaDoDia;
+
+    /// <summary>
+    /// Sorteia a relíquia da vez, pulando o que a guilda já tem — vender de novo
+    /// o que está na prateleira faria a loja parecer quebrada.
+    /// </summary>
+    public void RenovarReliquia()
+    {
+        var guilda = GuildManager.Instance;
+        var candidatas = new List<RelicDef>();
+
+        foreach (var r in ItemCatalog.Reliquias)
+        {
+            bool naPrateleira = guilda != null && guilda.relicStock.Contains(r.id);
+            if (!naPrateleira) candidatas.Add(r);
+        }
+
+        reliquiaDoDia = candidatas.Count > 0
+            ? candidatas[Random.Range(0, candidatas.Count)]
+            : null;
     }
 
     void BuildItems()

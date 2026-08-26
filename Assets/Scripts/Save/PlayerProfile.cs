@@ -6,14 +6,14 @@ using UnityEngine;
 /// <summary>
 /// O que pertence ao jogador, não à partida.
 ///
-/// Relíquias, destraves comprados, recordes e as opções de áudio e vídeo vivem
+/// Memórias, destraves comprados, recordes e as opções de áudio e vídeo vivem
 /// aqui — num arquivo só, fora dos slots. É a divisão que dá sentido à
 /// meta-progressão: apagar um save não apaga o que as runs anteriores custaram
 /// a conquistar, e trocar de slot não faz o volume da música mudar.
 ///
 /// Substitui o PlayerPrefs que a Fase 3 usou como provisório. A migração é feita
 /// uma vez, no primeiro carregamento, para que quem já jogou não perca as
-/// relíquias que tinha.
+/// memórias que tinha.
 /// </summary>
 public static class PlayerProfile
 {
@@ -51,7 +51,28 @@ public static class PlayerProfile
             dados = new ProfileData();
             MigrarDoPlayerPrefs(dados);
             Salvar();
+            return;
         }
+
+        MigrarMoeda(dados);
+    }
+
+    /// <summary>
+    /// Passa o saldo do campo antigo (<c>relics</c>) para o novo (<c>memories</c>).
+    ///
+    /// Sem isto, todo perfil gravado antes da renomeação abriria com zero — o
+    /// jogador perderia o que várias runs custaram, e sem erro nenhum, porque
+    /// campo que sumiu do JSON simplesmente não é lido.
+    /// </summary>
+    static void MigrarMoeda(ProfileData perfil)
+    {
+        if (perfil == null || perfil.relics <= 0) return;
+
+        perfil.memories += perfil.relics;
+        perfil.relics = 0;
+
+        Debug.Log($"PlayerProfile: {perfil.memories} memórias herdadas do campo antigo de relíquias.");
+        Salvar();
     }
 
     public static void Salvar()
@@ -84,12 +105,12 @@ public static class PlayerProfile
         const string ChaveMoeda = "GoL.Meta.Relics";
         if (!PlayerPrefs.HasKey(ChaveMoeda)) return;
 
-        destino.relics = PlayerPrefs.GetInt(ChaveMoeda, 0);
+        destino.memories = PlayerPrefs.GetInt(ChaveMoeda, 0);
         destino.bestCycle = PlayerPrefs.GetInt("GoL.Meta.BestCycle", 0);
         destino.totalRuns = PlayerPrefs.GetInt("GoL.Meta.Runs", 0);
         destino.totalWins = PlayerPrefs.GetInt("GoL.Meta.Wins", 0);
 
-        Debug.Log($"PlayerProfile: {destino.relics} relíquias migradas do PlayerPrefs.");
+        Debug.Log($"PlayerProfile: {destino.memories} memórias migradas do PlayerPrefs.");
     }
 
     #region Destraves
@@ -118,7 +139,7 @@ public static class PlayerProfile
 
     #endregion
 
-    /// <summary>Apaga o perfil inteiro — relíquias, destraves e opções. Só para teste.</summary>
+    /// <summary>Apaga o perfil inteiro — memórias, destraves e opções. Só para teste.</summary>
     public static void Zerar()
     {
         dados = new ProfileData();
@@ -134,7 +155,22 @@ public class ProfileData
 {
     public int version = 1;
 
+    /// <summary>
+    /// A moeda que atravessa as runs. Chamava-se "relíquia"; o nome passou a
+    /// designar o item que altera regras dentro de uma run, no espírito de Slay
+    /// the Spire, e a moeda virou <b>memória</b>.
+    /// </summary>
+    public int memories;
+
+    /// <summary>
+    /// O campo antigo, mantido só para não apagar o que o jogador já tinha.
+    ///
+    /// JsonUtility ignora campos que sumiram: renomear direto zeraria o saldo de
+    /// todo perfil existente sem erro nenhum. Fica aqui até uma versão em que
+    /// migrar de novo não custe nada — ver <see cref="PlayerProfile.MigrarMoeda"/>.
+    /// </summary>
     public int relics;
+
     public int bestCycle;
     public int totalRuns;
     public int totalWins;
