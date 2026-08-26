@@ -299,3 +299,51 @@ escolha no Inspector sobrevive a rodar a ferramenta de novo.
   não uma criatura inteira; e o traço vetorial briga com o pixel art dos retratos de herói.
 - **100 Fantasy Characters** (Blackthornprod) — pintado e colorido demais para a paleta dessaturada.
 - **SPUM** — montador de personagem por partes; exigiria montar cada criatura à mão.
+
+---
+
+## Mapa — `DefaceGames/Fantasy Map Assets Pack Lite`
+
+Importado em 21/08. 58 sprites em preto sobre transparente, para desenhar sobre papel:
+**backgrounds** (5 papéis), **bg-overlays** (bordas, topografia, água), **buildings** (caverna, casa,
+cidade aberta, vila, torre de vigia), **icons** (battle, boss, bridge, chest, dungeons, home,
+landmark, misc, paw, shield, tower2), **islands** (4), **misc** (bússola, fundo de legenda),
+**mountains** (10), **trees** (10, com cacto e pinheiros), **waves** (4).
+
+Quem liga isso ao jogo é o `MapArtCatalog` (asset em `Resources`), preenchido por
+**Tools → Guild of Legends → Montar Catálogo de Mapas** — ou pelo gatilho `RunMapArt.trigger`. A
+tabela de escolhas mora no `MapArtBuilder.cs`, uma linha por peça, com a razão escrita ao lado.
+
+| Onde | Peça | Arquivo |
+|---|---|---|
+| Mapa da região | papel · borda · bússola · guilda | `base-paper-2` · `border 4` · `compass` · `open-city solid` |
+| Regiões | Floresta · Montanha · Pântano | `tree5 solid` · `mount8` · `waves 1` |
+| Regiões | Deserto · Tundra · Vulcão · Ruínas | `cactus1 solid` · `pine1 solid` · `mount5` · `dungeons` |
+| Pontos da rota | Combate · Tesouro · Perigo | `battle` · `chest` · `paw` |
+| Pontos da rota | Descanso · Mercador · História · Chefe | `home` · `village solid` · `landmark` · `boss` |
+
+**Dois empréstimos declarados:** o pacote não tem vulcão nem gelo. O Vulcão usa um pico único
+(`mount5`) e a Tundra, uma conífera (`pine1`). São as duas regiões que também seguem sem arte
+de bioma no combate — a lacuna é a mesma.
+
+**Sem o catálogo, nada quebra:** o mapa da região volta aos círculos e os pontos da rota, aos emoji.
+A cor da corrupção continua sendo a mesma informação nos dois casos; sobre papel claro, o texto e as
+trilhas escurecem para continuarem legíveis.
+
+## Baixados e ainda fora do projeto — `Documents/Guilda-Assets-Baixados`
+
+26 pacotes compactados (361 MB) estavam em `Assets/Sprites`, onde o Unity não os lê e o Git os
+carrega inteiros. Foram movidos para fora do repositório em 21/08. Extrair só o que for entrar no
+jogo, um pacote por vez.
+
+| Pacote | Serve para |
+|---|---|
+| Free - Raven Fantasy Icons (6.580 ícones) | ícone das 6 relíquias e 4 poções, hoje só texto |
+| Horror Enemy pack (Abomination, Catto, Mad Ghost, Mage) | 3 dos inimigos que usam arte emprestada |
+| Moonstone Keeper (226 quadros, animação completa) | chefe da Floresta |
+| DarkFantasyEnemies (morcego) | Aranha da Copa, hoje um olho voador |
+| Tiny RPG ×2 (Soldier, Orc, Demon, Blood Monster) | Salteador, Carniçal |
+| Super Pixel Effects Gigapack (93 animações grátis) | impacto das cartas no combate |
+| Dwarves and Underground (71 cenários, 260 MB) | fundo de Ruínas e Montanha |
+| Paper UI System · Tornioduva cards | só se o estilo da UI for revisto — brigam com o Bloodlines |
+| Plant Animations · Mossy · 16x16 icons · 39 Portraits · Cryo's GUI · DarkAges UI · Dark VFX | avulsos, sem lacuna atribuída |
