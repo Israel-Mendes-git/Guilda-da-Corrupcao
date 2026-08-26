@@ -33,6 +33,11 @@ using System.Runtime.InteropServices;
 public class WinRun {
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, IntPtr p);
+  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool at);
+  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
 }
 "@ -ErrorAction SilentlyContinue
 
@@ -42,8 +47,34 @@ $unity = Get-Process Unity -ErrorAction SilentlyContinue |
          Where-Object { $_.MainWindowTitle -like "*Guilda-da-Corrupcao*" } | Select-Object -First 1
 if (-not $unity) { Write-Output "ERRO: Unity nao esta aberto no projeto."; exit 1 }
 
-function Focar { [void][WinRun]::SetForegroundWindow($unity.MainWindowHandle) }
+# SetForegroundWindow sozinho NAO basta: o Windows so deixa trocar o foreground
+# quem ja o tem. Se houver um navegador na frente quando o script comeca, toda
+# chamada retorna sem fazer nada -- o Unity nunca ganha foco, nunca recompila, e
+# o script morre em "TIMEOUT esperando a compilacao" com o Editor perfeitamente
+# saudavel e ocioso. Foi exatamente esse o sintoma, e custou uma investigacao
+# inteira porque o Editor nao tem nada de errado.
+#
+# Anexar a fila de input do thread do foreground faz o Windows tratar as duas
+# janelas como uma so para efeito de foco, e ai o pedido e aceito.
+function Focar {
+  $alvo = $unity.MainWindowHandle
+  if ([WinRun]::GetForegroundWindow() -eq $alvo) { return }
+
+  $tFg = [WinRun]::GetWindowThreadProcessId([WinRun]::GetForegroundWindow(), [IntPtr]::Zero)
+  $tMe = [WinRun]::GetCurrentThreadId()
+
+  [void][WinRun]::AttachThreadInput($tMe, $tFg, $true)
+  [void][WinRun]::BringWindowToTop($alvo)
+  [void][WinRun]::SetForegroundWindow($alvo)
+  [void][WinRun]::AttachThreadInput($tMe, $tFg, $false)
+}
+
 [void][WinRun]::ShowWindow($unity.MainWindowHandle, 9)
+Focar
+if ([WinRun]::GetForegroundWindow() -ne $unity.MainWindowHandle) {
+  Write-Output "AVISO: nao consegui por o Unity em primeiro plano. Ele nao recompila sem foco --"
+  Write-Output "       clique na janela do Editor e nao mexa em outra ate o script terminar."
+}
 
 # ATENCAO: as mensagens aqui usam Write-Host, nao Write-Output. Em PowerShell,
 # Write-Output dentro de uma funcao entra no VALOR DE RETORNO -- o "return $true"

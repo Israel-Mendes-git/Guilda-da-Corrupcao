@@ -172,6 +172,9 @@ public static class SceneToolsTriggerWatcher
     const string CardFrameTrigger = "RunCardFrameSkin.trigger";
     const string MenuSetupTrigger = "RunMenuSetup.trigger";
     const string EnemyArtTrigger = "RunEnemyArt.trigger";
+    const string MapArtTrigger = "RunMapArt.trigger";
+    const string EventBalanceTrigger = "RunEventBalance.trigger";
+    const string ItemArtTrigger = "RunItemArt.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -207,6 +210,12 @@ public static class SceneToolsTriggerWatcher
         Consumir(BarSkinTrigger, BarSkin.Aplicar);
         Consumir(CardArtTrigger, CardArt.Aplicar);
         Consumir(EnemyArtTrigger, () => EnemyArt.Aplicar(true));
+
+        // Sem sobrescrever: a escolha por palavra-chave é um chute educado, e o
+        // que for corrigido à mão no catálogo tem de sobreviver a rodar de novo.
+        Consumir(MapArtTrigger, () => MapArtBuilder.Montar(false));
+        Consumir(EventBalanceTrigger, () => EventBalance.Ajustar(false));
+        Consumir(ItemArtTrigger, ItemArt.Conferir);
         Consumir(PortraitTrigger, PortraitCatalogBuilder.Montar);
         Consumir(BiomeArtTrigger, BiomeArtBuilder.Montar);
         Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);

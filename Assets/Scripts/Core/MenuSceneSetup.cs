@@ -217,7 +217,7 @@ public static class MenuSceneSetup
         Button continuar = BotaoDaPilha(panel.transform, "Btn_Continue", "Continuar", 0);
         Button novo = BotaoDaPilha(panel.transform, "Btn_NewGame", "Fundar uma nova guilda", 1);
         Button carregar = BotaoDaPilha(panel.transform, "Btn_Load", "Carregar partida", 2);
-        Button santuario = BotaoDaPilha(panel.transform, "Btn_Shrine", "Santuário das Relíquias", 3);
+        Button santuario = BotaoDaPilha(panel.transform, "Btn_Shrine", "Santuário das Memórias", 3);
         Button opcoes = BotaoDaPilha(panel.transform, "Btn_Options", "Opções", 4);
         Button sair = BotaoDaPilha(panel.transform, "Btn_Quit", "Sair", 5);
 
