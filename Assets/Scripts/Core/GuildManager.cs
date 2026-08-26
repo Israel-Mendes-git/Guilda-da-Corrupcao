@@ -20,10 +20,98 @@ public class GuildManager : MonoBehaviour
     [Header("Memória da Guilda")]
     public List<HeroData> fallenHeroes = new List<HeroData>();
 
+    /// <summary>
+    /// O que a guilda tem guardado e ninguém está usando, por id do
+    /// <see cref="ItemCatalog"/>.
+    ///
+    /// <b>Por que existe um estoque.</b> A relíquia é do herói e morre com ele,
+    /// mas ela precisa chegar de algum lugar: o chefe a larga no meio da
+    /// estrada, o Mercado a vende antes de partir, um evento a entrega. Sem
+    /// prateleira, todo item teria de ser equipado no instante em que aparece —
+    /// e um herói com os dois slots cheios recusaria o espólio do chefe.
+    ///
+    /// Aqui só mora o que está livre: o que foi equipado sai daqui e passa a
+    /// viver na lista do herói.
+    /// </summary>
+    [Header("Prateleira")]
+    public List<string> relicStock = new List<string>();
+    public List<string> potionStock = new List<string>();
+
     [Header("Eventos")]
     public System.Action onGoldChanged;
     public System.Action onRosterChanged;
     public System.Action onReputationChanged;
+
+    /// <summary>Avisa quem estiver mostrando a prateleira ou a ficha do herói.</summary>
+    public System.Action onItemsChanged;
+
+    /// <summary>
+    /// Guarda um item na prateleira. Id desconhecido é ignorado em silêncio: o
+    /// catálogo pode encolher entre versões, e um save antigo não deve travar a
+    /// guilda por causa de uma relíquia que deixou de existir.
+    /// </summary>
+    public void GuardarReliquia(string id)
+    {
+        if (ItemCatalog.Reliquia(id) == null) return;
+
+        relicStock.Add(id);
+        onItemsChanged?.Invoke();
+    }
+
+    public void GuardarPocao(string id)
+    {
+        if (ItemCatalog.Pocao(id) == null) return;
+
+        potionStock.Add(id);
+        onItemsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Tira da prateleira e põe no herói. Devolve false quando não há o item ou
+    /// quando os dois slots dele já estão ocupados.
+    /// </summary>
+    public bool EquiparReliquia(HeroData heroi, string id)
+    {
+        if (heroi == null || !relicStock.Contains(id)) return false;
+        if (heroi.relics == null) heroi.relics = new List<string>();
+        if (heroi.relics.Count >= ItemCatalog.SlotsDeReliquia) return false;
+
+        relicStock.Remove(id);
+        heroi.relics.Add(id);
+        onItemsChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Devolve a relíquia à prateleira.</summary>
+    public bool DesequiparReliquia(HeroData heroi, string id)
+    {
+        if (heroi?.relics == null || !heroi.relics.Remove(id)) return false;
+
+        relicStock.Add(id);
+        onItemsChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Entrega um frasco da prateleira ao herói, para ele levar na estrada.</summary>
+    public bool EntregarPocao(HeroData heroi, string id)
+    {
+        if (heroi == null || !potionStock.Contains(id)) return false;
+        if (heroi.potions == null) heroi.potions = new List<string>();
+
+        potionStock.Remove(id);
+        heroi.potions.Add(id);
+        onItemsChanged?.Invoke();
+        return true;
+    }
+
+    public bool RecolherPocao(HeroData heroi, string id)
+    {
+        if (heroi?.potions == null || !heroi.potions.Remove(id)) return false;
+
+        potionStock.Add(id);
+        onItemsChanged?.Invoke();
+        return true;
+    }
 
     void Awake()
     {
@@ -85,7 +173,7 @@ public class GuildManager : MonoBehaviour
     /// Uma guilda nova, para a run seguinte.
     ///
     /// Tudo o que a run acumulou se perde — é o preço da derrota. O que atravessa
-    /// são as relíquias da <see cref="MetaProgression"/>, e elas entram aqui como
+    /// são as memórias da <see cref="MetaProgression"/>, e elas entram aqui como
     /// ouro de partida: a próxima tentativa começa mais folgada por causa da
     /// anterior, que é o que faz perder valer alguma coisa.
     /// </summary>

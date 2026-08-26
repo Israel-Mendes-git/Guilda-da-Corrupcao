@@ -30,7 +30,9 @@ public static class GameStateIO
             {
                 gold = guilda.gold,
                 reputation = guilda.reputation,
-                maxRosterSize = guilda.maxRosterSize
+                maxRosterSize = guilda.maxRosterSize,
+                relicStock = new List<string>(guilda.relicStock ?? new List<string>()),
+                potionStock = new List<string>(guilda.potionStock ?? new List<string>())
             };
 
             foreach (var heroi in guilda.roster)
@@ -49,7 +51,8 @@ public static class GameStateIO
                 corruption = run.Corruption,
                 state = (int)run.State,
                 endReason = (int)run.EndReason,
-                fallen = run.Fallen
+                fallen = run.Fallen,
+                regionCorruption = RegionMap.Serializar()
             };
         }
 
@@ -87,8 +90,14 @@ public static class GameStateIO
         mentalState = (int)h.mentalState,
         isOnDeathsDoor = h.isOnDeathsDoor,
         weaponLevel = h.weaponLevel,
-        armorLevel = h.armorLevel
+        armorLevel = h.armorLevel,
+
+        // Cópias, não as listas do herói: o save não pode ficar apontando para
+        // dentro de um asset vivo, ou salvar vira uma foto que continua mudando.
+        relics = new List<string>(h.relics ?? new List<string>()),
+        potions = new List<string>(h.potions ?? new List<string>())
     };
+
 
     static QuestSave DeMissao(QuestData q) => new QuestSave
     {
@@ -144,6 +153,9 @@ public static class GameStateIO
             // caso vale o que o Inspector diz, não um roster de tamanho zero.
             if (dados.guild.maxRosterSize > 0)
                 guilda.maxRosterSize = dados.guild.maxRosterSize;
+
+            guilda.relicStock = new List<string>(dados.guild.relicStock ?? new List<string>());
+            guilda.potionStock = new List<string>(dados.guild.potionStock ?? new List<string>());
         }
 
         foreach (var salvo in dados.roster)
@@ -158,6 +170,8 @@ public static class GameStateIO
             run.Restaurar(dados.run.cycle, dados.run.corruption,
                           (RunState)dados.run.state, (RunEndReason)dados.run.endReason,
                           dados.run.fallen);
+
+            RegionMap.Restaurar(dados.run.regionCorruption);
         }
 
         var quests = QuestManager.Instance;
@@ -199,6 +213,11 @@ public static class GameStateIO
         h.isOnDeathsDoor = s.isOnDeathsDoor;
         h.weaponLevel = s.weaponLevel;
         h.armorLevel = s.armorLevel;
+
+        // Save anterior aos itens não traz as listas: o herói volta desequipado,
+        // que é o estado certo para quem jogou antes de eles existirem.
+        h.relics = new List<string>(s.relics ?? new List<string>());
+        h.potions = new List<string>(s.potions ?? new List<string>());
 
         h.name = string.IsNullOrEmpty(s.heroName) ? "Herói" : s.heroName;
 

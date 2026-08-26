@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "New Hero", menuName = "Guild/Hero")]
@@ -32,6 +33,25 @@ public class HeroData : ScriptableObject
     [Header("Equipamento (Forja)")]
     public int weaponLevel;           // +1 de dano nas cartas deste herói por nível
     public int armorLevel;            // +4 de HP máximo por nível
+
+    /// <summary>
+    /// As relíquias equipadas, por id do <see cref="ItemCatalog"/>.
+    ///
+    /// São do herói, e não da guilda: quem morre leva as suas embora. Foi a
+    /// escolha do autor entre durar a jornada, durar a run e durar enquanto o
+    /// dono viver — a última é a que faz a morte custar duas vezes, que é o que
+    /// se espera de um jogo com permadeath.
+    /// </summary>
+    public List<string> relics = new List<string>();
+
+    /// <summary>
+    /// Os frascos que este herói carrega. Também morrem com ele.
+    ///
+    /// Poção por herói, e não na mochila do grupo: assim o jogador decide quem
+    /// leva o quê antes de partir, e perder o curandeiro é perder também o que
+    /// ele carregava.
+    /// </summary>
+    public List<string> potions = new List<string>();
 
     // Identidade estável para salvar deck/progresso. heroName não serve: a HeroFactory
     // sorteia de listas curtas e dois heróis podem acabar com o mesmo nome.

@@ -163,7 +163,16 @@ public class HeroDetailPanel : MonoBehaviour
         // Retrato (opcional)
         if (portraitImage != null && hero.portrait != null)
             portraitImage.sprite = hero.portrait;
+
+        // Relíquias e frascos: a seção nasce na primeira vez que a ficha abre.
+        // A ficha é onde se decide quem precisa do quê, porque é a única tela
+        // que mostra o herói inteiro.
+        if (gear == null && panel != null) gear = HeroGearUI.Montar(panel);
+        if (gear != null) gear.Desenhar(hero);
     }
+
+    /// <summary>A seção de relíquias e frascos, montada em runtime.</summary>
+    HeroGearUI gear;
 
     /// <summary>Uma linha com o estresse e a aflição ou virtude em vigor.</summary>
     static string DescreverEstresse(HeroData hero)
