@@ -253,7 +253,17 @@ public static class EventResolver
         if (hero == null || !hero.IsAlive || amount == 0) return;
 
         if (amount > 0)
+        {
             amount *= hero.GetStressTakenMultiplier();
+
+            // A relíquia entra aqui, e não no combate: o estresse vem também da
+            // estrada, do escuro e dos eventos, e um talismã que só valesse na
+            // luta seria uma promessa quebrada na metade do jogo em que o herói
+            // mais se desgasta.
+            int resistencia = ItemCatalog.Total(hero, RelicEffect.ResistenciaAEstresse);
+            if (resistencia > 0)
+                amount *= Mathf.Max(0f, 1f - resistencia / 100f);
+        }
 
         hero.stress = Mathf.Clamp(hero.stress + amount, 0f, StressBreakpoint);
 

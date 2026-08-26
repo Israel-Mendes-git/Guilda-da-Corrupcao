@@ -69,9 +69,11 @@ MonoBehaviour:
     requiredEffect: 7
     empoweredConsequences:
       goldChange: 0
-      reputationChange: 0
+      reputationChange: 8
       heroEffects: []
-      moraleChanges: []
+      moraleChanges:
+      - heroName: All
+        moraleChange: 15
     empoweredText: A carta certa abre esse caminho.
   eventType: 1
   isBossEvent: 0

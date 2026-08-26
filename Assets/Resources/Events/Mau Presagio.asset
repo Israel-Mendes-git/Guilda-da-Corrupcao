@@ -82,9 +82,11 @@ MonoBehaviour:
     requiredEffect: 5
     empoweredConsequences:
       goldChange: 0
-      reputationChange: 0
+      reputationChange: 8
       heroEffects: []
-      moraleChanges: []
-    empoweredText: 
+      moraleChanges:
+      - heroName: All
+        moraleChange: 12
+    empoweredText: "A carta abre o caminho \u2014 e o grupo sai inteiro."
   eventType: 6
   isBossEvent: 0

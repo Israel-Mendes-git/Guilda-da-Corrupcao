@@ -55,10 +55,16 @@ MonoBehaviour:
     triggersCorruption: 1
     requiredEffect: 8
     empoweredConsequences:
-      goldChange: 0
+      goldChange: 269
       reputationChange: 0
-      heroEffects: []
-      moraleChanges: []
+      heroEffects:
+      - heroName: All
+        hpChange: 0
+        addInjury: 0
+        addTrait: 0
+      moraleChanges:
+      - heroName: All
+        moraleChange: 0
     empoweredText: A carta certa abre esse caminho.
   - optionText: "\U0001F525 Queimar o livro com ele junto"
     consequences:

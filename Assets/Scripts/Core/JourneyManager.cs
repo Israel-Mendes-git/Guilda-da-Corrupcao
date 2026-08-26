@@ -29,6 +29,19 @@ public class JourneyManager : MonoBehaviour
     public Transform partyStatusContainer;
     public GameObject partyStatusPrefab;
 
+    [Header("A estrada")]
+    /// <summary>
+    /// A ficha do grupo no mapa. Opcional de propósito: sem a arte do SPUM a
+    /// jornada continua jogável, só que sem os corpos.
+    /// </summary>
+    public TrailRoadUI trailRoad;
+
+    /// <summary>
+    /// A caixa do evento, que flutua sobre o mapa. Só aparece quando o grupo
+    /// pára em algum lugar — enquanto ele anda, o mapa fica limpo.
+    /// </summary>
+    public GameObject eventBox;
+
     [Header("Escolhas do Evento")]
     public Transform choiceContainer;
     public GameObject choiceButtonPrefab;
@@ -94,6 +107,13 @@ public class JourneyManager : MonoBehaviour
     private const int PartySemPenalidade = 4;
 
     private QuestData currentQuest;
+
+    /// <summary>
+    /// A região que o grupo está atravessando. <c>Any</c> quando não há jornada
+    /// em curso — quem desenha o mapa precisa saber o terreno, e a missão em si
+    /// continua privada.
+    /// </summary>
+    public BiomeType CurrentBiome => currentQuest != null ? currentQuest.biomeType : BiomeType.Any;
     private List<HeroData> currentParty;
     private JourneyMap journeyMap;
     private int currentDay = 0;
@@ -103,6 +123,19 @@ public class JourneyManager : MonoBehaviour
 
     // Entre resolver um evento e entrar no próximo, o grupo escolhe por onde seguir.
     private bool isChoosingRoute = false;
+
+    /// <summary>O grupo está atravessando um trecho neste instante.</summary>
+    private bool caminhando = false;
+
+    /// <summary>
+    /// O grupo está a caminho de algum lugar — nada a decidir por enquanto.
+    ///
+    /// Existe para quem dirige a jornada de fora (o teste) saber a diferença
+    /// entre "esperando o jogador" e "no meio de uma animação". Sem isso, o
+    /// probe gastava o orçamento de iterações dele nos frames da caminhada e
+    /// acusava travamento numa jornada que estava andando normalmente.
+    /// </summary>
+    public bool EmTravessia => caminhando;
 
     /// <summary>O mapa só aceita cliques enquanto a rota está sendo escolhida.</summary>
     public bool IsChoosingRoute => isChoosingRoute && !journeyEnded;
@@ -116,6 +149,12 @@ public class JourneyManager : MonoBehaviour
     /// missão sumida do quadro e a party fora de casa.
     /// </summary>
     public bool EmJornada => currentQuest != null && !journeyEnded;
+
+    /// <summary>
+    /// Quem está na estrada, na ordem da formação. Só leitura: quem quiser
+    /// mexer na party passa pelos caminhos que atualizam a interface junto.
+    /// </summary>
+    public IReadOnlyList<HeroData> PartyAtual => currentParty;
 
     // Sem isto, as corrotinas de transição já agendadas continuam produzindo
     // eventos depois que a jornada acabou — a jornada nunca fechava.
@@ -229,6 +268,7 @@ public class JourneyManager : MonoBehaviour
         currentMitigation = 0f;
         journeyEnded = false;
         isChoosingRoute = false;
+        caminhando = false;
         skipNextCombat = false;
         weatherProtectionDays = 0;
 
@@ -264,6 +304,10 @@ public class JourneyManager : MonoBehaviour
         // Gera a rota ramificada desta jornada.
         journeyMap = JourneyMapGenerator.Generate(quest, totalDays);
         JourneyMapUI.Instance?.BuildMap(journeyMap, revealedEvents);
+
+        // Os corpos entram na ordem da formação — a mesma fila que decide quem
+        // apanha no combate é a que o jogador vê marchando.
+        if (trailRoad != null) trailRoad.Preparar(currentParty);
 
         // A jornada assume a tela: sem isto, os prédios da guilda continuavam
         // desenhados atrás do mapa e das cartas.
@@ -334,36 +378,113 @@ public class JourneyManager : MonoBehaviour
             return;
         }
 
-        if (eventTitleText != null)
-            eventTitleText.text = "Escolha o caminho";
-
-        if (eventDescriptionText != null)
-            eventDescriptionText.text = "A rota se divide. Selecione no mapa por onde o grupo segue.";
-
         if (resolutionLogText != null)
             resolutionLogText.text = "";
 
         UpdateDetourUI();
         JourneyMapUI.Instance?.Refresh(journeyMap, revealedEvents);
-        UIManager.Instance?.ShowMessage("A rota se divide — escolha no mapa.", 2.5f);
+
+        // Escolher a rota é olhar o mapa: a caixa do evento sai da frente, e com
+        // ela as cartas. O que o jogador precisa comparar são os pontos, e eles
+        // ficavam metade cobertos pela caixa que falava do lugar anterior.
+        MostrarParada(false);
+
+        // Curto: a caminhada até o próximo ponto leva mais de um segundo, e um
+        // aviso de 2,5s ainda estava na tela quando o evento seguinte abria —
+        // falando de uma decisão que o jogador já tomou.
+        UIManager.Instance?.ShowMessage("A rota se divide — escolha para onde o grupo segue.", 1.5f);
     }
 
     /// <summary>Chamado pelo mapa quando o jogador escolhe um nó alcançável.</summary>
     public void OnNodeChosen(int nodeId)
     {
         if (journeyEnded || !isChoosingRoute) return;
-        if (journeyMap == null || !journeyMap.MoveTo(nodeId)) return;
 
-        isChoosingRoute = false;
-        EnterNodeInternal();
+        EnterNode(nodeId);
     }
 
     void EnterNode(int nodeId)
     {
-        if (journeyMap == null || !journeyMap.MoveTo(nodeId)) return;
+        if (journeyMap == null || journeyEnded) return;
+
+        // Uma travessia de cada vez. A caminhada leva mais de um segundo, e
+        // nesse intervalo o fluxo continua vivo: um segundo pedido de rota
+        // chegando no meio moveria o grupo duas vezes e abriria dois eventos
+        // para o mesmo dia.
+        if (caminhando) return;
+
+        if (!journeyMap.MoveTo(nodeId))
+        {
+            // Sair calado daqui trava a jornada para sempre: ninguém mais chama
+            // NextEvent, e a tela fica esperando um clique que não resolve nada.
+            Debug.LogWarning($"JourneyManager: nó {nodeId} não é alcançável a partir daqui — refazendo a escolha de rota.");
+            ShowRouteChoice();
+            return;
+        }
 
         isChoosingRoute = false;
+        StartCoroutine(IrAte());
+    }
+
+    /// <summary>
+    /// A travessia de um trecho: o grupo anda até o ponto e só então o que há
+    /// lá aparece.
+    ///
+    /// É aqui que a jornada deixa de ser uma sequência de telas de texto. O
+    /// evento não abre no clique — abre na chegada, e enquanto se anda o mapa
+    /// fica sem caixa e sem cartas na frente.
+    /// </summary>
+    IEnumerator IrAte()
+    {
+        caminhando = true;
+
+        // A jornada em que esta travessia nasceu. Se outra começar durante a
+        // caminhada, o mapa é outro e o grupo é outro — seguir em frente aqui
+        // faria o grupo novo entrar num ponto do mapa antigo, e o sintoma seria
+        // um "nó do mapa sem evento associado" sem causa aparente.
+        JourneyMap mapaDaVez = journeyMap;
+        int noDaVez = journeyMap != null ? journeyMap.currentNodeId : -1;
+
+        MostrarParada(false);
+
+        if (JourneyMapUI.Instance != null)
+        {
+            JourneyMapUI.Instance.Refresh(journeyMap, revealedEvents);
+            yield return JourneyMapUI.Instance.Caminhar(noDaVez);
+        }
+
+        caminhando = false;
+
+        // A jornada pode ter acabado no meio do caminho (o jogador abandonou,
+        // ou uma corrotina de transição fechou tudo): entrar no nó agora
+        // reabriria uma jornada encerrada.
+        if (journeyEnded || journeyMap != mapaDaVez) yield break;
+
         EnterNodeInternal();
+    }
+
+    /// <summary>
+    /// O grupo está parado em algum lugar? A caixa do evento e a mão de cartas
+    /// aparecem juntas, porque as cartas só têm efeito quando há o que resolver.
+    /// </summary>
+    void MostrarParada(bool parado)
+    {
+        if (eventBox != null && eventBox.activeSelf != parado)
+            eventBox.SetActive(parado);
+
+        if (handContainer != null && handContainer.gameObject.activeSelf != parado)
+            handContainer.gameObject.SetActive(parado);
+
+        // Quem está andando não descansa nem desvia. O EndTurn já era inócuo
+        // fora da parada, mas um botão que aceita clique e não faz nada é pior
+        // que um desligado: o jogador conclui que o jogo travou.
+        if (endTurnButton != null) endTurnButton.interactable = parado;
+
+        if (detourButton != null)
+        {
+            if (parado) UpdateDetourUI();
+            else detourButton.interactable = false;
+        }
     }
 
     void EnterNodeInternal()
@@ -400,6 +521,14 @@ public class JourneyManager : MonoBehaviour
         if (resolutionLogText != null)
             resolutionLogText.text = "";
 
+        // Chegou a algum lugar: o grupo pára para resolver o que encontrou.
+        //
+        // A parada é ligada <b>antes</b> de montar a mão: o leque se refaz no
+        // OnEnable do container, e criar as cartas com ele desligado deixaria a
+        // primeira leva sem posição até o frame seguinte.
+        if (trailRoad != null) trailRoad.Andar(false);
+        MostrarParada(true);
+
         // Atualiza UI das cartas e as opções deste evento
         UpdateCardUI();
         BuildChoices(eventData);
@@ -407,8 +536,6 @@ public class JourneyManager : MonoBehaviour
         UpdateDetourUI();
         UpdateUpcomingEvents();
         JourneyMapUI.Instance?.Refresh(journeyMap, revealedEvents);
-
-        UIManager.Instance?.ShowMessage("Prepare-se com cartas e escolha como agir.", 3f);
     }
 
     /// <summary>Cria um botão para cada desfecho possível do evento.</summary>
@@ -611,6 +738,8 @@ public class JourneyManager : MonoBehaviour
         if (resolution.lines.Count > 0)
             Debug.Log($"[Evento] {currentEvent.eventTitle}\n{resolution.ToText()}");
 
+        ProcurarAchado();
+
         ClearChoices();
         UpdatePartyStatus();
         UpdateCardUI();
@@ -627,6 +756,36 @@ public class JourneyManager : MonoBehaviour
     }
 
     /// <summary>
+    /// O que se acha no chão depois de um evento resolvido.
+    ///
+    /// <b>Frascos, nunca relíquias.</b> A relíquia é permanente e está presa ao
+    /// risco: ela vem do chefe, do despojo escolhido ou do Mercado pago. Um
+    /// evento de estrada acontece muitas vezes por jornada, e largar relíquia
+    /// aqui encheria os slots de todo mundo antes do segundo ciclo, apagando a
+    /// escolha de quem leva o quê.
+    ///
+    /// Vai para a prateleira, e não para a mochila de alguém: no meio da estrada
+    /// não há tela para escolher quem carrega, e o frasco achado no dia 3 só
+    /// serviria à jornada seguinte de qualquer forma.
+    /// </summary>
+    void ProcurarAchado()
+    {
+        // Um a cada oito eventos. Com ~22 eventos resolvidos por jornada no
+        // teste, é da ordem de dois frascos por viagem — bem menos do que se
+        // gasta, que é o que mantém o frasco valendo alguma coisa.
+        if (Random.value > 0.12f) return;
+
+        var guilda = GuildManager.Instance;
+        if (guilda == null) return;
+
+        var achado = ItemCatalog.Pocoes[Random.Range(0, ItemCatalog.Pocoes.Count)];
+        guilda.GuardarPocao(achado.id);
+
+        if (resolutionLogText != null)
+            resolutionLogText.text += $"\n🧪 Entre os destroços: {achado.nome}.";
+    }
+
+    /// <summary>
     /// Troca as consequências pelo desfecho reforçado quando a carta exigida foi
     /// jogada. Devolve o próprio desfecho quando não há versão reforçada — a
     /// carta então apenas destrava a opção, sem melhorá-la.
@@ -636,6 +795,17 @@ public class JourneyManager : MonoBehaviour
         if (outcome == null || !outcome.RequiresCard) return outcome;
         if (outcome.empoweredConsequences == null) return outcome;
         if (!playedThisEvent.Contains(outcome.requiredEffect)) return outcome;
+
+        // <b>Reforço vazio não substitui nada.</b> O campo é uma classe
+        // serializada: o Unity a instancia sempre, então "não preenchido" chega
+        // aqui como um desfecho zerado — e a troca cega apagava as consequências
+        // boas da opção. Medido em 21/08: as 25 opções que exigem carta estavam
+        // assim, e jogar a carta trocava, por exemplo, +10 de vida no grupo
+        // inteiro por absolutamente nada.
+        //
+        // Enquanto os desfechos reforçados não forem escritos, a carta faz o que
+        // sempre disse fazer: destrava o caminho, sem piorá-lo.
+        if (Vazio(outcome.empoweredConsequences)) return outcome;
 
         // Cópia rasa: o asset do evento não pode ser alterado em runtime, ou a
         // mudança gruda no ScriptableObject e vaza para a próxima jornada.
@@ -648,6 +818,29 @@ public class JourneyManager : MonoBehaviour
             requiredEffect = outcome.requiredEffect,
             empoweredText = outcome.empoweredText
         };
+    }
+
+    /// <summary>
+    /// Este desfecho não faz nada com ninguém?
+    ///
+    /// Serve para distinguir "reforço não escrito" de "reforço que existe": o
+    /// primeiro precisa ser ignorado, o segundo é o prêmio da carta.
+    /// </summary>
+    static bool Vazio(EventConsequences c)
+    {
+        if (c == null) return true;
+
+        if (c.goldChange != 0 || c.reputationChange != 0) return false;
+
+        if (c.heroEffects != null)
+            foreach (var e in c.heroEffects)
+                if (e != null && (e.hpChange != 0 || e.addInjury || e.addTrait)) return false;
+
+        if (c.moraleChanges != null)
+            foreach (var m in c.moraleChanges)
+                if (m != null && m.moraleChange != 0) return false;
+
+        return true;
     }
 
     void ClearChoices()
@@ -1240,6 +1433,10 @@ public class JourneyManager : MonoBehaviour
         journeyEnded = true;
         isWaitingForChoice = false;
         isChoosingRoute = false;
+        caminhando = false;
+
+        // A estrada acabou: o palco sai junto, com a câmera e a textura dele.
+        if (trailRoad != null) trailRoad.Desmontar();
 
         int survivors = currentParty.Count(h => !h.isDead);
         int contrato = success ? currentQuest.GetTotalReward(totalDays) : currentQuest.baseReward / 2;
@@ -1380,6 +1577,12 @@ public class JourneyManager : MonoBehaviour
                 run.ReportBossDefeated();
             else
                 run.AdvanceCycle(journeyCasualties.Count);
+
+            // A região atravessada fica pior do que estava. É o que faz o mapa
+            // responder ao que o jogador fez, e não só ao tempo passando: voltar
+            // sempre ao mesmo lugar seguro cobra um preço visível ali.
+            if (currentQuest != null)
+                RegionMap.Corromper(currentQuest.biomeType, RegionMap.CorrupcaoPorVisita);
         }
 
         string resultMessage = success
@@ -1507,6 +1710,18 @@ public class JourneyManager : MonoBehaviour
             confirmacao = "A fama da guilda cresce.",
             aplicar = () => GuildManager.Instance?.AddReputation(15)
         });
+
+        // 5. O achado da estrada: uma relíquia, escolhida contra o ouro que ela
+        //    valeria. É a opção que constrói o herói em vez de pagar as contas
+        //    da guilda — a única aqui cujo efeito atravessa jornadas.
+        var achado = ItemCatalog.Reliquias[Random.Range(0, ItemCatalog.Reliquias.Count)];
+        report.recompensas.Add(new JourneyReport.Reward
+        {
+            titulo = $"🏺 {achado.nome}",
+            descricao = achado.descricao,
+            confirmacao = $"{achado.nome} vai para a prateleira da guilda.",
+            aplicar = () => GuildManager.Instance?.GuardarReliquia(achado.id)
+        });
     }
 
     /// <summary>
@@ -1588,6 +1803,11 @@ public class JourneyManager : MonoBehaviour
 
     void UpdatePartyStatus()
     {
+        // As barras sobre a cabeça leem o mesmo estado dos cards do rodapé, e
+        // por isso se atualizam no mesmo lugar: dois caminhos separados para a
+        // mesma informação acabam divergindo, e aí a tela mostra duas verdades.
+        if (trailRoad != null) trailRoad.AtualizarEstado();
+
         if (partyStatusContainer == null || partyStatusPrefab == null) return;
 
         UIUtil.ClearChildrenNow(partyStatusContainer);
