@@ -16,6 +16,12 @@ public class QuestSelectionUI : MonoBehaviour
     public TMP_Text questDetailsText;
     public Button nextButton1;
 
+    /// <summary>
+    /// O mapa que substitui a lista de missões. Nasce em runtime dentro do
+    /// passo 1 — ver <see cref="MontarMapaDeRegioes"/>.
+    /// </summary>
+    RegionMapUI regionMap;
+
     // Step 2 - Party (Heróis de Apoio)
     public GameObject step2Panel;
     public Transform partySelectionContainer;
@@ -285,11 +291,65 @@ public class QuestSelectionUI : MonoBehaviour
             return;
         }
 
+        // O destino se escolhe no mapa, não numa lista de ofertas: é o que liga
+        // a decisão ao estado do mundo e dá função à Sala de Mapas. A lista de
+        // itens continua aqui como rede de segurança — se o mapa não puder ser
+        // montado, o jogador ainda tem como partir.
+        if (MontarMapaDeRegioes())
+            return;
+
         foreach (var quest in availableQuests)
         {
             GameObject item = Instantiate(questItemPrefab, questListContainer);
             SetupQuestItem(item, quest);
         }
+    }
+
+    /// <summary>
+    /// Constrói (ou redesenha) o mapa de regiões do passo 1.
+    /// Devolve false se não houver onde montá-lo — aí a lista antiga assume.
+    /// </summary>
+    bool MontarMapaDeRegioes()
+    {
+        GameObject hospedeiro = step1Panel != null ? step1Panel
+                              : (questListContainer != null ? questListContainer.gameObject : null);
+        if (hospedeiro == null) return false;
+
+        if (regionMap == null)
+            regionMap = RegionMapUI.Montar(hospedeiro, this);
+
+        if (regionMap == null) return false;
+
+        regionMap.gameObject.SetActive(true);
+        regionMap.Desenhar(availableQuests);
+        EsconderListaAntiga(hospedeiro);
+        return true;
+    }
+
+    /// <summary>
+    /// Desliga o Scroll View da lista de missões enquanto o mapa está no ar.
+    ///
+    /// Ele tem fundo opaco e ocupa a mesma metade da tela: deixá-lo ligado põe
+    /// uma caixa preta vazia ao lado do mapa. Desligar o objeto, e não só limpar
+    /// os itens, é o que faz a área ficar realmente livre.
+    /// </summary>
+    void EsconderListaAntiga(GameObject hospedeiro)
+    {
+        if (hospedeiro == null) return;
+
+        foreach (var scroll in hospedeiro.GetComponentsInChildren<ScrollRect>(true))
+            if (scroll != null) scroll.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// O jogador apontou um destino no mapa. Ponto de entrada do
+    /// <see cref="RegionMapUI"/> — a seleção em si continua sendo a de sempre,
+    /// para o resto da preparação não saber de onde veio a escolha.
+    /// </summary>
+    public void EscolherDestino(QuestData quest)
+    {
+        if (quest == null) return;
+        SelectQuest(quest);
     }
 
     void SetupQuestItem(GameObject item, QuestData quest)

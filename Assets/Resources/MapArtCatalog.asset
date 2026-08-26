@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 164f3f90be308bc41b720ae908b9d8aa, type: 3}
+  m_Name: MapArtCatalog
+  m_EditorClassIdentifier: 
+  papel: {fileID: 21300000, guid: 918eeb4766c4eb94e9b04bcf8e9025cd, type: 3}
+  borda: {fileID: 21300000, guid: cb99eb1b9d51bc34d8f33b1890dd002c, type: 3}
+  guilda: {fileID: 21300000, guid: 4a70aa0f0c12189439a56397df68977f, type: 3}
+  regioes:
+  - biome: 1
+    icone: {fileID: 21300000, guid: b76f271b5e31e4c49886b390a84faaa7, type: 3}
+    escala: 1
+  - biome: 2
+    icone: {fileID: 21300000, guid: 9e18d66aa7ffd714a9fd572a8e48f661, type: 3}
+    escala: 1
+  - biome: 3
+    icone: {fileID: 21300000, guid: d74203d959c3a5d4ea1c0524bf1f915c, type: 3}
+    escala: 1
+  - biome: 4
+    icone: {fileID: 21300000, guid: 9bbfe1e2d9355894eb6dc8153b59d98d, type: 3}
+    escala: 1
+  - biome: 5
+    icone: {fileID: 21300000, guid: cb8e36fac73ae264a9c9e01c6f501efb, type: 3}
+    escala: 1
+  - biome: 6
+    icone: {fileID: 21300000, guid: 58a1b842ab5f92841b07ae3d84860e64, type: 3}
+    escala: 1
+  - biome: 7
+    icone: {fileID: 21300000, guid: c501817a169fa2f44bf105a22606763e, type: 3}
+    escala: 1
+  nos:
+  - tipo: 0
+    icone: {fileID: 21300000, guid: ddd0f5795048148489b901a169e153d4, type: 3}
+    escala: 1
+  - tipo: 1
+    icone: {fileID: 21300000, guid: 96c2585e3b2743541ac25c111dd5ef7c, type: 3}
+    escala: 1
+  - tipo: 2
+    icone: {fileID: 21300000, guid: 2356afd79c3d94c448d46fc04fb8542a, type: 3}
+    escala: 1
+  - tipo: 3
+    icone: {fileID: 21300000, guid: e26fb4a8f6e6e6a4bb176b98feb8ea66, type: 3}
+    escala: 1
+  - tipo: 4
+    icone: {fileID: 21300000, guid: 4ddc3555fdfb70c4882d4438c40d085a, type: 3}
+    escala: 1.0105263
+  - tipo: 5
+    icone: {fileID: 21300000, guid: ac2dd8407de605a4292d1d9518ab8c99, type: 3}
+    escala: 1
+  - tipo: 6
+    icone: {fileID: 21300000, guid: 476ab3b3c7c30e54583a44069dc788c6, type: 3}
+    escala: 1
+  marcoDeChefe: {fileID: 21300000, guid: 451c3abfaa86ad74eb74ebef6e637ae6, type: 3}
+  bussola: {fileID: 21300000, guid: 48bb648d1fe458a459420cca0c739aca, type: 3}
+  escalaDoChefe: 1.019469

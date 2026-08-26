@@ -36,6 +36,18 @@ public class RunManager : MonoBehaviour
         {
             if (instance != null) return instance;
 
+            // Fora do Play Mode não há run — e tentar fundar uma estoura:
+            // DontDestroyOnLoad é proibido em script de Editor, exatamente como
+            // no GameAudio. O smoke test simula 200 jornadas em edit mode e a
+            // primeira missão gerada pedia o medidor global de Corrupção; sem
+            // esta guarda, a bateria de balanceamento inteira morre antes de
+            // escrever relatório, e o Editor devolve um silêncio sem falha.
+            //
+            // Todo mundo que chama Instance em edit mode já trata o null e cai
+            // num padrão: CorruptionStart no QuestGenerator, corrupção do evento
+            // ignorada no EventResolver, sem Chefe Supremo no QuestManager.
+            if (!Application.isPlaying) return null;
+
             var go = new GameObject("~RunManager");
             DontDestroyOnLoad(go);
             instance = go.AddComponent<RunManager>();
@@ -110,6 +122,11 @@ public class RunManager : MonoBehaviour
         Fallen += Mathf.Max(0, fallenThisJourney);
         AddCorruption(CorruptionPerCycle);
 
+        // O mundo apodrece junto com o relógio, cada região no seu ritmo. Sem
+        // isto o mapa mostraria sete regiões paradas enquanto o medidor global
+        // sobe, que é o oposto do que o mapa existe para contar.
+        RegionMap.Avancar(CorruptionPerCycle);
+
         onCycleAdvanced?.Invoke();
         CheckEndConditions();
     }
@@ -183,6 +200,8 @@ public class RunManager : MonoBehaviour
         Fallen = 0;
         State = RunState.Running;
         EndReason = RunEndReason.None;
+
+        RegionMap.Reiniciar();
     }
 
     /// <summary>
