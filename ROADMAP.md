@@ -14,6 +14,9 @@
 
 ## 1. Onde o projeto está
 
+*(Escrito em 14/08. O `GDD.md` citado abaixo foi reescrito em 26/08 e hoje descreve o código como
+ele está — 395 linhas, com status por sistema.)*
+
 O protótipo é sólido e maior do que a documentação admite. O `GDD.md` (19/06) está **desatualizado**:
 descreve o combate tático como `[PLANEJADO]`, o `EventResolver` como vazio e `Resources/Events` como
 pasta sem conteúdo. Hoje os três existem e funcionam — combate por turnos com intenções, resolução de
@@ -657,6 +660,59 @@ jornada plantado no meio do campo de batalha — este último anterior a esta se
 
 ---
 
+### Fase 3.7 — A Forja deixa de ser lista ✅ *concluída em 26/08*
+
+O autor apontou em 18/08 quatro problemas nas salas da guilda: **são listas e botões**, **não dão
+motivo para voltar**, **o efeito não é perceptível** e **competem mal entre si**. O princípio de
+correção é dele: *quanto mais interativa, mais retorno percebido*. A abordagem escolhida foi refazer
+**uma sala como piloto**, que vira o molde das outras seis — se o desenho não convencer, só uma sala
+foi gasta.
+
+A **Forja** foi a escolhida: a mais visitada, a mais crua (quatro linhas com dois botões e 60% da
+tela vazia) e a única onde o efeito da compra — `+1` de dano nas cartas daquele herói — pode ser
+mostrado acontecendo sem inventar regra nova.
+
+| Antes | Agora |
+|---|---|
+| Uma linha por herói, dois botões de compra | Fila à esquerda, **um herói na bigorna** por vez |
+| `arma 0/3` → `arma 1/3`, e nada mais | A peça **troca de desenho** e a moldura acende com o nível |
+| Efeito só no combate seguinte | As **cartas afetadas** ao lado, com o dano que vão causar |
+| Fundo: o mesmo mármore da guilda | Silhueta de caverna do `Pixel Fantasy Caves` |
+
+As peças saem do **SPUM**, que já mora dentro de uma pasta `Resources` — a tabela de escolhas está
+em `ForgeArt.cs`, uma família por classe. Onde falta material (mago e curandeiro têm uma arma só), o
+nível é carregado pela cor da moldura e pelos blocos, e não por uma família diferente a cada nível.
+
+**Medido** (`PlayModeReport.txt` de 26/08, 0 erros):
+
+| O quê | Resultado |
+|---|---|
+| Fila e bigorna | `heróis na fila: 4` · `na bigorna ao abrir: Gromm` |
+| Trocar de herói pelo clique | `clique na ficha de Lyra: na bigorna agora = Lyra` |
+| Peça desenhada | `arma=New_Weapon_03 (178×178px)` · `armadura=New_Shield_01 (178×178px)` |
+| Forjar | `nível 0 → 1` · `bônus nas cartas dele: +0 → +1` · `HP máx 23 → 27` |
+| O ganho na carta | `sim — "⚔️ 13 de dano (+1 da forja)"` |
+
+Smoke test: **41 verificações, 0 falhas**, letalidade 0,51 mortes/jornada (alvo 0,33–0,67).
+
+**Três defeitos que só a captura mostrou**, de novo com o relatório em 0 falhas:
+
+1. A carta da prateleira saiu com o **"New Text" do editor**: o `CardPrefab` **não tem componente
+   `CardUI`** — o combate preenche os filhos pelo nome, e a forja só chamava `Bind`.
+2. A "brasa" atrás dos slots, um retângulo laranja a 13% de alfa, virou um **bloco marrom chapado**
+   sobre a caixa escura. Calor não se desenha com retângulo: foi removida.
+3. As peças saíram com **30px dentro de uma moldura de 140** — o sprite do SPUM é 32×32 com o
+   desenho ocupando um terço do quadro, e `preserveAspect` encaixa o quadro inteiro, transparência
+   incluída. É a mesma armadilha do `portraitScale` dos inimigos.
+
+**O que falta, já decidido pelo autor em 26/08:** *o motivo para voltar* será **estoque que muda por
+ciclo** — a cada volta de jornada a sala tem algo que não tinha antes, e perder um ciclo passa a
+custar. **Rejeitados:** encomenda com prazo, a sala evoluir por investimento e evento próprio de
+sala. Vale para as salas em geral, e o Mercado é o caso mais gritante: dez itens fixos, sempre os
+mesmos. Não está construído.
+
+---
+
 ### Fase 3 — planejamento original
 
 1. **`RunManager`** (novo, `DontDestroyOnLoad` como os outros): número do ciclo, corrupção global,
@@ -679,6 +735,32 @@ jornada plantado no meio do campo de batalha — este último anterior a esta se
 
 ### Fase 4 — Dar peso ao que já está escrito
 *Barato, porque os dados já existem e só falta quem os leia.*
+
+- **A carta da estrada precisa valer a carta.** Levantado pelo autor em 21/08: *"não existe motivo
+  real para usar as cartas fora de combate, é preferível só escolher uma das opções"*. Ele tem razão,
+  e a medição mostrou que era pior do que parecia:
+
+  | O que se mediu | Resultado |
+  |---|---|
+  | Opções de evento que exigem carta | 25 de 25 eventos |
+  | Dessas, quantas têm desfecho reforçado escrito | **0** |
+  | O que o código fazia ao jogar a carta | trocava o desfecho da opção pelo reforçado **vazio** |
+
+  Ou seja: a carta destravava o caminho e, ao entrar nele, o grupo não recebia nada — em
+  *Acampamento Noturno*, jogar a carta trocava **+10 de vida em todos e +8 de moral** por zero. Como
+  a carta sai do mesmo baralho que serve ao combate, gastá-la custava duas vezes.
+
+  **Resolvido em 21/08**, com duas regras escolhidas pelo autor entre os três caminhos levantados —
+  estão escritas no cabeçalho de `Assets/Scripts/Core/EventBalance.cs`, a ferramenta que as aplicou
+  aos 25 assets:
+
+  1. **A carta dá o melhor desfecho.** O reforçado é a mesma escolha dando certo: o dano não
+     acontece, a cura rende mais, o ouro vem maior, o ferimento não pega. Não é desfecho inventado.
+  2. **A opção com carta é a única saída sem custo.** Das 64 opções livres, 56 já cobravam alguma
+     coisa; as 8 restantes passaram a cobrar moral.
+
+  O terceiro caminho — separar o baralho da estrada do de combate — foi **rejeitado**: o deck híbrido
+  é decisão de design anterior, e o que faltava era a contrapartida, não a separação.
 
 - **`corruptionExposure`**: acima de 50, o herói ganha traço negativo ao voltar; acima de 80, risco de
   "virar" e sair do roster. Já acumula, ninguém lê.
