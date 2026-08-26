@@ -118,3 +118,8 @@ SmokeTestReport*.txt
 [Aa]ssets/.mcp_auth_token
 # Ferramenta de desenvolvimento com repositorio proprio (MCP for Unity)
 [Aa]ssets/StreamingAssets/realvirtual-MCP/
+# Demo do Fantasy Map Assets Pack: 92 MB de PSD que o jogo nao usa. O que entra
+# no mapa sao os PNGs de Assets/, ligados pelo MapArtCatalog. Binario grande nao
+# sai facil do historico depois.
+Assets/DefaceGames/Fantasy Map Assets Pack Lite/PSD Files/
+Assets/DefaceGames/Fantasy Map Assets Pack Lite/PSD Files.meta
