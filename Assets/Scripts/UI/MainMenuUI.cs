@@ -18,7 +18,7 @@ public class MainMenuUI : MonoBehaviour
     public TMP_Text titleText;
     public TMP_Text subtitleText;
 
-    /// <summary>Recordes e relíquias — o que sobrou das runs anteriores.</summary>
+    /// <summary>Recordes e memórias — o que sobrou das runs anteriores.</summary>
     public TMP_Text metaText;
 
     [Header("Botões")]
@@ -80,7 +80,7 @@ public class MainMenuUI : MonoBehaviour
 
         if (metaText != null)
         {
-            int relicas = MetaProgression.Relics;
+            int relicas = MetaProgression.Memorias;
             int runs = MetaProgression.TotalRuns;
 
             if (runs == 0)
@@ -92,14 +92,14 @@ public class MainMenuUI : MonoBehaviour
                 string vitorias = MetaProgression.TotalWins == 1
                     ? "1 vitória" : $"{MetaProgression.TotalWins} vitórias";
 
-                metaText.text = $"<color=#D9B85A>◆ {relicas} relíquias</color>   "
+                metaText.text = $"<color=#D9B85A>◆ {relicas} memórias</color>   "
                               + $"<size=85%>{runs} guildas · {vitorias} · melhor: ciclo "
                               + $"{MetaProgression.BestCycle}</size>";
             }
         }
 
         if (shrineButton != null)
-            shrineButton.interactable = MetaProgression.Relics > 0 || MetaProgression.TotalRuns > 0;
+            shrineButton.interactable = MetaProgression.Memorias > 0 || MetaProgression.TotalRuns > 0;
     }
 
     #region Ações

@@ -215,12 +215,25 @@ public class LibraryManager : MonoBehaviour
             }
         }
 
-        // Botão de compra
+        // Botão de compra. O rótulo nunca era escrito: o prefab vem do editor com
+        // "Button" no texto, e as três cartas à venda apareciam com três botões
+        // idênticos sem dizer que compravam nada — nem por quanto.
         Button buyButton = cardObj.transform.Find("Button_Buy")?.GetComponent<Button>();
         if (buyButton != null)
         {
             int priceCapture = price;
             buyButton.onClick.AddListener(() => PurchaseCard(card, priceCapture));
+
+            // Só o verbo: o preço já está escrito no corpo da carta, e
+            // "COMPRAR — 💰 100" não cabe na largura do botão — quebrava linha e
+            // saía pela borda de baixo.
+            TMP_Text buyLabel = buyButton.GetComponentInChildren<TMP_Text>(true);
+            if (buyLabel != null) buyLabel.text = "COMPRAR";
+
+            // Sem ouro o botão fica visivelmente fora de alcance, em vez de
+            // recusar a compra só depois do clique.
+            buyButton.interactable = GuildManager.Instance == null
+                                  || GuildManager.Instance.gold >= price;
         }
 
         // Botão principal (detalhes)

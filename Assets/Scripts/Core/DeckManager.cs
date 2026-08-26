@@ -232,15 +232,13 @@ public class DeckManager : MonoBehaviour
         foreach (var card in currentDeck.cards)
         {
             GameObject cardObj = Instantiate(cardPrefab, currentDeckContainer);
-            CardInDeck cardScript = cardObj.GetComponent<CardInDeck>();
-            if (cardScript != null)
-            {
-                cardScript.Initialize(card, true);
-                // Adiciona listener para remover do deck
-                Button btn = cardObj.GetComponent<Button>();
-                if (btn != null)
-                    btn.onClick.AddListener(() => RemoveCardFromDeck(card));
-            }
+            CardInDeck cardScript = GarantirCarta(cardObj);
+            cardScript.Initialize(card, true);
+
+            // Adiciona listener para remover do deck
+            Button btn = cardObj.GetComponent<Button>();
+            if (btn != null)
+                btn.onClick.AddListener(() => RemoveCardFromDeck(card));
         }
 
         UpdateDeckStats();
@@ -260,18 +258,54 @@ public class DeckManager : MonoBehaviour
         foreach (var card in allOwnedCards)
         {
             GameObject cardObj = Instantiate(cardPrefab, collectionContainer);
-            CardInDeck cardScript = cardObj.GetComponent<CardInDeck>();
-            if (cardScript != null)
-            {
-                cardScript.Initialize(card, false);
-                // Adiciona listener para adicionar ao deck
-                Button btn = cardObj.GetComponent<Button>();
-                if (btn != null)
-                    btn.onClick.AddListener(() => AddCardToDeck(card));
-            }
+            CardInDeck cardScript = GarantirCarta(cardObj);
+            cardScript.Initialize(card, false);
+
+            // Adiciona listener para adicionar ao deck
+            Button btn = cardObj.GetComponent<Button>();
+            if (btn != null)
+                btn.onClick.AddListener(() => AddCardToDeck(card));
         }
 
         UpdateCollectionStats();
+    }
+
+    /// <summary>
+    /// Põe na carta recém-instanciada o componente que a preenche — e o liga aos
+    /// textos do prefab.
+    ///
+    /// O <c>CardPrefab</c> nunca teve o <see cref="CardInDeck"/>: tem os textos,
+    /// tem o Button, e mais nada. O código antigo pedia o componente e, ao não
+    /// achar, **desistia em silêncio** — dentro de um <c>if (cardScript != null)</c>
+    /// que também guardava o listener do clique. O resultado é a tela inteira de
+    /// baralhos morta: cada carta aparecia escrita "New Text", sem custo, sem
+    /// reagir ao clique e sem arrastar, e nenhum erro no console dizia por quê.
+    ///
+    /// Ligar por nome vale mais que arrumar o prefab à mão: o mesmo prefab serve
+    /// à jornada e ao combate, que preenchem os textos por conta própria, e um
+    /// componente de arrasto gravado nele iria junto para essas duas telas.
+    /// </summary>
+    static CardInDeck GarantirCarta(GameObject cardObj)
+    {
+        CardInDeck script = cardObj.GetComponent<CardInDeck>();
+        if (script == null) script = cardObj.AddComponent<CardInDeck>();
+
+        if (script.cardNameText == null)
+            script.cardNameText = Achar<TMP_Text>(cardObj, "CardName");
+        if (script.cardCostText == null)
+            script.cardCostText = Achar<TMP_Text>(cardObj, "CostTxt");
+        if (script.cardDescriptionText == null)
+            script.cardDescriptionText = Achar<TMP_Text>(cardObj, "CardDescription");
+        if (script.rarityBorder == null)
+            script.rarityBorder = Achar<Image>(cardObj, "Border");
+
+        return script;
+    }
+
+    static T Achar<T>(GameObject raiz, string nome) where T : Component
+    {
+        Transform alvo = raiz.transform.Find(nome);
+        return alvo != null ? alvo.GetComponent<T>() : null;
     }
 
     void AddCardToDeck(CardData card)

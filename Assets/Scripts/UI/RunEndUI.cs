@@ -97,8 +97,8 @@ public class RunEndUI : MonoBehaviour
         if (metaText != null)
         {
             int ganho = MetaProgression.PreviewReward(run);
-            metaText.text = $"<color=#D9B85A>◆ +{ganho} relíquias</color>   "
-                          + $"<size=85%>(total: {MetaProgression.Relics})</size>";
+            metaText.text = $"<color=#D9B85A>◆ +{ganho} memórias</color>   "
+                          + $"<size=85%>(total: {MetaProgression.Memorias})</size>";
         }
 
         GameAudio.Parar();
