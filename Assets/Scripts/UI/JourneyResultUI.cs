@@ -189,6 +189,14 @@ public class JourneyResultUI : MonoBehaviour
         foreach (var linha in report.herois)
         {
             GameObject item = Instantiate(heroLinePrefab, heroContainer);
+
+            // O molde vive na cena desligado, e o clone nasce desligado com ele.
+            // Sem esta linha as fichas existiam na hierarquia — o teste contava
+            // as quatro — e nenhuma aparecia: a tela de balanço mostrava só o
+            // título e o ouro, com o meio vazio. As opções de despojo, logo
+            // acima, sempre tiveram o SetActive; estas não.
+            item.SetActive(true);
+
             PreencherLinha(item, linha);
         }
     }

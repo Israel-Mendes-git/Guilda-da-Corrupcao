@@ -1546,23 +1546,59 @@ public class PlayModeProbe : MonoBehaviour
         yield return new WaitForSeconds(0.3f);
 
         Line($"mercado visível: {(ui.marketPanel != null && ui.marketPanel.activeInHierarchy)}");
-        Line($"itens na prateleira: {CountRows(market.itemContainer)}");
-        DumpLabelVisivel(market.itemContainer);
+        Line($"itens na carroça: {CountRows(market.itemContainer)}");
+
+        // A sala põe alguém no balcão sozinha ao abrir, como a Forja faz com a
+        // bigorna: um balcão vazio esperando clique seria a tela morta de antes.
+        string noBalcao = market.counterName != null ? market.counterName.text : "";
+        Line($"no balcão ao abrir: {(string.IsNullOrEmpty(noBalcao) ? "nada" : noBalcao)}");
+
+        // Trocar o item do balcão é a interação nova. O vinho serve de alvo do
+        // clique porque é o que exercita a faixa da direita com barra: ele mede
+        // estresse, e a party do teste sempre tem alguém com algum.
+        Button ficha = FirstEnabledButton(market.itemContainer, "Vinho");
+        if (ficha == null)
+        {
+            Line("FALHA: o Vinho está na carroça e a ficha dele não responde ao clique");
+        }
+        else
+        {
+            ReportarAlcancavel(ficha);
+            ficha.onClick.Invoke();
+            yield return new WaitForSeconds(0.2f);
+
+            Line($"clique na ficha do Vinho: no balcão agora = "
+               + $"{(market.counterName != null ? market.counterName.text : "?")}");
+            Line($"em quem a compra pega: {CountRows(market.effectContainer)} linha(s) — "
+               + $"{(market.effectTitle != null ? market.effectTitle.text : "")}");
+            DumpLabelVisivel(market.effectContainer);
+        }
+
         yield return Capture("sala_mercado");
 
         int ouroAntes = GuildManager.Instance.gold;
         int racoesAntes = market.StockedRations;
 
-        Button comprar = FirstEnabledButton(market.itemContainer);
-        if (comprar == null)
+        // A ração é a compra do teste: barata, sempre disponível e com efeito
+        // conferível por número (o estoque que a próxima jornada leva).
+        Button racao = FirstEnabledButton(market.itemContainer, "Ração");
+        if (racao != null)
         {
-            Line("FALHA: nenhum item comprável no mercado");
+            racao.onClick.Invoke();
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        if (market.buyButton == null || !market.buyButton.interactable)
+        {
+            Line("FALHA: o botão do balcão não está disponível para a ração");
         }
         else
         {
-            comprar.onClick.Invoke();
+            ReportarAlcancavel(market.buyButton);
+            market.buyButton.onClick.Invoke();
             yield return new WaitForSeconds(0.2f);
             Line($"compra: ouro {ouroAntes} → {GuildManager.Instance.gold} | rações estocadas {racoesAntes} → {market.StockedRations}");
+            Line($"o balcão continua no mesmo item: {(market.counterName != null ? market.counterName.text : "?")}");
         }
 
         RelatarEstoquePorCiclo();
@@ -2186,8 +2222,23 @@ public class PlayModeProbe : MonoBehaviour
     /// </summary>
     IEnumerator RelatarBalanco(JourneyResultUI balanco)
     {
-        int linhas = balanco.heroContainer != null ? balanco.heroContainer.childCount : 0;
-        Line($"  linhas de herói no balanço: {linhas}");
+        // Ativas, não filhas. Contar childCount dizia "4 linhas" enquanto as
+        // quatro estavam desligadas na hierarquia e a tela aparecia vazia — o
+        // clone do molde nasce desligado com ele. Foi a captura que pegou.
+        int linhas = 0;
+        int desligadas = 0;
+
+        if (balanco.heroContainer != null)
+        {
+            foreach (Transform filho in balanco.heroContainer)
+            {
+                if (filho.gameObject.activeInHierarchy) linhas++;
+                else desligadas++;
+            }
+        }
+
+        Line($"  linhas de herói no balanço: {linhas}"
+           + (desligadas > 0 ? $"  BUG: {desligadas} ficha(s) na hierarquia sem aparecer na tela" : ""));
 
         if (balanco.titleText != null)
             Line($"  título: '{StripTags(balanco.titleText.text)}'");
