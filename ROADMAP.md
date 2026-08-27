@@ -792,11 +792,56 @@ porque testava exatamente as quatro classes certas, e nunca o caminho que a tave
 **Medido em 26/08:** `SMOKE TEST OK — 45 verificações, 0 falhas`, letalidade 0,54 · `PLAY MODE OK —
 nenhum erro capturado`, com as seis salas abertas, compradas e fotografadas.
 
-**O que falta desta frente:** o **Mercado** continua sendo a lista de dez linhas com "COMPRAR" — é a
-única sala que não passou pelo molde, embora já use o estoque por ciclo. E ele tem **duas poções de
-cura de nomes quase iguais**: a antiga (70 de ouro, cura na guilda) e a do catálogo de itens (60,
-levada na estrada). A tela do **gerenciador de baralhos** também nunca foi refeita: botões brancos
-escritos "Button", rótulos sobrepostos e cartas fora do lugar.
+---
+
+### Fase 3.9 — O Mercado, e duas barras que mentiam ✅ *concluída em 27/08*
+
+A última das sete salas saiu da lista. Mesmas três faixas: a **carroça** à esquerda com o que o
+mercador trouxe nesta volta; o **balcão** no meio, um item de cada vez; e à direita **em quem a
+compra pega** — o herói que seria atendido com a barra do antes e do depois, ou o estoque que a
+próxima jornada leva, ou o que já está guardado na prateleira.
+
+Duas decisões que o desenho exigiu:
+
+- **A faixa da direita lista o grupo inteiro**, com o alvo em destaque. Mostrar só o alvo deixava a
+  tela com uma linha — ou nenhuma, no caso mais comum, que é ninguém precisar. Listando o roster, a
+  sala responde à pergunta anterior à compra: *alguém precisa disto?*
+- **A ficha e o botão dizem por que não dá para comprar** — sem ouro, ou sem quem atender. Um
+  "COMPRAR" apagado obriga o jogador a adivinhar entre as duas, e elas pedem coisas opostas dele.
+
+A **"Poção de cura"** da guilda virou **"Tratamento"**: o catálogo de itens tem uma "Poção de Cura"
+que vai para a mochila e é bebida em combate, e as duas apareciam lado a lado, mesmo emoji, nomes
+separados por uma maiúscula. O nome definitivo é decisão do autor.
+
+#### ⚠️ O achado: `Image.type = Filled` sem sprite é ignorado em silêncio
+
+A barra nova saiu **cheia com 0/100**. Sem sprite, o `Image` desenha o retângulo inteiro e o
+`fillAmount` não vale nada — não há erro, aviso, nem nada no relatório.
+
+O **Cemitério tem o mesmo código desde que a sala foi feita**: a tarja de estresse de cada vivo
+aparecia lotada em qualquer valor, mudando só de cor. A vigília, que existe para fazer essa barra
+descer, movia um número que a tela não mostrava. `UIUtil.Branco()` resolve os dois.
+
+#### ⚠️ O achado maior: a tela de balanço nunca mostrou os heróis
+
+A captura do fim de jornada tem título, ouro e **um vazio no meio** — onde a Fase 2.5 diz haver uma
+linha por herói com vida, estado, XP e barra de progresso. O relatório da época e o de hoje diziam
+`linhas de herói no balanço: 4`.
+
+As quatro existiam mesmo: o molde da ficha vive na cena **desligado**, e `Instantiate` devolve o
+clone desligado com ele. As opções de despojo, montadas dez linhas acima no mesmo arquivo, sempre
+tiveram o `SetActive(true)`; as fichas de herói, não. O teste contava **filhos do container** — e um
+filho desligado conta igual.
+
+O probe passou a contar as **ativas** e a acusar `BUG: N ficha(s) na hierarquia sem aparecer na tela`.
+É a mesma família dos outros quinze: dado certo, exibição ausente.
+
+**Medido:** `PLAY MODE OK — nenhum erro capturado`, com o Mercado abrindo, trocando o foco pelo
+clique, comprando e mantendo o item no balcão. *A correção da tela de balanço compila mas ainda não
+passou por Play Mode — o Editor fechou o projeto antes da rodada de confirmação.*
+
+**O que falta:** a tela do **gerenciador de baralhos** nunca foi refeita — botões brancos escritos
+"Button", rótulos sobrepostos e cartas fora do lugar (`Assets/Screenshots/tela_deck.png`).
 
 ---
 
