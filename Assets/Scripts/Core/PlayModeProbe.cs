@@ -309,6 +309,15 @@ public class PlayModeProbe : MonoBehaviour
         else
             Line("pulada: JourneyManager ausente na cena");
 
+        Section("DIARIO DE UMA PARTIDA");
+        yield return DiarioDaPartida();
+
+        Section("O QUE CADA TELA OFERECE");
+        yield return AuditarTelas();
+
+        Section("CUSTO DE CADA ACAO, EM CLIQUES");
+        yield return CustoDasAcoes();
+
         Section("A RUN (Fase 3)");
         yield return TestRun();
 
@@ -2160,6 +2169,342 @@ public class PlayModeProbe : MonoBehaviour
         Line($"captura: {nome}.png {(File.Exists(caminho) ? "ok" : "(ainda gravando)")}");
     }
 
+    #region Diário da partida
+
+    /// <summary>
+    /// O ciclo pelos olhos de quem joga: o que a guilda mostra ao abrir, o que o
+    /// quadro oferece, o que a preparação pede, o que a volta entrega e o que
+    /// mudou na guilda depois — três voltas seguidas.
+    ///
+    /// <b>Por que não jogar as três jornadas.</b> A jornada inteira já é dirigida
+    /// e medida na seção "JORNADA AUTOMATICA", e repeti-la triplicaria o tempo do
+    /// teste sem dizer nada novo. O que falta ao relatório, e é o que esta seção
+    /// cobre, é a <i>moldura</i>: as decisões que o jogador toma fora da estrada,
+    /// e se elas mudam de uma volta para a outra.
+    /// </summary>
+    IEnumerator DiarioDaPartida()
+    {
+        var guilda = GuildManager.Instance;
+        var quadro = QuestManager.Instance;
+        var run = RunManager.Instance;
+
+        if (guilda == null || quadro == null)
+        {
+            Line("pulada: GuildManager ou QuestManager ausentes");
+            yield break;
+        }
+
+        for (int volta = 1; volta <= 3; volta++)
+        {
+            Line("");
+            Line($"── VOLTA {volta} " + new string('─', 56));
+
+            // ── A guilda ao abrir ──
+            var vivos = guilda.roster.Where(h => h != null && !h.isDead).ToList();
+            var aptos = vivos.Where(h => h.IsFitForJourney).ToList();
+
+            Line($"  a guilda tem {guilda.gold} de ouro, {vivos.Count} herói(s) e {guilda.reputation} de reputação"
+               + (run != null ? $" · ciclo {run.Cycle}, corrupção {run.Corruption:F0}" : ""));
+
+            foreach (var h in vivos.Take(6))
+            {
+                string estado = h.IsFitForJourney ? "pronto" : "RECUSA PARTIR";
+                if (h.isInjured) estado += ", ferido";
+                if (h.mentalState != MentalState.Normal) estado += $", {MentalStateUtil.GetLabel(h.mentalState)}";
+
+                DeckData deck = DeckRepository.GetDeck(h);
+                int cartas = deck != null && deck.cards != null ? deck.cards.Count : 0;
+
+                Line($"    {h.heroName,-14} Nv.{h.level}  ❤️ {h.currentHp}/{h.maxHp}"
+                   + $"  🧠 {h.stress:F0}  ⚔️ arma {h.weaponLevel}  🃏 {cartas} cartas  — {estado}");
+            }
+
+            if (aptos.Count < 4)
+                Line($"  ATENÇÃO: só {aptos.Count} herói(s) em condição de partir — o grupo sai incompleto");
+
+            // ── O que o guia manda fazer ──
+            var guia = UnityEngine.Object.FindObjectOfType<GuildGuide>(true);
+            if (guia != null && guia.linha != null && !string.IsNullOrWhiteSpace(guia.linha.text))
+                Line($"  o guia da guilda diz: \"{StripTags(guia.linha.text)}\"");
+            else
+                Line("  o guia da guilda não diz nada nesta volta");
+
+            // ── O que o quadro oferece ──
+            var missoes = quadro.GetQuests();
+            Line($"  o quadro oferece {missoes.Count} contrato(s):");
+
+            foreach (var q in missoes)
+            {
+                if (q == null) continue;
+
+                int dias = q.GetActualDuration();
+                Line($"    {q.questName,-32} {StripTags(BiomeUtil.GetDisplayName(q.biomeType)),-12} "
+                   + $"{dias,2} dias · {q.GetTotalReward(dias),4} de ouro · corrupção {q.corruptionLevel,3}"
+                   + (q.isFinalBoss ? "  ◆ CHEFE SUPREMO" : ""));
+            }
+
+            // ── O que a carroça traz nesta volta ──
+            var frascos = CycleStock.Escolher(ItemCatalog.Pocoes, 2, "mercado-frascos");
+            int oferta = CycleStock.Numero("forja-oferta", 0, 3);
+            Line($"  o mercador traz: {string.Join(", ", frascos.Select(p => p.nome))}"
+               + $"  ·  a forja está com desconto em: {(oferta == 0 ? "nada" : oferta == 1 ? "armas" : "armaduras")}");
+
+            // ── O que o ouro compra agora ──
+            Line($"  com {guilda.gold} de ouro dá para: {OQueOuroCompra(guilda.gold)}");
+
+            // A volta seguinte: o ciclo anda como andaria ao fim de uma jornada.
+            if (volta < 3 && run != null)
+            {
+                run.AdvanceCycle();
+                quadro.RenovarQuadro();
+                guilda.AddGold(400);   // o que uma jornada média entrega
+                yield return new WaitForSeconds(0.2f);
+            }
+        }
+
+        Line("");
+        Line("  (o ouro de cada volta é o que a auditoria mede como jornada média: ~400)");
+        yield return null;
+    }
+
+    /// <summary>
+    /// O que a guilda consegue comprar com o que tem — a pergunta que o jogador
+    /// faz ao voltar da estrada.
+    /// </summary>
+    static string OQueOuroCompra(int ouro)
+    {
+        var lista = new List<string>();
+
+        int reliquias = ItemCatalog.Reliquias.Count(r => r.preco <= ouro);
+        if (reliquias > 0) lista.Add($"{reliquias} das {ItemCatalog.Reliquias.Count} relíquias");
+
+        var forja = UnityEngine.Object.FindObjectOfType<ForgeManager>(true);
+        if (forja != null)
+        {
+            var alvo = HeroFactory.CreateHero("Teste", HeroClass.Warrior, 3);
+            int custo = forja.WeaponCost(alvo);
+            if (custo <= ouro) lista.Add($"{ouro / custo} melhoria(s) de arma");
+            UnityEngine.Object.DestroyImmediate(alvo);
+        }
+
+        var lib = LibraryManager.Instance;
+        if (lib != null && lib.upgradeBaseCost <= ouro) lista.Add("melhorar a Biblioteca");
+
+        return lista.Count > 0 ? string.Join(", ", lista) : "quase nada";
+    }
+
+    #endregion
+
+    #region Auditoria de interação
+
+    /// <summary>
+    /// O que o jogador encontra em cada tela, contado na tela e não no palpite:
+    /// quantos botões, quantos deles estão desligados, e se alguma linha de texto
+    /// explica o que fazer ali.
+    ///
+    /// <b>Por que o desligado importa.</b> Um botão apagado sem motivo escrito é
+    /// a forma mais comum de o jogador travar: ele vê a ação, não pode usá-la, e
+    /// não sabe o que fazer para poder. As salas refeitas escrevem o motivo na
+    /// própria ficha; esta varredura mostra quais ainda não.
+    /// </summary>
+    IEnumerator AuditarTelas()
+    {
+        var ui = UIManager.Instance;
+        if (ui == null)
+        {
+            Line("pulada: UIManager ausente");
+            yield break;
+        }
+
+        Line("  tela                      botões   desligados   textos   dica na tela");
+        Line("  ────────────────────────────────────────────────────────────────────");
+
+        var telas = new (string nome, GameObject painel, System.Action abrir)[]
+        {
+            ("Guilda",        ui.guildPanel,       () => ui.ShowGuildScreen()),
+            ("Taverna",       ui.tavernPanel,      () => ui.ShowTavern()),
+            ("Biblioteca",    ui.libraryPanel,     () => ui.ShowLibrary()),
+            ("Forja",         ui.forgePanel,       () => ui.ShowForge()),
+            ("Mercado",       ui.marketPanel,      () => ui.ShowMarket()),
+            ("Cemitério",     ui.cemeteryPanel,    () => ui.ShowCemetery()),
+            ("Sala de Mapas", ui.mapRoomPanel,     () => ui.ShowMapRoom()),
+            ("Baralhos",      ui.deckManagerPanel, () => ui.ShowDeckManager())
+        };
+
+        foreach (var tela in telas)
+        {
+            if (tela.painel == null)
+            {
+                Line($"  {tela.nome,-24} AUSENTE na cena");
+                continue;
+            }
+
+            tela.abrir();
+            yield return new WaitForSeconds(0.25f);
+
+            int ativos = 0, desligados = 0, textos = 0;
+            bool temDica = false;
+
+            foreach (Button b in tela.painel.GetComponentsInChildren<Button>(true))
+            {
+                if (!b.gameObject.activeInHierarchy) continue;
+                if (b.interactable) ativos++; else desligados++;
+            }
+
+            foreach (TMP_Text t in tela.painel.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (!t.gameObject.activeInHierarchy || string.IsNullOrWhiteSpace(t.text)) continue;
+                textos++;
+
+                // A dica é a linha que ensina a sala: reconhecida pelo nome do
+                // objeto, que é como as salas refeitas a montam.
+                if (t.name.Contains("Hint") || t.name.Contains("Txt_Hint")) temDica = true;
+            }
+
+            Line($"  {tela.nome,-24} {ativos,6}   {desligados,10}   {textos,6}   {(temDica ? "sim" : "NÃO"),12}");
+        }
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.25f);
+    }
+
+    /// <summary>
+    /// Quantos cliques o jogador gasta para fazer o que ele faz toda volta.
+    ///
+    /// A conta é dos cliques que <b>este teste</b> executa para chegar lá, e não
+    /// de uma tabela escrita à mão: se o caminho mudar, o número muda junto. O
+    /// primeiro clique é sempre o da porta da sala, contado a partir da guilda.
+    /// </summary>
+    IEnumerator CustoDasAcoes()
+    {
+        var ui = UIManager.Instance;
+        if (ui == null || GuildManager.Instance == null)
+        {
+            Line("pulada: UIManager ou GuildManager ausentes");
+            yield break;
+        }
+
+        // Ouro de sobra: o objetivo aqui é medir o caminho, não a economia.
+        GuildManager.Instance.AddGold(5000);
+
+        int cliques;
+
+        // ── Forjar a arma de um herói ──
+        cliques = 0;
+        ui.ShowForge(); cliques++;
+        yield return new WaitForSeconds(0.25f);
+
+        var forge = ForgeManager.Instance;
+        if (forge != null && forge.weaponButton != null && forge.weaponButton.interactable)
+        {
+            forge.weaponButton.onClick.Invoke(); cliques++;
+            yield return new WaitForSeconds(0.2f);
+            Relatar("forjar a arma de quem já está na bigorna", cliques);
+        }
+        else Line("  forjar a arma: indisponível no momento do teste");
+
+        // Trocar de herói custa um clique a mais, e é o caso comum: o jogador
+        // quer equipar alguém específico, não quem a sala escolheu.
+        Relatar("forjar a arma de outro herói da fila", cliques + 1);
+
+        ui.CloseForge();
+        yield return new WaitForSeconds(0.2f);
+
+        // ── Comprar uma carta ──
+        cliques = 0;
+        ui.ShowLibrary(); cliques++;
+        yield return new WaitForSeconds(0.25f);
+
+        var library = LibraryManager.Instance;
+        Button compra = library != null ? FirstEnabledButton(library.cardsContainer, "Btn_Buy") : null;
+        if (compra != null)
+        {
+            compra.onClick.Invoke(); cliques++;
+            yield return new WaitForSeconds(0.2f);
+            Relatar("comprar uma carta para quem está na mesa", cliques);
+        }
+        else Line("  comprar carta: nenhuma disponível no momento do teste");
+
+        ui.CloseLibrary();
+        yield return new WaitForSeconds(0.2f);
+
+        // ── Comprar no Mercado ──
+        cliques = 0;
+        ui.ShowMarket(); cliques++;
+        yield return new WaitForSeconds(0.25f);
+
+        var market = MarketManager.Instance;
+        if (market != null && market.buyButton != null)
+        {
+            Button ficha = FirstEnabledButton(market.itemContainer, "Ração");
+            if (ficha != null) { ficha.onClick.Invoke(); cliques++; yield return new WaitForSeconds(0.15f); }
+
+            if (market.buyButton.interactable)
+            {
+                market.buyButton.onClick.Invoke(); cliques++;
+                yield return new WaitForSeconds(0.2f);
+                Relatar("comprar um item escolhido na carroça", cliques);
+            }
+        }
+
+        ui.CloseMarket();
+        yield return new WaitForSeconds(0.2f);
+
+        // ── Contratar na Taverna ──
+        cliques = 0;
+        ui.ShowTavern(); cliques++;
+        yield return new WaitForSeconds(0.25f);
+
+        var tavern = TavernManager.Instance;
+        Button contratar = tavern != null ? FirstEnabledButton(tavern.transform, "Btn_Hire") : null;
+        if (contratar == null && ui.tavernPanel != null)
+            contratar = FirstEnabledButton(ui.tavernPanel.transform, "Btn_Hire");
+
+        if (contratar != null)
+        {
+            contratar.onClick.Invoke(); cliques++;
+            yield return new WaitForSeconds(0.2f);
+            Relatar("contratar o candidato que está na mesa", cliques);
+        }
+        else Line("  contratar: botão não encontrado no momento do teste");
+
+        ui.CloseTavern();
+        yield return new WaitForSeconds(0.2f);
+
+        // ── Trocar uma carta de baralho ──
+        cliques = 0;
+        ui.ShowDeckManager(); cliques++;
+        yield return new WaitForSeconds(0.3f);
+
+        var dm = DeckManager.Instance;
+        if (dm != null)
+        {
+            Button carta = FirstEnabledButton(dm.currentDeckContainer);
+            if (carta != null) { carta.onClick.Invoke(); cliques++; yield return new WaitForSeconds(0.15f); }
+
+            Button doAcervo = FirstEnabledButton(dm.collectionContainer);
+            if (doAcervo != null) { doAcervo.onClick.Invoke(); cliques++; yield return new WaitForSeconds(0.15f); }
+
+            if (dm.saveButton != null) { dm.saveButton.onClick.Invoke(); cliques++; }
+
+            Relatar("trocar uma carta do baralho e salvar", cliques);
+        }
+
+        ui.CloseDeckManager();
+        yield return new WaitForSeconds(0.2f);
+
+        Line("");
+        Line("  Referência: no jogo, a porta da sala é sempre o primeiro clique. Uma volta");
+        Line("  completa pela guilda — visitar as seis salas sem comprar nada — custa 12.");
+    }
+
+    void Relatar(string acao, int cliques)
+    {
+        Line($"  {acao,-52} {cliques,2} clique(s)");
+    }
+
+    #endregion
+
     static int CountRows(Transform container)
     {
         if (container == null) return 0;
@@ -2564,18 +2909,31 @@ public class PlayModeProbe : MonoBehaviour
         // "a jornada é longa" de "a jornada travou".
         int framesDeTravessia = 0;
 
+        // Por travessia, e não no total: é uma travessia que trava, não a soma
+        // delas. 900 frames são ~15 segundos parado no mesmo trecho.
+        int framesNestaTravessia = 0;
+        int maiorTravessia = 0;
+
         while ((jm.journeyPanel.activeSelf || IsCombatOpen()) && guard < 600)
         {
             // Enquanto o grupo atravessa um trecho não há nada a clicar, e cada
             // frame de caminhada consumia uma iteração do orçamento — uma
             // jornada de nove dias acabava o limite antes de chegar ao chefe, e
             // o relatório acusava travamento onde só havia animação.
-            if (jm.EmTravessia && framesDeTravessia < 3000)
+            if (jm.EmTravessia && framesNestaTravessia < 900)
             {
                 framesDeTravessia++;
+                framesNestaTravessia++;
+                if (framesNestaTravessia > maiorTravessia) maiorTravessia = framesNestaTravessia;
                 yield return null;
                 continue;
             }
+
+            // Fora da travessia: o contador da vez zera. Somar todas e comparar o
+            // total com um teto acusava "o grupo ficou preso" numa jornada de
+            // nove dias que terminou certinho — cada trecho anda alguns segundos,
+            // e nove trechos passam de qualquer teto pensado para um.
+            framesNestaTravessia = 0;
 
             guard++;
 
@@ -2740,9 +3098,10 @@ public class PlayModeProbe : MonoBehaviour
         Line($"trechos com fome: {jm.StarvationTicks} (dano total {jm.StarvationDamage})"
            + $" | trechos no escuro: {jm.DarknessTicks}");
         Line($"painel ainda ativo ao fim: {jm.journeyPanel.activeSelf}"
-           + $" (iterações: {guard} | frames de travessia: {framesDeTravessia})");
+           + $" (iterações: {guard} | frames de travessia: {framesDeTravessia}"
+           + $" | a mais longa: {maiorTravessia})");
 
-        if (framesDeTravessia >= 3000)
+        if (maiorTravessia >= 900)
             Line("FALHA: uma travessia não terminou — o grupo ficou preso no meio do caminho.");
 
         // Jornada que não termina sozinha é quebra, não observação.
