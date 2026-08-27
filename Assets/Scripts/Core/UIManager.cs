@@ -204,12 +204,25 @@ public class UIManager : MonoBehaviour
         SetPanelActive(marketPanel, false);
         SetPanelActive(cemeteryPanel, false);
         SetPanelActive(forgePanel, false);
+
+        // O rodapé da guilda sai da preparação pelo mesmo motivo que sai do
+        // combate: ele oferece o atalho de Baralhos, e abrir a tela de baralhos
+        // aqui **descarta a preparação em curso** — o jogador perderia a missão,
+        // a formação e as provisões que acabou de escolher, sem aviso.
+        if (hideDuringCombat != null)
+            foreach (var painel in hideDuringCombat)
+                Hide(painel);
     }
 
     public void CloseQuestSelection()
     {
         SetPanelActive(questSelectionPanel, false);
         SetPanelActive(guildPanel, true);
+
+        // Volta o rodapé que a preparação escondeu. Sem isto, desistir da
+        // preparação deixava a guilda sem ouro, sem heróis e sem o atalho dos
+        // baralhos até a próxima troca de tela.
+        RestoreGuildHud();
     }
 
     public void ShowJourney()

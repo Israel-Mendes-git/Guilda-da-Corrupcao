@@ -107,8 +107,41 @@ public class ForgeManager : MonoBehaviour
         return hero.weaponLevel * perLevel;
     }
 
-    public int WeaponCost(HeroData hero) => weaponBaseCost * (hero.weaponLevel + 1);
-    public int ArmorCost(HeroData hero) => armorBaseCost * (hero.armorLevel + 1);
+    public int WeaponCost(HeroData hero) => ComDesconto(weaponBaseCost * (hero.weaponLevel + 1), Eixo.Arma);
+    public int ArmorCost(HeroData hero) => ComDesconto(armorBaseCost * (hero.armorLevel + 1), Eixo.Armadura);
+
+    /// <summary>Os dois eixos que a forja vende, e o "nenhum" dos ciclos sem oferta.</summary>
+    public enum Eixo { Nenhum, Arma, Armadura }
+
+    /// <summary>
+    /// O que a forja tem de bom neste ciclo.
+    ///
+    /// A sala não tem estoque para rodar — o que ela vende são dois níveis com
+    /// teto —, então o que muda por volta é o preço: em dois de cada três ciclos
+    /// o ferreiro recebeu material para um dos eixos e cobra menos por ele. É a
+    /// mesma decisão do Mercado (ver <see cref="CycleStock"/>), aplicada ao que
+    /// esta sala tem: sem isso, voltar à Forja nunca mostrava nada novo.
+    ///
+    /// Um em cada três ciclos não tem oferta nenhuma. Desconto em toda volta
+    /// deixaria de ser oferta e viraria o preço de tabela.
+    /// </summary>
+    public Eixo EixoEmOferta
+    {
+        get
+        {
+            int sorteio = CycleStock.Numero("forja-oferta", 0, 3);
+            return sorteio == 0 ? Eixo.Nenhum : sorteio == 1 ? Eixo.Arma : Eixo.Armadura;
+        }
+    }
+
+    /// <summary>Quanto a oferta do ciclo tira do preço.</summary>
+    public const float DescontoDaOferta = 0.25f;
+
+    int ComDesconto(int preco, Eixo eixo)
+    {
+        if (EixoEmOferta != eixo) return preco;
+        return Mathf.Max(1, Mathf.RoundToInt(preco * (1f - DescontoDaOferta)));
+    }
 
     /// <summary>Quem está na bancada agora. Nulo enquanto a guilda não tem ninguém vivo.</summary>
     public HeroData NaBigorna => naBigorna;
@@ -121,8 +154,18 @@ public class ForgeManager : MonoBehaviour
             goldText.text = $"💰 {gold}";
 
         if (hintText != null)
-            hintText.text = $"Arma: +{damagePerWeaponLevel} de dano nas cartas do herói.   "
-                          + $"Armadura: +{hpPerArmorLevel} de vida máxima.   Limite: nível {maxUpgradeLevel}.";
+        {
+            string regra = $"Arma: +{damagePerWeaponLevel} de dano nas cartas do herói.   "
+                         + $"Armadura: +{hpPerArmorLevel} de vida máxima.   Limite: nível {maxUpgradeLevel}.";
+
+            string oferta = EixoEmOferta == Eixo.Nenhum
+                ? "<color=#8A8378>Sem material bom nesta volta.</color>"
+                : $"<color=#D4AF37>Material bom nesta volta: "
+                  + $"{(EixoEmOferta == Eixo.Arma ? "arma" : "armadura")} "
+                  + $"{Mathf.RoundToInt(DescontoDaOferta * 100)}% mais barata.</color>";
+
+            hintText.text = $"{regra}      {oferta}";
+        }
 
         // Quem morreu na última jornada não pode continuar na bigorna, e quem
         // entrou agora precisa aparecer na fila.

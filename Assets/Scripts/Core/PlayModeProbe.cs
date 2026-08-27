@@ -513,12 +513,19 @@ public class PlayModeProbe : MonoBehaviour
         }
 
         int rosterAntes = GuildManager.Instance.roster.Count;
-        Button contratar = FirstEnabledButton(tav.recruitContainer);
+
+        // Clicar na ficha da fila agora só chama o candidato à mesa — quem
+        // contrata é o botão da mesa. Com o clique antigo, o teste dizia
+        // "roster 4 → 4" e passava, medindo uma contratação que não aconteceu.
+        Button contratar = tav.hireButton != null && tav.hireButton.interactable
+            ? tav.hireButton
+            : null;
 
         if (contratar == null)
             Line("nenhum candidato contratável (roster cheio ou sem ouro)");
         else
         {
+            ReportarAlcancavel(contratar);
             contratar.onClick.Invoke();
             yield return new WaitForSeconds(0.3f);
             Line($"contratação: roster {rosterAntes} → {GuildManager.Instance.roster.Count}");
@@ -548,13 +555,40 @@ public class PlayModeProbe : MonoBehaviour
 
         var lib = LibraryManager.Instance;
         if (lib == null)
+        {
             Line("FALHA: LibraryManager ausente");
+        }
         else
         {
             Line($"cartas à venda: {CountRows(lib.cardsContainer)}");
+            Line($"herói na mesa: {(lib.NaMesa != null ? lib.NaMesa.heroName : "ninguém")}");
+            Line($"heróis na fila: {CountRows(lib.heroContainer)}");
 
             if (lib.closeButton != null) ReportarAlcancavel(lib.closeButton);
             else Line("FALHA: biblioteca sem botão de fechar");
+
+            // A compra agora entra no baralho do herói da mesa. É o que separa
+            // esta sala da tela de Baralhos, e o que antes não acontecia: a
+            // carta sumia da prateleira e não ia a lugar nenhum.
+            HeroData naMesa = lib.NaMesa;
+            int cartasAntes = naMesa != null ? TamanhoDoDeck(naMesa) : -1;
+            int ouroAntes = GuildManager.Instance != null ? GuildManager.Instance.gold : 0;
+
+            Button comprar = FirstEnabledButton(lib.cardsContainer);
+            if (comprar == null)
+            {
+                Line("nenhuma carta comprável (sem ouro, baralho cheio ou acervo vazio)");
+            }
+            else
+            {
+                ReportarAlcancavel(comprar);
+                comprar.onClick.Invoke();
+                yield return new WaitForSeconds(0.3f);
+
+                Line($"compra: ouro {ouroAntes} → {GuildManager.Instance.gold}"
+                   + $" | baralho de {(naMesa != null ? naMesa.heroName : "ninguém")}: "
+                   + $"{cartasAntes} → {(naMesa != null ? TamanhoDoDeck(naMesa) : -1)} cartas");
+            }
         }
 
         yield return Capture("sala_biblioteca");
@@ -1139,12 +1173,21 @@ public class PlayModeProbe : MonoBehaviour
         {
             int ouroAntes = GuildManager.Instance.gold;
 
+            // A sala virou mapa: as sete regiões à esquerda, a escolhida na mesa
+            // e a estrada até ela à direita. Se a região não chega à mesa, o
+            // resto da tela fica vazio e nada acusa isso.
+            Line($"regiões na parede: {CountRows(mr.regionContainer)}");
+            Line($"região na mesa: {(mr.regionNameText != null ? mr.regionNameText.text : "sem rótulo")}");
+            Line($"estrada desenhada: {CountRows(mr.revealedEventsContainer)} marcos");
+
             if (mr.buyScoutingButton != null && mr.buyScoutingButton.interactable)
             {
+                ReportarAlcancavel(mr.buyScoutingButton);
                 mr.buyScoutingButton.onClick.Invoke();
-                yield return new WaitForSeconds(0.2f);
+                yield return new WaitForSeconds(0.3f);
                 Line($"contratar batedor: ouro {ouroAntes} → {GuildManager.Instance.gold}"
-                   + $" | batedores {mr.ScoutingCharges}/{mr.MaxScouting}");
+                   + $" | batedores {mr.ScoutingCharges}/{mr.MaxScouting}"
+                   + $" | dias abertos na estrada: {(mr.roadTitleText != null ? mr.roadTitleText.text : "?")}");
             }
             else Line("botão de batedor indisponível");
 
@@ -1377,13 +1420,11 @@ public class PlayModeProbe : MonoBehaviour
 
         // Passo 3: é onde ficam as provisões e o resumo da formação, e era a única
         // tela da preparação que nenhuma captura mostrava.
-        Button principal = FirstEnabledButton(qs.partySelectionContainer, "MainButton");
-        if (principal != null)
-        {
-            principal.onClick.Invoke();
-            yield return new WaitForSeconds(0.2f);
-        }
-
+        //
+        // O "USAR DECK" do passo 2 saiu: o deck principal era escolhido em dois
+        // lugares, e quem usava aquele botão chegava ao passo 3 sem seleção
+        // visível e sem a composição do baralho. Agora o passo 3 marca o
+        // primeiro da formação sozinho, e trocar continua a um clique.
         if (qs.nextButton2 != null && qs.nextButton2.interactable)
         {
             qs.nextButton2.onClick.Invoke();
@@ -1524,8 +1565,47 @@ public class PlayModeProbe : MonoBehaviour
             Line($"compra: ouro {ouroAntes} → {GuildManager.Instance.gold} | rações estocadas {racoesAntes} → {market.StockedRations}");
         }
 
+        RelatarEstoquePorCiclo();
+
         ui.CloseMarket();
         yield return new WaitForSeconds(0.2f);
+    }
+
+    /// <summary>
+    /// A prova de que a sala muda de uma volta para a outra — e de que não muda
+    /// dentro da mesma. Um estoque instável dentro do ciclo deixaria o jogador
+    /// reabrir a sala até sair o que ele quer, que é o contrário do que se quis
+    /// construir; um estoque igual em todo ciclo não daria motivo para voltar.
+    /// </summary>
+    void RelatarEstoquePorCiclo()
+    {
+        Line("");
+        Line("── ESTOQUE POR CICLO ──");
+
+        var vistos = new List<string>();
+
+        for (int ciclo = 0; ciclo < 6; ciclo++)
+        {
+            var frascos = CycleStock.Escolher(ItemCatalog.Pocoes, 2, "mercado-frascos", ciclo);
+            string nomes = string.Join(", ", frascos.ConvertAll(p => p.nome));
+
+            int oferta = CycleStock.Numero("forja-oferta", 0, 3, ciclo);
+            string forja = oferta == 0 ? "sem oferta" : oferta == 1 ? "arma" : "armadura";
+
+            vistos.Add(nomes);
+            Line($"ciclo {ciclo}: mercado leva {nomes} | forja em oferta: {forja}");
+        }
+
+        // Estabilidade: o mesmo ciclo, consultado de novo, tem de dar o mesmo.
+        var repetido = CycleStock.Escolher(ItemCatalog.Pocoes, 2, "mercado-frascos", 3);
+        bool estavel = string.Join(", ", repetido.ConvertAll(p => p.nome)) == vistos[3];
+
+        int distintos = new HashSet<string>(vistos).Count;
+
+        Line($"estável dentro do mesmo ciclo: {estavel}");
+        Line(distintos > 1
+            ? $"muda entre ciclos: sim ({distintos} prateleiras diferentes em 6 voltas)"
+            : "FALHA: a prateleira é a mesma em todos os ciclos");
     }
 
     IEnumerator TestForge(UIManager ui)
@@ -1617,6 +1697,25 @@ public class PlayModeProbe : MonoBehaviour
         yield return new WaitForSeconds(0.2f);
     }
 
+    /// <summary>Estresse somado de quem está vivo — a régua da vigília.</summary>
+    static float EstresseTotalDoRoster()
+    {
+        if (GuildManager.Instance == null) return 0f;
+
+        float total = 0f;
+        foreach (var h in GuildManager.Instance.roster)
+            if (h != null && !h.isDead) total += h.stress;
+
+        return total;
+    }
+
+    /// <summary>Quantas cartas o baralho daquele herói tem agora.</summary>
+    static int TamanhoDoDeck(HeroData hero)
+    {
+        DeckData deck = DeckRepository.GetDeck(hero);
+        return deck?.cards != null ? deck.cards.Count : -1;
+    }
+
     /// <summary>
     /// O que aquele slot está realmente mostrando. Sprite ausente e sprite
     /// desenhado a 8px dão o mesmo "0 erros" no console — o tamanho em pixels é
@@ -1668,8 +1767,29 @@ public class PlayModeProbe : MonoBehaviour
         Line($"cemitério visível: {(ui.cemeteryPanel != null && ui.cemeteryPanel.activeInHierarchy)}");
         Line($"tumbas listadas: {tumbas} (caídos registrados: {GuildManager.Instance.fallenHeroes.Count})");
 
+        // A sala refeita mostra, ao lado das tumbas, quem ainda está vivo e com
+        // quanto estresse: é onde a vigília vira efeito visível. Sem essa
+        // coluna, pagar 120 de ouro voltava a ser um número mudando no rodapé.
+        Line($"quem ficou, listado: {CountRows(cemetery.livingContainer)} herói(s)");
+
         if (tumbas == 0)
+        {
             Line("estado vazio exibido — ainda não morreu ninguém nesta sessão");
+        }
+        else
+        {
+            Line($"tumba em foco: {(cemetery.heroNameText != null ? cemetery.heroNameText.text : "sem rótulo")}");
+            Line($"o que foi enterrado com ele: {Desenho(cemetery.portraitImage)}");
+
+            if (cemetery.vigilButton != null && cemetery.vigilButton.interactable)
+            {
+                float estresseAntes = EstresseTotalDoRoster();
+                ReportarAlcancavel(cemetery.vigilButton);
+                cemetery.vigilButton.onClick.Invoke();
+                yield return new WaitForSeconds(0.3f);
+                Line($"vigília: estresse somado do roster {estresseAntes:0} → {EstresseTotalDoRoster():0}");
+            }
+        }
 
         yield return Capture("sala_cemiterio");
 
@@ -2932,9 +3052,8 @@ public class PlayModeProbe : MonoBehaviour
     /// </summary>
     static readonly HashSet<string> ReferenciasOpcionais = new HashSet<string>
     {
-        // Sem prefab, a aresta e o item de lista são desenhados em runtime.
+        // Sem prefab, a aresta é desenhada em runtime.
         "JourneyMapUI.edgePrefab",
-        "MapRoomManager.revealedEventPrefab",
 
         // Depende de arte de bioma que ainda não existe; QuestData.biomeIcon
         // também é nulo, então ligar o Image não mudaria nada na tela.

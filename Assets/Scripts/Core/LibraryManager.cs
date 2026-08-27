@@ -1,8 +1,38 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using System.Collections.Generic;
+using System.Linq;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 
+/// <summary>
+/// Biblioteca: vende cartas para o baralho de um herói.
+///
+/// <b>Por que a sala deixou de ser uma lista.</b> A versão anterior era uma faixa
+/// com três cartas e um "COMPRAR" embaixo de cada uma. O preço aparecia, o efeito
+/// não: pagar 100 de ouro tirava a carta da faixa e mais nada acontecia na tela —
+/// nem no jogo, porque a carta comprada não ia para lugar nenhum. A tela de
+/// Baralhos, que é grátis, já oferece todas as cartas da classe de cada herói.
+///
+/// <b>A compra tem dono.</b> Agora há sempre um herói <i>na mesa</i>, escolhido na
+/// fila à esquerda, e a carta comprada entra no baralho dele no mesmo clique: o
+/// contador da mesa sobe, a carta aparece na lista do baralho e o ouro sai. É a
+/// resposta à pergunta que faltava na hora de pagar — <b>para quem serve esta
+/// carta</b> —, e é o que separa esta sala da tela de Baralhos: aqui se paga para
+/// acrescentar, lá se rearranja o que já existe.
+///
+/// <b>Cada carta da estante é julgada contra esse baralho.</b> Na própria carta,
+/// onde o combate escreve o dano real, a biblioteca escreve o veredito: se a carta
+/// não serve àquele herói, se ele já a leva, ou quanto ela bate a melhor que ele
+/// tem daquele tipo. Sem isso o jogador escolhia por preço, que é a única coisa
+/// que a sala dizia.
+///
+/// <b>O estoque não é re-sorteado a cada abertura.</b> Antes o sorteio rodava em
+/// todo <see cref="RefreshLibrary"/>, inclusive depois de uma compra — a estante
+/// inteira trocava e a carta recém-comprada podia reaparecer à venda. Aqui o
+/// sorteio acontece uma vez e ao mudar de nível. O que muda por ciclo é decisão
+/// de outra frente e entra em <see cref="GenerateCardsByLevel"/>, que ficou como
+/// a única costura do estoque.
+/// </summary>
 public class LibraryManager : MonoBehaviour
 {
     public static LibraryManager Instance;
@@ -11,15 +41,32 @@ public class LibraryManager : MonoBehaviour
     public int libraryLevel = 1;
     public List<CardData> availableCards = new List<CardData>();
 
-    [Header("UI References - Conecte no Inspector")]
-    public Transform cardsContainer;
-    public GameObject cardPurchasePrefab;
+    [Header("Cabeçalho")]
     public TMP_Text levelText;
-    public TMP_Text bonusText1;
-    public TMP_Text bonusText2;
-    public TMP_Text eventText1;
-    public TMP_Text eventText2;
-    public TMP_Text eventText3;
+    public TMP_Text goldText;
+    public TMP_Text hintText;
+    public TMP_Text feedbackText;
+
+    [Header("Quem está na fila")]
+    public Transform heroContainer;
+
+    [Header("A mesa de leitura")]
+    public GameObject deskRoot;
+    public Image portraitImage;
+    public TMP_Text heroNameText;
+    public TMP_Text heroStatsText;
+    public TMP_Text deckTitleText;
+    public Transform deckContainer;
+
+    [Header("A estante")]
+    public Transform cardsContainer;
+    public TMP_Text shelfTitleText;
+    public GameObject cardPrefab;
+
+    /// <summary>Moldura do nicho. Vem do Editor: os nichos nascem em execução.</summary>
+    public Sprite nicheSprite;
+
+    [Header("Buttons")]
     public Button upgradeButton;
     public Button closeButton;
 
@@ -29,6 +76,25 @@ public class LibraryManager : MonoBehaviour
     public int rareCardPrice = 250;
     public int epicCardPrice = 500;
     public int legendaryCardPrice = 1000;
+
+    /// <summary>Nichos da estante: três por duas. É o que cabe sem encolher a carta
+    /// a ponto de a descrição não poder mais ser lida.</summary>
+    const int NichosNaEstante = 6;
+
+    /// <summary>Acima disto não há raridade nova para liberar.</summary>
+    const int NivelMaximo = 4;
+
+    const float LarguraDoNicho = 224f;
+    const float AlturaDoNicho = 340f;
+    const float EspacoEntreNichos = 18f;
+    const int ColunasDaEstante = 3;
+
+    /// <summary>A carta do prefab é 245×345; seis delas cabem na estante assim.</summary>
+    const float EscalaDaCarta = 0.78f;
+
+    HeroData naMesa;
+    bool estoqueSorteado;
+    int nivelDoEstoque;
 
     void Awake()
     {
@@ -47,84 +113,658 @@ public class LibraryManager : MonoBehaviour
             upgradeButton.onClick.AddListener(UpgradeLibrary);
     }
 
+    /// <summary>Quem recebe a próxima carta comprada. Nulo enquanto a guilda não tem ninguém vivo.</summary>
+    public HeroData NaMesa => naMesa;
+
     public void RefreshLibrary()
     {
-        Debug.Log("LibraryManager: RefreshLibrary chamado");
-        UpdateLibraryUI();
-        RefreshAvailableCards();
-        UpdateBonusTexts();
-        UpdateEventTexts();
-    }
+        int gold = GuildManager.Instance != null ? GuildManager.Instance.gold : 0;
 
-    void UpdateLibraryUI()
-    {
+        if (goldText != null)
+            goldText.text = $"💰 {gold}";
+
         if (levelText != null)
-            levelText.text = $"Nível {libraryLevel}";
+            levelText.text = $"Nível {libraryLevel} · {RaridadesLiberadas()}";
 
-        if (upgradeButton != null)
+        if (hintText != null)
+            hintText.text = "A carta comprada entra direto no baralho de quem está na mesa — "
+                          + $"no máximo {DeckManager.MaxCopiasPorCarta} cópias de cada. "
+                          + "Melhorar a sala traz raridades melhores para a estante.";
+
+        // Quem morreu na última jornada não pode continuar na mesa, e quem entrou
+        // agora precisa aparecer na fila.
+        if (naMesa == null || naMesa.isDead || !EstaNoRoster(naMesa))
+            naMesa = PrimeiroVivo();
+
+        GarantirEstoque();
+        AtualizarBotaoDeMelhora();
+
+        BuildHeroes();
+        AtualizarMesa();
+        MontarEstante();
+    }
+
+    static bool EstaNoRoster(HeroData hero)
+    {
+        return GuildManager.Instance != null && GuildManager.Instance.roster.Contains(hero);
+    }
+
+    static HeroData PrimeiroVivo()
+    {
+        if (GuildManager.Instance == null) return null;
+        return GuildManager.Instance.roster.FirstOrDefault(h => h != null && !h.isDead);
+    }
+
+    void SetFeedback(string message)
+    {
+        if (feedbackText != null)
+            feedbackText.text = message;
+    }
+
+    #region A fila à esquerda
+
+    void BuildHeroes()
+    {
+        if (heroContainer == null) return;
+
+        UIUtil.ClearChildrenNow(heroContainer);
+
+        if (GuildManager.Instance == null) return;
+
+        foreach (var hero in GuildManager.Instance.roster.Where(h => h != null && !h.isDead))
+            BuildHeroRow(hero);
+    }
+
+    /// <summary>
+    /// A ficha da fila. Ela não vende nada: só troca quem está na mesa. O que ela
+    /// carrega é o motivo para trocar — quantas das cartas de hoje servem àquele
+    /// herói e quanto espaço ainda há no baralho dele.
+    /// </summary>
+    void BuildHeroRow(HeroData hero)
+    {
+        bool ativo = hero == naMesa;
+
+        var row = new GameObject(hero.heroName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        row.transform.SetParent(heroContainer, false);
+        row.GetComponent<Image>().color = ativo
+            ? new Color(0.26f, 0.22f, 0.30f)
+            : new Color(0.16f, 0.15f, 0.17f);
+
+        var element = row.AddComponent<LayoutElement>();
+        element.minHeight = 76;
+        element.preferredHeight = 76;
+
+        // Retrato pequeno: é como o jogador reconhece o herói em todas as outras
+        // telas, e sem ele a fila voltaria a ser uma lista de nomes.
+        if (hero.portrait != null)
         {
-            int cost = upgradeBaseCost * libraryLevel;
-            TMP_Text buttonText = upgradeButton.GetComponentInChildren<TMP_Text>();
-            if (buttonText != null)
-                buttonText.text = $"MELHORAR - {cost}💰";
+            var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            portraitGo.transform.SetParent(row.transform, false);
+
+            var portrait = portraitGo.GetComponent<Image>();
+            portrait.sprite = hero.portrait;
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+
+            var portraitRect = portraitGo.GetComponent<RectTransform>();
+            portraitRect.anchorMin = new Vector2(0, 0.5f);
+            portraitRect.anchorMax = new Vector2(0, 0.5f);
+            portraitRect.sizeDelta = new Vector2(60, 60);
+            portraitRect.anchoredPosition = new Vector2(42, 0);
         }
+
+        DeckData deck = DeckRepository.GetDeck(hero);
+        int cartas = deck != null && deck.cards != null ? deck.cards.Count : 0;
+        int teto = deck != null ? deck.maxDeckSize : 0;
+        int servem = availableCards.Count(c => ServeA(c, hero));
+
+        var labelGo = new GameObject("Label", typeof(RectTransform));
+        labelGo.transform.SetParent(row.transform, false);
+
+        var label = labelGo.AddComponent<TextMeshProUGUI>();
+        label.fontSize = 18;
+        label.alignment = TextAlignmentOptions.Left;
+        label.raycastTarget = false;
+        label.color = ativo ? new Color(0.98f, 0.92f, 0.72f) : new Color(0.88f, 0.86f, 0.82f);
+        label.text = $"{PartyFormation.PreferenceIcon(hero.heroClass)} {hero.heroName}\n"
+                   + $"<size=13>baralho {cartas}/{teto}   ·   "
+                   + $"{servem} de {availableCards.Count} à venda servem</size>";
+
+        var labelRect = labelGo.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(hero.portrait != null ? 80 : 14, 4);
+        labelRect.offsetMax = new Vector2(-10, -4);
+
+        HeroData capturado = hero;
+        row.GetComponent<Button>().onClick.AddListener(() => PorNaMesa(capturado));
     }
 
-    void UpdateBonusTexts()
+    /// <summary>Traz o herói para a mesa. É o único efeito do clique na fila.</summary>
+    public void PorNaMesa(HeroData hero)
     {
-        if (bonusText1 != null)
-            bonusText1.text = $"+{libraryLevel * 5}% chance cartas lendárias";
+        if (hero == null || hero.isDead) return;
 
-        if (bonusText2 != null)
-            bonusText2.text = $"Revela {libraryLevel} evento(s) futuro(s)";
+        naMesa = hero;
+        SetFeedback($"O que for comprado vai para o baralho de {hero.heroName}.");
+
+        BuildHeroes();
+        AtualizarMesa();
+
+        // Os vereditos da estante são todos relativos a quem está na mesa: trocar
+        // de herói sem remontá-los deixaria a estante mentindo sobre o dono novo.
+        MontarEstante();
     }
 
-    void UpdateEventTexts()
-    {
-        if (eventText1 != null)
-            eventText1.text = libraryLevel >= 1 ? "Próximo: 🔮 ???" : "🔒 Nível 1 necessário";
-        if (eventText2 != null)
-            eventText2.text = libraryLevel >= 2 ? "Depois: 🔮 ???" : "🔒 Nível 2 necessário";
-        if (eventText3 != null)
-            eventText3.text = libraryLevel >= 3 ? "Em breve: 🔮 ???" : "🔒 Nível 3 necessário";
-    }
+    #endregion
 
-    void RefreshAvailableCards()
+    #region A mesa e o baralho que ela mostra
+
+    void AtualizarMesa()
     {
-        if (cardsContainer == null)
+        bool temAlguem = naMesa != null;
+
+        if (deskRoot != null) deskRoot.SetActive(temAlguem);
+        if (!temAlguem)
         {
-            Debug.LogError("cardsContainer não está atribuído no LibraryManager!");
+            MontarBaralho();
             return;
         }
 
-        // Limpa container
-        foreach (Transform child in cardsContainer)
-            Destroy(child.gameObject);
-
-        // Gera cartas
-        GenerateCardsByLevel();
-
-        // Cria os cards na UI
-        foreach (var card in availableCards)
+        if (portraitImage != null)
         {
-            if (cardPurchasePrefab == null)
-            {
-                Debug.LogError("cardPurchasePrefab não está atribuído!");
-                return;
-            }
-
-            GameObject cardObj = Instantiate(cardPurchasePrefab, cardsContainer);
-            SetupCardPurchaseUI(cardObj, card);
+            portraitImage.sprite = naMesa.portrait;
+            portraitImage.enabled = naMesa.portrait != null;
+            portraitImage.preserveAspect = true;
         }
 
-        Debug.Log($"Library: {availableCards.Count} cartas disponíveis");
+        if (heroNameText != null)
+            heroNameText.text = $"{PartyFormation.PreferenceIcon(naMesa.heroClass)} {naMesa.heroName}"
+                              + $"  <size=18><color=#B8B0A0>{GetClassName(naMesa.heroClass)} Nv.{naMesa.level}</color></size>";
+
+        DeckData deck = DeckRepository.GetDeck(naMesa);
+        int cartas = deck != null && deck.cards != null ? deck.cards.Count : 0;
+        int teto = deck != null ? deck.maxDeckSize : 0;
+
+        if (heroStatsText != null)
+            heroStatsText.text = $"❤️ {naMesa.currentHp}/{naMesa.maxHp}   ·   baralho {cartas}/{teto}";
+
+        if (deckTitleText != null)
+            deckTitleText.text = cartas == 0
+                ? $"{naMesa.heroName} não leva carta nenhuma."
+                : $"O que {naMesa.heroName} já leva:";
+
+        MontarBaralho();
     }
 
+    /// <summary>
+    /// O baralho do herói na mesa, uma linha por carta. É o "antes" contra o qual
+    /// a compra se mede — e é ele que muda no clique, à vista de quem pagou.
+    /// </summary>
+    void MontarBaralho()
+    {
+        if (deckContainer == null) return;
+
+        UIUtil.ClearChildrenNow(deckContainer);
+
+        if (naMesa == null) return;
+
+        DeckData deck = DeckRepository.GetDeck(naMesa);
+        if (deck == null || deck.cards == null) return;
+
+        // Cópias agrupadas: quatro "Corte Duplo" em quatro linhas empurrariam as
+        // outras cartas para fora da mesa sem dizer nada a mais.
+        var ordem = new List<CardData>();
+        var copias = new Dictionary<CardData, int>();
+
+        foreach (CardData card in deck.cards)
+        {
+            if (card == null) continue;
+
+            if (copias.ContainsKey(card)) { copias[card]++; continue; }
+
+            copias[card] = 1;
+            ordem.Add(card);
+        }
+
+        foreach (CardData card in ordem)
+        {
+            Genero genero = GeneroDe(card);
+            bool destaque = genero != Genero.Nenhum
+                         && ValorDe(card, genero) >= MelhorDoBaralho(deck, genero);
+
+            MontarLinhaDoBaralho(card, copias[card], destaque);
+        }
+    }
+
+    void MontarLinhaDoBaralho(CardData card, int copias, bool destaque)
+    {
+        var row = new GameObject(card.cardName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        row.transform.SetParent(deckContainer, false);
+
+        var fundo = row.GetComponent<Image>();
+        fundo.raycastTarget = false;
+        fundo.color = destaque
+            ? new Color(0.24f, 0.21f, 0.28f)
+            : new Color(0.15f, 0.14f, 0.16f);
+
+        var element = row.AddComponent<LayoutElement>();
+        element.minHeight = 34;
+        element.preferredHeight = 34;
+
+        var labelGo = new GameObject("Label", typeof(RectTransform));
+        labelGo.transform.SetParent(row.transform, false);
+
+        var label = labelGo.AddComponent<TextMeshProUGUI>();
+        label.fontSize = 16;
+        label.alignment = TextAlignmentOptions.Left;
+        label.raycastTarget = false;
+        label.color = destaque ? new Color(0.98f, 0.92f, 0.72f) : new Color(0.86f, 0.84f, 0.80f);
+
+        // O ◆ marca a melhor do tipo. É o número que o veredito da estante cita,
+        // e sem a marca o jogador teria de varrer a lista para conferir.
+        label.text = $"{(destaque ? "◆" : "·")} {card.cardName}{(copias > 1 ? $" ×{copias}" : "")}"
+                   + $"<pos=58%><color=#B8B0A0>{Resumo(card)}</color>";
+
+        var labelRect = labelGo.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(10, 0);
+        labelRect.offsetMax = new Vector2(-10, 0);
+    }
+
+    #endregion
+
+    #region A estante
+
+    /// <summary>
+    /// As cartas à venda, cada uma num nicho da estante, com o veredito escrito na
+    /// própria carta e o preço no botão logo abaixo.
+    /// </summary>
+    void MontarEstante()
+    {
+        if (cardsContainer == null) return;
+
+        UIUtil.ClearChildrenNow(cardsContainer);
+
+        int total = Mathf.Min(availableCards.Count, NichosNaEstante);
+
+        if (shelfTitleText != null)
+        {
+            shelfTitleText.text = total == 0
+                ? "A estante está vazia. Melhorar a sala renova o acervo."
+                : naMesa == null
+                    ? "À venda — não há ninguém vivo para receber carta."
+                    : $"À venda — para o baralho de {naMesa.heroName}:";
+        }
+
+        if (cardPrefab == null || total == 0) return;
+
+        for (int i = 0; i < total; i++)
+            MontarNicho(availableCards[i], i, total);
+    }
+
+    void MontarNicho(CardData card, int indice, int total)
+    {
+        var nicho = new GameObject(card.cardName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        nicho.transform.SetParent(cardsContainer, false);
+
+        // Grade posicionada à mão, como na prateleira da Forja: um LayoutGroup
+        // ignora a escala das cartas e abre buracos do tamanho da carta inteira.
+        int colunas = Mathf.Min(ColunasDaEstante, total);
+        int linhas = Mathf.CeilToInt(total / (float)colunas);
+        int coluna = indice % colunas;
+        int linha = indice / colunas;
+
+        var rect = (RectTransform)nicho.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(LarguraDoNicho, AlturaDoNicho);
+        rect.anchoredPosition = new Vector2(
+            (coluna - (colunas - 1) / 2f) * (LarguraDoNicho + EspacoEntreNichos),
+            ((linhas - 1) / 2f - linha) * (AlturaDoNicho + EspacoEntreNichos));
+
+        // A moldura do nicho acende com a raridade: é a única coisa que distingue
+        // uma lendária de uma comum antes de ler o preço. Sem sprite ela vira uma
+        // caixa escura em vez de um retângulo colorido — cor chapada de raridade
+        // num quadrado grande lê como erro de UI, não como acabamento.
+        var moldura = nicho.GetComponent<Image>();
+        moldura.raycastTarget = false;
+
+        if (nicheSprite != null)
+        {
+            moldura.sprite = nicheSprite;
+            moldura.type = Image.Type.Sliced;
+            moldura.color = CorDaRaridade(card.rarity);
+        }
+        else
+        {
+            moldura.color = new Color(0.13f, 0.12f, 0.14f);
+        }
+
+        MontarCartaNoNicho(nicho, card);
+        MontarBotaoDeCompra(nicho, card);
+    }
+
+    void MontarCartaNoNicho(GameObject nicho, CardData card)
+    {
+        GameObject view = Instantiate(cardPrefab, nicho.transform);
+
+        var rect = view.transform as RectTransform;
+        if (rect != null)
+        {
+            // Pivô no topo: a escala encolhe a carta para baixo e a borda de cima
+            // fica onde foi posta, o que mantém as duas fileiras alinhadas.
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
+            rect.localScale = Vector3.one * EscalaDaCarta;
+            rect.anchoredPosition = new Vector2(0, -8f);
+        }
+
+        // O prefab da carta não tem CardUI: o combate preenche os filhos pelo
+        // nome, e a biblioteca precisa do mesmo caminho. Só com o Bind, a carta
+        // aparecia com o "New Text" do editor.
+        var cardUI = view.GetComponent<CardUI>();
+        string descricao = card.GetDescription(false);
+        string veredito = Veredito(card);
+
+        if (cardUI != null)
+        {
+            cardUI.Bind(card, journeyMode: false);
+            cardUI.AppendNote(veredito);
+        }
+        else
+        {
+            SetTextoDoFilho(view, "CardName", card.cardName);
+            SetTextoDoFilho(view, "CardDescription",
+                string.IsNullOrEmpty(descricao) ? veredito : descricao + "\n" + veredito);
+            SetTextoDoFilho(view, "CostTxt", $"⚡ {card.energyCost}");
+            CardUI.AplicarArte(view, card);
+        }
+
+        // A carta aqui é mostruário: quem paga é o botão. Arrastá-la para fora do
+        // nicho ou clicá-la por engano não pode gastar ouro.
+        var drag = view.GetComponent<CardDragHandler>();
+        if (drag != null) Destroy(drag);
+
+        var botao = view.GetComponent<Button>();
+        if (botao != null) botao.interactable = false;
+    }
+
+    void MontarBotaoDeCompra(GameObject nicho, CardData card)
+    {
+        var go = new GameObject("Btn_Buy", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        go.transform.SetParent(nicho.transform, false);
+        go.GetComponent<Image>().color = new Color(0.20f, 0.17f, 0.16f);
+
+        var rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0, 0);
+        rect.anchorMax = new Vector2(1, 0);
+        rect.offsetMin = new Vector2(10, 10);
+        rect.offsetMax = new Vector2(-10, 52);
+
+        var textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.transform.SetParent(go.transform, false);
+
+        var text = textGo.AddComponent<TextMeshProUGUI>();
+        text.fontSize = 15;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = new Color(0.94f, 0.88f, 0.72f);
+        text.raycastTarget = false;
+
+        var textRect = textGo.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+
+        Estado estado = Avaliar(card);
+        int preco = GetCardPrice(card.rarity);
+
+        text.text = RotuloDoBotao(estado, preco);
+
+        var botao = go.GetComponent<Button>();
+        botao.interactable = estado == Estado.Pode;
+
+        CardData capturada = card;
+        botao.onClick.AddListener(() => Comprar(capturada));
+    }
+
+    #endregion
+
+    #region Comprar
+
+    /// <summary>Por que a compra pode ou não acontecer. Serve ao botão e ao veredito.</summary>
+    enum Estado { SemHeroi, NaoServe, BaralhoCheio, CopiasDemais, SemOuro, Pode }
+
+    Estado Avaliar(CardData card)
+    {
+        if (card == null || naMesa == null) return Estado.SemHeroi;
+        if (!ServeA(card, naMesa)) return Estado.NaoServe;
+
+        DeckData deck = DeckRepository.GetDeck(naMesa);
+        if (deck == null || deck.cards == null) return Estado.SemHeroi;
+
+        if (deck.cards.Count >= deck.maxDeckSize) return Estado.BaralhoCheio;
+        if (Copias(deck, card) >= DeckManager.MaxCopiasPorCarta) return Estado.CopiasDemais;
+
+        int preco = GetCardPrice(card.rarity);
+        if (GuildManager.Instance == null || GuildManager.Instance.gold < preco) return Estado.SemOuro;
+
+        return Estado.Pode;
+    }
+
+    static string RotuloDoBotao(Estado estado, int preco)
+    {
+        switch (estado)
+        {
+            case Estado.SemHeroi: return "SEM HERÓI NA MESA";
+            case Estado.NaoServe: return "NÃO SERVE";
+            case Estado.BaralhoCheio: return "BARALHO CHEIO";
+            case Estado.CopiasDemais: return $"JÁ TEM {DeckManager.MaxCopiasPorCarta}";
+            case Estado.SemOuro: return $"<color=#B04040>COMPRAR   {preco}💰</color>";
+            default: return $"COMPRAR   {preco}💰";
+        }
+    }
+
+    void Comprar(CardData card)
+    {
+        Estado estado = Avaliar(card);
+        int preco = GetCardPrice(card.rarity);
+
+        switch (estado)
+        {
+            case Estado.SemHeroi:
+                SetFeedback("Escolha na fila quem vai receber a carta.");
+                return;
+            case Estado.NaoServe:
+                SetFeedback($"{card.cardName} é carta de {GetClassName(card.requiredClass)}: "
+                          + $"{naMesa.heroName} não saberia jogá-la.");
+                return;
+            case Estado.BaralhoCheio:
+                SetFeedback($"O baralho de {naMesa.heroName} está cheio. "
+                          + "Tire uma carta em Baralhos para abrir espaço.");
+                return;
+            case Estado.CopiasDemais:
+                SetFeedback($"{naMesa.heroName} já leva {DeckManager.MaxCopiasPorCarta} cópias de {card.cardName}.");
+                return;
+            case Estado.SemOuro:
+                SetFeedback($"Ouro insuficiente: {card.cardName} custa {preco}.");
+                return;
+        }
+
+        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(preco))
+        {
+            SetFeedback("Ouro insuficiente.");
+            return;
+        }
+
+        // GetDeck devolve o baralho vivo do repositório, e não uma cópia: mexer
+        // nesta lista já é mexer no baralho que a jornada vai usar.
+        DeckData deck = DeckRepository.GetDeck(naMesa);
+        deck.cards.Add(card);
+
+        availableCards.Remove(card);
+
+        SetFeedback($"{card.cardName} entra no baralho de {naMesa.heroName}: "
+                  + $"{deck.cards.Count}/{deck.maxDeckSize} cartas.");
+
+        RefreshLibrary();
+
+        // O ganho sobe sobre o retrato de quem recebeu — é ali, e não na estante,
+        // que a compra mudou alguma coisa.
+        if (portraitImage != null && portraitImage.gameObject.activeInHierarchy)
+            CombatFeedback.Get().ShowText(portraitImage.gameObject,
+                $"+ {card.cardName}", new Color(0.50f, 0.78f, 0.41f));
+    }
+
+    #endregion
+
+    #region O veredito: para quem serve, e se é melhor
+
+    /// <summary>
+    /// A linha que a biblioteca escreve na própria carta. Responde, nesta ordem:
+    /// esta carta serve ao herói da mesa? ele já a tem? e ela bate a melhor que
+    /// ele leva daquele tipo?
+    /// </summary>
+    string Veredito(CardData card)
+    {
+        if (naMesa == null)
+            return "<color=#B8B0A0>Escolha na fila quem vai receber.</color>";
+
+        if (!ServeA(card, naMesa))
+            return $"<color=#B04040>Não serve a {naMesa.heroName} — carta de {GetClassName(card.requiredClass)}.</color>";
+
+        DeckData deck = DeckRepository.GetDeck(naMesa);
+        int copias = Copias(deck, card);
+
+        if (copias > 0)
+        {
+            string quantas = copias == 1 ? "esta carta" : $"{copias} cópias desta";
+            return $"<color=#B8B0A0>◇ {naMesa.heroName} já leva {quantas}.</color>";
+        }
+
+        Genero genero = GeneroDe(card);
+        if (genero == Genero.Nenhum)
+            return $"<color=#7FB069>◆ {naMesa.heroName} não tem nada assim.</color>";
+
+        int valor = ValorDe(card, genero);
+        int melhor = MelhorDoBaralho(deck, genero);
+        string tipo = NomeDoGenero(genero);
+
+        if (melhor <= 0)
+            return $"<color=#7FB069>◆ {valor} de {tipo} — {naMesa.heroName} não tem nenhuma.</color>";
+
+        if (valor > melhor)
+            return $"<color=#7FB069>◆ {valor} de {tipo} — a melhor de {naMesa.heroName} faz {melhor}.</color>";
+
+        return $"<color=#B8B0A0>◇ {valor} de {tipo} — {naMesa.heroName} já tem uma de {melhor}.</color>";
+    }
+
+    /// <summary>
+    /// Bardo é curinga: é a mesma regra que a tela de Baralhos usa para montar a
+    /// coleção de cada herói, e divergir dela faria a biblioteca vender carta que
+    /// o editor de deck recusa.
+    /// </summary>
+    static bool ServeA(CardData card, HeroData hero)
+    {
+        return card != null && hero != null
+            && (card.requiredClass == hero.heroClass || card.requiredClass == HeroClass.Bard);
+    }
+
+    static int Copias(DeckData deck, CardData card)
+    {
+        return deck == null || deck.cards == null ? 0 : deck.cards.Count(c => c == card);
+    }
+
+    /// <summary>O que a carta faz de mensurável. Só serve para comparar duas cartas do mesmo tipo.</summary>
+    enum Genero { Nenhum, Dano, Bloqueio, Cura }
+
+    static Genero GeneroDe(CardData card)
+    {
+        if (card == null) return Genero.Nenhum;
+        if (card.combatDamage > 0) return Genero.Dano;
+        if (card.combatBlock > 0) return Genero.Bloqueio;
+        if (card.combatHeal > 0) return Genero.Cura;
+        return Genero.Nenhum;
+    }
+
+    static int ValorDe(CardData card, Genero genero)
+    {
+        if (card == null) return 0;
+
+        switch (genero)
+        {
+            case Genero.Dano: return card.combatDamage;
+            case Genero.Bloqueio: return card.combatBlock;
+            case Genero.Cura: return card.combatHeal;
+            default: return 0;
+        }
+    }
+
+    static string NomeDoGenero(Genero genero)
+    {
+        switch (genero)
+        {
+            case Genero.Dano: return "dano";
+            case Genero.Bloqueio: return "bloqueio";
+            case Genero.Cura: return "cura";
+            default: return "";
+        }
+    }
+
+    static int MelhorDoBaralho(DeckData deck, Genero genero)
+    {
+        if (deck == null || deck.cards == null || genero == Genero.Nenhum) return 0;
+
+        int melhor = 0;
+        foreach (CardData card in deck.cards)
+        {
+            if (card == null || GeneroDe(card) != genero) continue;
+            melhor = Mathf.Max(melhor, ValorDe(card, genero));
+        }
+
+        return melhor;
+    }
+
+    /// <summary>A linha da direita na lista do baralho: o que a carta faz e o que custa.</summary>
+    static string Resumo(CardData card)
+    {
+        Genero genero = GeneroDe(card);
+        string efeito = genero == Genero.Nenhum
+            ? ""
+            : $"{ValorDe(card, genero)} de {NomeDoGenero(genero)}   ";
+
+        return $"{efeito}⚡ {card.energyCost}";
+    }
+
+    /// <summary>Preenche um texto do prefab da carta pelo nome do filho.</summary>
+    static void SetTextoDoFilho(GameObject root, string nomeDoFilho, string valor)
+    {
+        TMP_Text alvo = root.transform.Find(nomeDoFilho)?.GetComponent<TMP_Text>();
+        if (alvo != null) alvo.text = valor;
+    }
+
+    #endregion
+
+    #region O estoque e o nível da sala
+
+    void GarantirEstoque()
+    {
+        if (estoqueSorteado && nivelDoEstoque == libraryLevel) return;
+
+        GenerateCardsByLevel();
+
+        estoqueSorteado = true;
+        nivelDoEstoque = libraryLevel;
+    }
+
+    /// <summary>
+    /// O que a estante oferece. É a única costura do estoque: quem for fazer o
+    /// acervo mudar por ciclo troca o miolo daqui e nada mais precisa saber.
+    /// </summary>
     void GenerateCardsByLevel()
     {
         availableCards.Clear();
 
-        // Carrega todas as cartas da pasta Resources/Cards
         CardData[] allCards = Resources.LoadAll<CardData>("Cards");
 
         if (allCards.Length == 0)
@@ -133,154 +773,88 @@ public class LibraryManager : MonoBehaviour
             return;
         }
 
-        // Filtra cartas baseado no nível da biblioteca
         foreach (var card in allCards)
         {
-            bool shouldAdd = false;
+            if (!RaridadeLiberada(card.rarity)) continue;
 
-            switch (card.rarity)
-            {
-                case CardRarity.Common:
-                    shouldAdd = libraryLevel >= 1;
-                    break;
-                case CardRarity.Rare:
-                    shouldAdd = libraryLevel >= 2;
-                    break;
-                case CardRarity.Epic:
-                    shouldAdd = libraryLevel >= 3;
-                    break;
-                case CardRarity.Legendary:
-                    shouldAdd = libraryLevel >= 4;
-                    break;
-            }
-
-            // 50% de chance de aparecer
-            if (shouldAdd && Random.value < 0.5f)
+            // 50% de chance de aparecer.
+            if (Random.value < 0.5f)
                 availableCards.Add(card);
         }
 
-        // Limita a 6 cartas
-        while (availableCards.Count > 6)
+        while (availableCards.Count > NichosNaEstante)
             availableCards.RemoveAt(Random.Range(0, availableCards.Count));
 
-        // Garante pelo menos 3 cartas
-        if (availableCards.Count < 3 && allCards.Length > 0)
+        // Garante que a estante nunca abra quase vazia.
+        var liberadas = allCards.Where(c => RaridadeLiberada(c.rarity)).ToList();
+        while (availableCards.Count < 3 && liberadas.Count > 0)
+            availableCards.Add(liberadas[Random.Range(0, liberadas.Count)]);
+    }
+
+    bool RaridadeLiberada(CardRarity rarity)
+    {
+        switch (rarity)
         {
-            for (int i = availableCards.Count; i < 3; i++)
-                availableCards.Add(allCards[Random.Range(0, allCards.Length)]);
+            case CardRarity.Common: return libraryLevel >= 1;
+            case CardRarity.Rare: return libraryLevel >= 2;
+            case CardRarity.Epic: return libraryLevel >= 3;
+            case CardRarity.Legendary: return libraryLevel >= 4;
+            default: return false;
         }
     }
 
-    void SetupCardPurchaseUI(GameObject cardObj, CardData card)
+    string RaridadesLiberadas()
     {
-        // Nome da carta
-        TMP_Text nameText = cardObj.transform.Find("Text_CardName")?.GetComponent<TMP_Text>();
-        if (nameText != null) nameText.text = card.cardName;
-
-        // Tipo/Classe
-        TMP_Text typeText = cardObj.transform.Find("Text_CardType")?.GetComponent<TMP_Text>();
-        if (typeText != null) typeText.text = GetClassIcon(card.requiredClass);
-
-        // Descrição/Efeito
-        TMP_Text effectText = cardObj.transform.Find("Text_CardEffect")?.GetComponent<TMP_Text>();
-        if (effectText != null) effectText.text = card.cardDescription;
-
-        // Preço
-        TMP_Text costText = cardObj.transform.Find("Text_CardCost")?.GetComponent<TMP_Text>();
-        int price = GetCardPrice(card.rarity);
-        if (costText != null) costText.text = $"💰 {price}";
-
-        // Custo de energia
-        TMP_Text energyText = cardObj.transform.Find("Text_CardEnergy")?.GetComponent<TMP_Text>();
-        if (energyText != null) energyText.text = $"⚡ {card.energyCost}";
-
-        // Borda por raridade
-        Image border = cardObj.transform.Find("Image_Border")?.GetComponent<Image>();
-        if (border != null)
-        {
-            switch (card.rarity)
-            {
-                case CardRarity.Common:
-                    border.color = new Color(0.5f, 0.5f, 0.5f);
-                    break;
-                case CardRarity.Rare:
-                    border.color = new Color(0.2f, 0.4f, 0.8f);
-                    break;
-                case CardRarity.Epic:
-                    border.color = new Color(0.6f, 0.2f, 0.8f);
-                    break;
-                case CardRarity.Legendary:
-                    border.color = new Color(0.9f, 0.7f, 0.1f);
-                    break;
-            }
-        }
-
-        // Botão de compra. O rótulo nunca era escrito: o prefab vem do editor com
-        // "Button" no texto, e as três cartas à venda apareciam com três botões
-        // idênticos sem dizer que compravam nada — nem por quanto.
-        Button buyButton = cardObj.transform.Find("Button_Buy")?.GetComponent<Button>();
-        if (buyButton != null)
-        {
-            int priceCapture = price;
-            buyButton.onClick.AddListener(() => PurchaseCard(card, priceCapture));
-
-            // Só o verbo: o preço já está escrito no corpo da carta, e
-            // "COMPRAR — 💰 100" não cabe na largura do botão — quebrava linha e
-            // saía pela borda de baixo.
-            TMP_Text buyLabel = buyButton.GetComponentInChildren<TMP_Text>(true);
-            if (buyLabel != null) buyLabel.text = "COMPRAR";
-
-            // Sem ouro o botão fica visivelmente fora de alcance, em vez de
-            // recusar a compra só depois do clique.
-            buyButton.interactable = GuildManager.Instance == null
-                                  || GuildManager.Instance.gold >= price;
-        }
-
-        // Botão principal (detalhes)
-        Button mainButton = cardObj.GetComponent<Button>();
-        if (mainButton != null)
-            mainButton.onClick.AddListener(() => ShowCardDetails(card));
+        if (libraryLevel >= 4) return "até lendárias";
+        if (libraryLevel >= 3) return "até épicas";
+        if (libraryLevel >= 2) return "comuns e raras";
+        return "só cartas comuns";
     }
 
-    void PurchaseCard(CardData card, int price)
+    void AtualizarBotaoDeMelhora()
     {
-        if (GuildManager.Instance.SpendGold(price))
-        {
-            UIManager.Instance?.ShowMessage($"Carta {card.cardName} comprada!", 2f);
-            availableCards.Remove(card);
-            RefreshAvailableCards();
-        }
-        else
-        {
-            UIManager.Instance?.ShowMessage($"Ouro insuficiente! Precisa de {price} ouro.", 2f);
-        }
-    }
+        if (upgradeButton == null) return;
 
-    void ShowCardDetails(CardData card)
-    {
-        string details = $"<b>{card.cardName}</b>\n\n";
-        details += $"🎭 Classe: {GetClassName(card.requiredClass)}\n";
-        details += $"⭐ Raridade: {card.rarity}\n";
-        details += $"⚡ Custo: {card.energyCost} energia\n\n";
-        details += $"<b>Descrição:</b>\n{card.cardDescription}";
+        bool noMaximo = libraryLevel >= NivelMaximo;
+        int cost = upgradeBaseCost * libraryLevel;
+        bool temOuro = GuildManager.Instance != null && GuildManager.Instance.gold >= cost;
 
-        UIManager.Instance?.ShowResult($"📜 {card.cardName}", details, null);
+        upgradeButton.interactable = !noMaximo && temOuro;
+
+        var texto = upgradeButton.GetComponentInChildren<TMP_Text>(true);
+        if (texto == null) return;
+
+        texto.text = noMaximo
+            ? "ACERVO COMPLETO"
+            : temOuro ? $"MELHORAR   {cost}💰"
+                      : $"<color=#B04040>MELHORAR   {cost}💰</color>";
     }
 
     void UpgradeLibrary()
     {
+        if (libraryLevel >= NivelMaximo)
+        {
+            SetFeedback("Esta biblioteca já guarda tudo o que sabe guardar.");
+            return;
+        }
+
         int cost = upgradeBaseCost * libraryLevel;
-        if (GuildManager.Instance.SpendGold(cost))
+
+        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(cost))
         {
-            libraryLevel++;
-            RefreshLibrary();
-            UIManager.Instance?.ShowMessage($"Biblioteca nível {libraryLevel} desbloqueada!", 2f);
+            SetFeedback($"Ouro insuficiente: melhorar a sala custa {cost}.");
+            return;
         }
-        else
-        {
-            UIManager.Instance?.ShowMessage($"Ouro insuficiente! Precisa de {cost} ouro.", 2f);
-        }
+
+        libraryLevel++;
+
+        // O nível mudou, então o estoque é sorteado de novo — e é justamente esse
+        // acervo novo o que o jogador acabou de comprar.
+        SetFeedback($"Biblioteca no nível {libraryLevel}. Na estante agora: {RaridadesLiberadas()}.");
+        RefreshLibrary();
     }
+
+    #endregion
 
     int GetCardPrice(CardRarity rarity)
     {
@@ -290,25 +864,22 @@ public class LibraryManager : MonoBehaviour
             case CardRarity.Rare: return rareCardPrice;
             case CardRarity.Epic: return epicCardPrice;
             case CardRarity.Legendary: return legendaryCardPrice;
-            default: return 100;
+            default: return commonCardPrice;
         }
     }
 
-    string GetClassIcon(HeroClass heroClass)
+    static Color CorDaRaridade(CardRarity rarity)
     {
-        switch (heroClass)
+        switch (rarity)
         {
-            case HeroClass.Warrior: return "⚔️ Guerreiro";
-            case HeroClass.Mage: return "🔮 Mago";
-            case HeroClass.Healer: return "⚕️ Curandeiro";
-            case HeroClass.Rogue: return "🗡️ Ladino";
-            case HeroClass.Bard: return "🎵 Bardo";
-            case HeroClass.Hunter: return "🏹 Caçador";
-            default: return "❓";
+            case CardRarity.Rare: return new Color(0.36f, 0.46f, 0.70f);
+            case CardRarity.Epic: return new Color(0.55f, 0.35f, 0.72f);
+            case CardRarity.Legendary: return new Color(0.85f, 0.70f, 0.32f);
+            default: return new Color(0.42f, 0.40f, 0.38f);
         }
     }
 
-    string GetClassName(HeroClass heroClass)
+    static string GetClassName(HeroClass heroClass)
     {
         switch (heroClass)
         {
@@ -318,7 +889,7 @@ public class LibraryManager : MonoBehaviour
             case HeroClass.Rogue: return "Ladino";
             case HeroClass.Bard: return "Bardo";
             case HeroClass.Hunter: return "Caçador";
-            default: return "Desconhecido";
+            default: return heroClass.ToString();
         }
     }
 }

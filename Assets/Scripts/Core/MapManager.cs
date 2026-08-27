@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// O mapa da guilda: cada local mostra o que faz antes de o jogador entrar.
+/// O mapa da guilda: cada local se apresenta na primeira visita e, depois disso,
+/// abre direto no clique.
 /// </summary>
 public class MapManager : MonoBehaviour
 {
@@ -129,6 +131,21 @@ public class MapManager : MonoBehaviour
             upgradeButton.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// As salas que o jogador já conhece nesta sessão.
+    ///
+    /// Toda porta da guilda abria um painel explicando a sala e pedindo
+    /// confirmação — sete telas de "deseja entrar?" que o jogador lê uma vez e
+    /// depois atravessa no piloto automático, um clique a mais por visita e por
+    /// sala. A explicação serve à primeira vez; da segunda em diante ela é
+    /// atrito.
+    ///
+    /// A lista é da sessão e não vai para o save: reabrir o jogo mostrar de novo
+    /// o que cada sala faz é aceitável; guardar isso obrigaria a versionar o
+    /// arquivo de save por causa de um texto de ajuda.
+    /// </summary>
+    static readonly HashSet<string> salasJaConhecidas = new HashSet<string>();
+
     void ShowLocationInfo(string name, string description, string action)
     {
         if (locationInfoPanel == null)
@@ -139,6 +156,13 @@ public class MapManager : MonoBehaviour
 
         currentLocationName = name;
         currentLocationAction = action;
+
+        // Segunda visita em diante: entra direto.
+        if (!salasJaConhecidas.Add(action))
+        {
+            OnEnterButtonClick();
+            return;
+        }
 
         if (locationNameText != null)
             locationNameText.text = name;

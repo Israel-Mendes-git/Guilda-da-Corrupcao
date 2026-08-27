@@ -4,6 +4,22 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// A preparação da jornada, em três passos: para onde ir, quem vai e com qual
+/// baralho.
+///
+/// <b>Cada decisão mora num passo só.</b> O deck principal era escolhido em dois
+/// lugares — o botão "USAR DECK" no card do passo 2 e o clique no card do passo 3
+/// —, e os dois escreviam na mesma variável por caminhos diferentes: quem usava o
+/// botão chegava ao passo 3 sem borda de seleção e sem a composição do baralho,
+/// porque só o clique do passo 3 as produzia. Duas portas para a mesma escolha
+/// não davam liberdade nenhuma; davam duas telas dizendo coisas diferentes sobre
+/// o mesmo estado. A porta do passo 2 foi fechada.
+///
+/// Rejeitado: fechar a do passo 3 e ficar com o botão do passo 2. O passo 3 é
+/// onde estão as cartas, o nível e o HP de cada herói — os números que fazem a
+/// escolha do baralho ser uma escolha. No passo 2 ela seria um chute.
+/// </summary>
 public class QuestSelectionUI : MonoBehaviour
 {
     public static QuestSelectionUI Instance;
@@ -87,11 +103,10 @@ public class QuestSelectionUI : MonoBehaviour
     private int extraTorches;
 
     /// <summary>
-    /// Selo de "deck principal" de cada card, para poder tirá-lo do herói anterior
-    /// quando a escolha muda. Sem isto o selo era estático e ficava com o "New
-    /// Text" que veio do editor.
+    /// Card do passo 3 de cada herói, para conseguir marcar o baralho escolhido
+    /// sem depender de o jogador ter clicado nele.
     /// </summary>
-    private readonly Dictionary<HeroData, TMP_Text> mainHeroIndicators = new Dictionary<HeroData, TMP_Text>();
+    private readonly Dictionary<HeroData, GameObject> deckCards = new Dictionary<HeroData, GameObject>();
 
     private int ProvisionsCost => extraRations * rationCost + extraTorches * torchCost;
 
@@ -239,13 +254,18 @@ public class QuestSelectionUI : MonoBehaviour
             availableQuests = QuestGenerator.GenerateQuests(3, playerLevel);
         }
 
-        RefreshQuestList();
-        RefreshPartySelection();
-        RefreshDeckSelection();
-
+        // Zera antes de redesenhar: agora a lista de heróis é reconstruída a
+        // partir de selectedParty (é o que preserva a marcação ao voltar do
+        // passo 3), então limpar depois deixaria os toggles ligados sem ninguém
+        // na party.
         selectedQuest = null;
         selectedMainHero = null;
         selectedParty.Clear();
+        currentSelectedDeckCard = null;
+
+        RefreshQuestList();
+        RefreshPartySelection();
+        RefreshDeckSelection();
 
         extraRations = 0;
         extraTorches = 0;
@@ -462,17 +482,23 @@ public class QuestSelectionUI : MonoBehaviour
             return;
         }
 
-        foreach (Transform child in partySelectionContainer)
-            Destroy(child.gameObject);
-
-        selectedParty.Clear();
-        mainHeroIndicators.Clear();
+        UIUtil.ClearChildrenNow(partySelectionContainer);
 
         if (GuildManager.Instance == null)
         {
             Debug.LogError("GuildManager.Instance é NULL!");
             return;
         }
+
+        // A party sobrevive ao redesenho. Antes o método zerava a lista, e como
+        // "Voltar" do passo 3 passa por aqui, o jogador perdia o grupo inteiro e
+        // a ordem da formação só por querer conferir uma coisa no passo anterior.
+        // Some daqui apenas quem não pode mais ir.
+        selectedParty.RemoveAll(h => h == null || h.isDead
+                                  || !GuildManager.Instance.roster.Contains(h));
+
+        if (selectedMainHero != null && !selectedParty.Contains(selectedMainHero))
+            selectedMainHero = null;
 
         foreach (var hero in GuildManager.Instance.roster)
         {
@@ -528,9 +554,11 @@ public class QuestSelectionUI : MonoBehaviour
         Toggle toggle = card.GetComponentInChildren<Toggle>();
         if (toggle != null)
         {
-            toggle.isOn = false;
-            toggle.interactable = apto;
+            // Marcado antes de o ouvinte entrar: assim o estado restaurado não
+            // dispara o callback e não mexe de novo em selectedParty.
             toggle.onValueChanged.RemoveAllListeners();
+            toggle.isOn = selectedParty.Contains(hero);
+            toggle.interactable = apto;
             toggle.onValueChanged.AddListener((isOn) => {
                 if (isOn)
                 {
@@ -556,67 +584,18 @@ public class QuestSelectionUI : MonoBehaviour
             });
         }
 
-        // Selo de deck principal. O prefab traz "New Text" aqui; sem preencher,
-        // todo card anunciava isso no lugar do selo.
-        TMP_Text indicator = card.transform.Find("MainIndicator")?.GetComponent<TMP_Text>();
-        if (indicator != null)
-        {
-            mainHeroIndicators[hero] = indicator;
-            indicator.text = "";
-        }
-
-        // Botão para deck principal
-        Button mainBtn = card.transform.Find("MainButton")?.GetComponent<Button>();
-        if (mainBtn != null)
-        {
-            TMP_Text mainLabel = mainBtn.GetComponentInChildren<TMP_Text>(true);
-            if (mainLabel != null) mainLabel.text = "USAR DECK";
-
-            mainBtn.onClick.RemoveAllListeners();
-            mainBtn.onClick.AddListener(() => {
-                selectedMainHero = hero;
-                if (selectedDeckNameText != null)
-                    selectedDeckNameText.text = $"⭐ Deck Principal: {hero.heroName}";
-                RefreshMainHeroIndicators();
-                UpdateStartButtonStatus();
-            });
-        }
+        // O botão "USAR DECK" e o selo "⭐ PRINCIPAL" saem de cena: escolher o
+        // baralho é o passo 3, e daqui a escolha era feita às cegas — sem ver
+        // quantas cartas o herói tem nem em que estado ele está. O prefab é
+        // compartilhado com a cena, então desligar é mais seguro que apagar.
+        DesligarFilho(card, "MainButton");
+        DesligarFilho(card, "MainIndicator");
     }
 
-    /// <summary>
-    /// O selo só pode estar num card por vez, então marcar um herói exige apagar
-    /// o do anterior.
-    /// </summary>
-    void RefreshMainHeroIndicators()
+    static void DesligarFilho(GameObject card, string nome)
     {
-        foreach (var pair in mainHeroIndicators)
-        {
-            if (pair.Value == null) continue;
-            pair.Value.text = pair.Key == selectedMainHero
-                ? "<color=#D4AF37>⭐ PRINCIPAL</color>"
-                : "";
-        }
-    }
-
-    Button FindButtonInChildren(GameObject parent, string childName)
-    {
-        Button[] allButtons = parent.GetComponentsInChildren<Button>(true);
-        foreach (var btn in allButtons)
-        {
-            if (btn.gameObject.name == childName)
-                return btn;
-        }
-        return null;
-    }
-
-    void SetAsMainHero(HeroData hero)
-    {
-        selectedMainHero = hero;
-
-        if (selectedDeckNameText != null)
-            selectedDeckNameText.text = $"⭐ Deck Principal: {hero.heroName}";
-
-        UpdateStartButtonStatus();
+        Transform filho = card.transform.Find(nome);
+        if (filho != null) filho.gameObject.SetActive(false);
     }
 
     void UpdatePartyCountText()
@@ -639,7 +618,7 @@ public class QuestSelectionUI : MonoBehaviour
                     partyCountText.text += "\n<color=#B04040>⚠️ Requisitos não atendidos:\n• "
                                          + string.Join("\n• ", faltando) + "</color>";
                 else
-                    partyCountText.text += "\n<color=#4A7A4A>✓ Requisitos atendidos — escolha o deck principal</color>";
+                    partyCountText.text += "\n<color=#4A7A4A>✓ Requisitos atendidos</color>";
             }
         }
 
@@ -834,8 +813,9 @@ public class QuestSelectionUI : MonoBehaviour
             return;
         }
 
-        foreach (Transform child in deckSelectionContainer)
-            Destroy(child.gameObject);
+        UIUtil.ClearChildrenNow(deckSelectionContainer);
+        deckCards.Clear();
+        currentSelectedDeckCard = null;
 
         if (selectedParty.Count == 0)
         {
@@ -854,7 +834,30 @@ public class QuestSelectionUI : MonoBehaviour
 
             GameObject deckCard = Instantiate(deckCardPrefab, deckSelectionContainer);
             SetupDeckCard(deckCard, hero, heroDeck);
+            deckCards[hero] = deckCard;
         }
+
+        MarcarBaralhoPadrao();
+    }
+
+    /// <summary>
+    /// Deixa um baralho já escolhido ao abrir o passo 3.
+    ///
+    /// Sem isto o passo abria sem nada marcado e com o botão de partir cinza, e
+    /// nada na tela dizia que faltava um clique — era o caso em que "o jogo não
+    /// deixa eu ir" não tinha explicação visível. O primeiro da formação é o
+    /// padrão porque é quem lidera a fila que o jogador acabou de montar; trocar
+    /// continua sendo um clique, e com um herói só não existe escolha a fazer.
+    /// </summary>
+    void MarcarBaralhoPadrao()
+    {
+        HeroData alvo = selectedMainHero != null && deckCards.ContainsKey(selectedMainHero)
+            ? selectedMainHero
+            : selectedParty.FirstOrDefault(h => h != null && !h.isDead);
+
+        if (alvo == null || !deckCards.TryGetValue(alvo, out GameObject card)) return;
+
+        SelectDeck(alvo, card);
     }
 
     void SetupDeckCard(GameObject card, HeroData hero, DeckData deck)
@@ -886,6 +889,9 @@ public class QuestSelectionUI : MonoBehaviour
         if (hpText != null)
             hpText.text = $"❤️ {hero.currentHp}/{hero.maxHp}";
 
+        VestirRetrato(card, hero);
+        LiberarCliqueDoCard(card);
+
         // Botão para selecionar o deck
         Button btn = card.GetComponent<Button>();
         if (btn != null)
@@ -893,6 +899,56 @@ public class QuestSelectionUI : MonoBehaviour
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => SelectDeck(hero, card));
         }
+    }
+
+    /// <summary>
+    /// Põe o rosto do herói no card do passo 3.
+    ///
+    /// O quadro do retrato é um prefab aninhado (<c>Portrait</c>), e o Image de
+    /// dentro dele — <c>img_Portrait</c> — nasce sem sprite e com um cinza
+    /// escuro por cor. Era a caixa vazia que aparecia no lugar de cada herói
+    /// justamente na última tela antes de partir, enquanto a Taverna e a Forja
+    /// mostravam o mesmo <see cref="HeroData.portrait"/> sem problema: elas
+    /// criam o Image em código e atribuem o sprite; aqui ninguém atribuía.
+    ///
+    /// Sem retrato no herói, a cor original fica — um quadro cinza é melhor que
+    /// um branco chapado no meio do card.
+    /// </summary>
+    static void VestirRetrato(GameObject card, HeroData hero)
+    {
+        if (hero == null || hero.portrait == null) return;
+
+        foreach (var img in card.GetComponentsInChildren<Image>(true))
+        {
+            if (img.gameObject.name != "img_Portrait") continue;
+
+            img.sprite = hero.portrait;
+            img.color = Color.white;
+            img.preserveAspect = true;
+            return;
+        }
+    }
+
+    /// <summary>
+    /// Faz o card inteiro responder ao clique.
+    ///
+    /// O quadro do retrato vem com um Button próprio, herdado do prefab e sem
+    /// nenhum ouvinte. Ele cobre a metade de cima do card e engolia o clique: o
+    /// baralho só era escolhido quando se acertava a faixa do nome ou a contagem
+    /// de cartas, e clicar no rosto do herói — o alvo óbvio — não fazia nada.
+    ///
+    /// Desligar o raycast dos gráficos do quadro deixa o clique atravessar até o
+    /// corpo do card, de onde ele sobe para o Button da raiz. Mexer no prefab
+    /// resolveria também, mas ele é o mesmo que a cena instancia, e um Button
+    /// removido lá some para todo mundo.
+    /// </summary>
+    static void LiberarCliqueDoCard(GameObject card)
+    {
+        Transform quadro = card.transform.Find("Portrait");
+        if (quadro == null) return;
+
+        foreach (var grafico in quadro.GetComponentsInChildren<Graphic>(true))
+            grafico.raycastTarget = false;
     }
 
     void SelectDeck(HeroData hero, GameObject selectedCard)
@@ -936,11 +992,11 @@ public class QuestSelectionUI : MonoBehaviour
         texto += $"<b>{preview.deck.cards.Count} cartas na jornada</b>\n";
         texto += string.Join("\n", preview.breakdown);
 
-        // A formação é confirmada aqui, no último passo: quem está mal colocado
-        // leva as cartas dele para o combate enfraquecidas.
-        texto += "\n\n<b>Formação:</b>\n";
-        texto += string.Join("\n", selectedParty.Select(h => PartyFormation.DescribePlacement(h, selectedParty)));
-
+        // A formação sai daqui: o Txt_TeamSummary, do outro lado do mesmo passo,
+        // já mostra frente e retaguarda e marca quem está fora de posição. As
+        // duas listas apareciam lado a lado dizendo o mesmo com palavras
+        // diferentes, e a composição do baralho — que só existe nesta caixa —
+        // ficava empurrada para baixo por elas.
         selectedDeckNameText.text = texto;
     }
 

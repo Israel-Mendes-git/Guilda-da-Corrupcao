@@ -37,6 +37,13 @@ public class MarketManager : MonoBehaviour
     public int potionHeal = 15;
     public float wineStressRelief = 18f;
 
+    /// <summary>
+    /// Quantos dos quatro frascos de combate o mercador traz por volta. Metade:
+    /// menos do que isso e o jogador não consegue planejar; os quatro sempre à
+    /// mão são o que fazia a sala não mudar nunca.
+    /// </summary>
+    const int FrascosPorCiclo = 2;
+
     // Comprado aqui, gasto na próxima jornada.
     private int stockedRations;
     private int stockedTorches;
@@ -64,11 +71,22 @@ public class MarketManager : MonoBehaviour
         // sala abre e reposta depois de vendida. Sortear a cada abertura deixaria
         // o jogador rolando o dado até sair a que ele quer, o que é o contrário
         // de escolher.
-        if (reliquiaDoDia == null) RenovarReliquia();
+        //
+        // A virada de ciclo repõe a prateleira mesmo sem venda: é a carroça nova
+        // chegando. Sem isso, quem não comprasse a relíquia da primeira visita
+        // veria a mesma pelo resto da partida.
+        if (reliquiaDoDia == null || cicloDoEstoque != CycleStock.CicloAtual)
+        {
+            RenovarReliquia();
+            cicloDoEstoque = CycleStock.CicloAtual;
+        }
 
         UpdateHeader();
         BuildItems();
     }
+
+    /// <summary>Em que ciclo a prateleira foi montada. -1 antes da primeira visita.</summary>
+    int cicloDoEstoque = -1;
 
     void UpdateHeader()
     {
@@ -78,7 +96,14 @@ public class MarketManager : MonoBehaviour
             goldText.text = $"💰 {gold}";
 
         if (stockText != null)
-            stockText.text = $"Estoque para a próxima jornada:  🍖 +{stockedRations}   🔥 +{stockedTorches}";
+        {
+            // O aviso da carroça fica ao lado do estoque porque é a mesma
+            // pergunta: o que eu levo desta vez. Sem ele, a prateleira muda
+            // sozinha entre uma visita e outra e parece bug.
+            stockText.text = $"Estoque para a próxima jornada:  🍖 +{stockedRations}   🔥 +{stockedTorches}"
+                           + $"      <color=#B8B0A0>O mercador troca a carroça a cada volta — "
+                           + $"ciclo {CycleStock.CicloAtual}</color>";
+        }
     }
 
     void SetFeedback(string message)
@@ -183,7 +208,12 @@ public class MarketManager : MonoBehaviour
         //
         // A poção de cura acima é outra coisa e continua onde está: aquela é
         // atendimento na guilda, some no ato e não entra na mochila de ninguém.
-        foreach (var pocao in ItemCatalog.Pocoes)
+        //
+        // Só metade dos frascos aparece por ciclo, e são sempre os mesmos dentro
+        // da mesma volta. Com os quatro sempre à mão, o Mercado era uma lista de
+        // compras: nada mudava entre uma visita e a próxima, e pular a sala não
+        // custava nada.
+        foreach (var pocao in CycleStock.Escolher(ItemCatalog.Pocoes, FrascosPorCiclo, "mercado-frascos"))
         {
             PotionDef def = pocao;
             catalog.Add(new MarketItem
@@ -233,6 +263,11 @@ public class MarketManager : MonoBehaviour
     /// <summary>
     /// Sorteia a relíquia da vez, pulando o que a guilda já tem — vender de novo
     /// o que está na prateleira faria a loja parecer quebrada.
+    ///
+    /// O sorteio vem do ciclo (<see cref="CycleStock"/>), e não do gerador
+    /// global: com <c>Random.Range</c>, recarregar o save trocava a relíquia da
+    /// vitrine, e bastava recarregar até sair a que se queria. Agora a volta 4
+    /// oferece a mesma relíquia em qualquer sessão.
     /// </summary>
     public void RenovarReliquia()
     {
@@ -245,10 +280,19 @@ public class MarketManager : MonoBehaviour
             if (!naPrateleira) candidatas.Add(r);
         }
 
-        reliquiaDoDia = candidatas.Count > 0
-            ? candidatas[Random.Range(0, candidatas.Count)]
-            : null;
+        // Repetir a da volta anterior é o mesmo que não trocar a carroça — só
+        // vale quando não sobrou outra para oferecer.
+        if (candidatas.Count > 1 && ultimaReliquiaOferecida != null)
+            candidatas.RemoveAll(r => r.id == ultimaReliquiaOferecida);
+
+        var escolhida = CycleStock.Escolher(candidatas, 1, "mercado-reliquia");
+
+        reliquiaDoDia = escolhida.Count > 0 ? escolhida[0] : null;
+        if (reliquiaDoDia != null) ultimaReliquiaOferecida = reliquiaDoDia.id;
     }
+
+    /// <summary>O que a vitrine mostrou por último, para a carroça nova não repetir.</summary>
+    string ultimaReliquiaOferecida;
 
     void BuildItems()
     {
