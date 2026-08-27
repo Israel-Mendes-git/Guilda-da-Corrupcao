@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7be476b0e829083478ad6c0549117e46, type: 3}
+  m_Name: "Un\xE7\xE3o de Guerra"
+  m_EditorClassIdentifier: 
+  cardName: "Un\xE7\xE3o de Guerra"
+  cardDescription: "Un\xE7\xE3o de Guerra"
+  cardImage: {fileID: 21300000, guid: 2bb02b871b3de264084da35529482ade, type: 3}
+  rarity: 1
+  requiredClass: 2
+  energyCost: 2
+  journeyEffect: 4
+  journeyEffectValue: 20
+  journeyEffectDescription: "Vende rem\xE9dios na estrada: +20 de ouro."
+  combatEffect: 8
+  combatDamage: 4
+  combatBlock: 0
+  combatHeal: 0
+  combatDuration: 2
+  combatEffectDescription: O grupo ataca com +4 por 2 turnos.
+  cardColor: {r: 1, g: 1, b: 1, a: 1}

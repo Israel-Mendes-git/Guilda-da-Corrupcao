@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F3EF Sal\xE3o dos \xCDdolos"
   description: "Cem est\xE1tuas de pedra encaram a porta pela qual voc\xEAs entraram.
     Na volta, algumas estar\xE3o de costas."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 95446f5473b1cb642b684245e6c39c6a, type: 3}
   biome: 7
   minCorruptionToAppear: 0
   minDay: 1

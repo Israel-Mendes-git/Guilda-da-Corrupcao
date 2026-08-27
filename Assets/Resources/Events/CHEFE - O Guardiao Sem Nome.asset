@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u2694\uFE0F O GUARDI\xC3O SEM NOME"
   description: "Ele esperava por voc\xEAs. N\xE3o h\xE1 como saber h\xE1 quanto tempo,
     nem o que ele era antes de virar isto."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: fc5333cbbdb3cdd41bee61d59c114ff6, type: 3}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 1

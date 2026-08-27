@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F4D6 O BIBLIOTEC\xC1RIO CEGO"
   description: "Ele n\xE3o tem olhos, mas vira a cabe\xE7a na dire\xE7\xE3o exata
     de cada um que entra. Nas m\xE3os, um livro encadernado em couro que ainda respira."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 872a52336f25b33438c5b89c5fb2bf0a, type: 3}
   biome: 7
   minCorruptionToAppear: 0
   minDay: 1

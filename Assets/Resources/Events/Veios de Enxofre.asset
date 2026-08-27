@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F30B Veios de Enxofre"
   description: "O ch\xE3o queima atrav\xE9s das botas e o ar arde nos pulm\xF5es.
     Entre as fissuras, cristais amarelos valem uma fortuna em qualquer cidade."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: a2fe6981f363b9946b38fb66011c3cd9, type: 3}
   biome: 6
   minCorruptionToAppear: 0
   minDay: 1

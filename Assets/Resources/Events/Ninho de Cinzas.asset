@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u2694\uFE0F NINHO DE CINZAS"
   description: "O calor aqui n\xE3o vem do ch\xE3o. Vem do que se enrola sobre as
     brasas, e acabou de acordar."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 749b8d935e1e822458fbf6bc39f2fde6, type: 3}
   biome: 6
   minCorruptionToAppear: 0
   minDay: 1

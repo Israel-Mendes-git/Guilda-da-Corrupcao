@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F5FF O GIGANTE DE PEDRA"
   description: "O que voc\xEAs tomaram por um penhasco abre os olhos. Ele guarda
     esta passagem desde antes de existir algu\xE9m para lembrar por qu\xEA."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 09dc08f5c6b72cd4095a4f22e4768439, type: 3}
   biome: 2
   minCorruptionToAppear: 0
   minDay: 1

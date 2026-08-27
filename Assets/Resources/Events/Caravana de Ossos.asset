@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u2694\uFE0F CARAVANA DE OSSOS"
   description: "O que parecia uma caravana parada n\xE3o descarrega h\xE1 muito tempo.
     E ainda assim se move."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: fc97a163c8d34ed439c9dd6ef67cbf03, type: 3}
   biome: 4
   minCorruptionToAppear: 0
   minDay: 1

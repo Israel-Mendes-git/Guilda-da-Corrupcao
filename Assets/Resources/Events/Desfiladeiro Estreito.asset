@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u26F0\uFE0F Desfiladeiro Estreito"
   description: "A trilha se afina at\xE9 caber um homem por vez. L\xE1 embaixo, a
     neblina esconde o fundo. Pedras soltas caem quando ningu\xE9m pisa nelas."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 09b836f47a88a9344a50dfdf73933970, type: 3}
   biome: 2
   minCorruptionToAppear: 0
   minDay: 1

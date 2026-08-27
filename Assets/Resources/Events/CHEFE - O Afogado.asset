@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F30A O AFOGADO"
   description: "Ele emerge do lodo ainda vestindo a armadura da guarda que se perdeu
     aqui. A \xE1gua escorre dele sem parar, e n\xE3o h\xE1 \xE1gua por perto."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: f47716ae28769ac45b35f87310bf0536, type: 3}
   biome: 3
   minCorruptionToAppear: 0
   minDay: 1

@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F426 Mau Press\xE1gio"
   description: "Corvos acompanham o grupo desde o amanhecer. Um deles pousa perto
     demais e n\xE3o foge quando gritam com ele."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 807bad1a956bf6242a864a1d8f9021e7, type: 3}
   biome: 0
   minCorruptionToAppear: 25
   minDay: 2

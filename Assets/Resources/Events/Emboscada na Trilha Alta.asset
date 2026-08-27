@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u2694\uFE0F EMBOSCADA NA TRILHA ALTA"
   description: "Pedras rolam atr\xE1s de voc\xEAs e a sa\xEDda se fecha. N\xE3o era
     desabamento: era sinal."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 359fd469230e9ec40a9c4836c4ecd59d, type: 3}
   biome: 2
   minCorruptionToAppear: 0
   minDay: 1

@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u26CF\uFE0F Mina Abandonada"
   description: "A entrada foi tapada por dentro. Quem fez isso queria manter alguma
     coisa l\xE1 no fundo, e o veio de prata brilha logo depois da barricada."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 95860582f6cdf7c459d776083d764c9a, type: 3}
   biome: 2
   minCorruptionToAppear: 0
   minDay: 2
