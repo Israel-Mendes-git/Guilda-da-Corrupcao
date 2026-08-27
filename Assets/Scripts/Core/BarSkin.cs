@@ -183,6 +183,7 @@ public static class SceneToolsTriggerWatcher
     const string ItemArtTrigger = "RunItemArt.trigger";
     const string CardCreatorTrigger = "RunCardCreator.trigger";
     const string EventArtTrigger = "RunEventArt.trigger";
+    const string GameplayAuditTrigger = "RunGameplayAudit.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -234,6 +235,7 @@ public static class SceneToolsTriggerWatcher
         // cena é um chute por bioma e tema, e o que for trocado no Inspector tem
         // de sobreviver.
         Consumir(EventArtTrigger, () => EventArt.Aplicar(false));
+        Consumir(GameplayAuditTrigger, GameplayAudit.Rodar);
         Consumir(PortraitTrigger, PortraitCatalogBuilder.Montar);
         Consumir(BiomeArtTrigger, BiomeArtBuilder.Montar);
         Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);
