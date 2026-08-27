@@ -623,6 +623,10 @@ public class CemeteryManager : MonoBehaviour
 
         var fill = fillGo.GetComponent<Image>();
         fill.raycastTarget = false;
+
+        // Sem sprite, o Filled é ignorado: a tarja aparecia lotada com 0/100,
+        // mudando só de cor. Ver UIUtil.Branco.
+        fill.sprite = UIUtil.Branco();
         fill.type = Image.Type.Filled;
         fill.fillMethod = Image.FillMethod.Horizontal;
 

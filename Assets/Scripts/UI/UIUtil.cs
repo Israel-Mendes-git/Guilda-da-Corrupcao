@@ -71,4 +71,36 @@ public static class UIUtil
         circuloCache = Sprite.Create(textura, new Rect(0f, 0f, lado, lado), new Vector2(0.5f, 0.5f));
         return circuloCache;
     }
+
+    static Sprite brancoCache;
+
+    /// <summary>
+    /// Um branco liso, para o preenchimento de barra criado em execução.
+    ///
+    /// <b>Por que uma barra precisa de sprite.</b> <c>Image.type = Filled</c> é
+    /// <i>silenciosamente ignorado</i> quando o <c>Image</c> não tem sprite: sem
+    /// ele, o componente desenha o retângulo inteiro e o <c>fillAmount</c> não
+    /// vale nada. A barra fica sempre cheia, sem erro no console e sem nada no
+    /// relatório — a do Cemitério mostrava a tarja de estresse lotada com 0/100,
+    /// mudando só de cor.
+    ///
+    /// Mesma razão do <see cref="Circulo"/> para ser feito em código: o
+    /// <c>UI/Skin/UISprite.psd</c> dos recursos embutidos é do Editor e volta
+    /// nulo em runtime — que é exatamente o estado que este método existe para
+    /// evitar.
+    /// </summary>
+    public static Sprite Branco()
+    {
+        if (brancoCache != null) return brancoCache;
+
+        var textura = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+        var pixels = new Color[16];
+        for (int i = 0; i < pixels.Length; i++) pixels[i] = Color.white;
+
+        textura.SetPixels(pixels);
+        textura.Apply();
+
+        brancoCache = Sprite.Create(textura, new Rect(0f, 0f, 4f, 4f), new Vector2(0.5f, 0.5f));
+        return brancoCache;
+    }
 }
