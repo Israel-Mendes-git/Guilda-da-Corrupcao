@@ -123,3 +123,6 @@ SmokeTestReport*.txt
 # sai facil do historico depois.
 Assets/DefaceGames/Fantasy Map Assets Pack Lite/PSD Files/
 Assets/DefaceGames/Fantasy Map Assets Pack Lite/PSD Files.meta
+
+# Relatorio da auditoria de jogabilidade, regenerado a cada execucao
+GameplayReport.txt
