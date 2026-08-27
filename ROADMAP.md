@@ -836,9 +836,21 @@ filho desligado conta igual.
 O probe passou a contar as **ativas** e a acusar `BUG: N ficha(s) na hierarquia sem aparecer na tela`.
 É a mesma família dos outros quinze: dado certo, exibição ausente.
 
-**Medido:** `PLAY MODE OK — nenhum erro capturado`, com o Mercado abrindo, trocando o foco pelo
-clique, comprando e mantendo o item no balcão. *A correção da tela de balanço compila mas ainda não
-passou por Play Mode — o Editor fechou o projeto antes da rodada de confirmação.*
+#### Dois defeitos que a mesma captura entregou depois
+
+1. **A barra de XP era vermelha**, colada na barra de vida e igual a ela. Os cinco preenchimentos do
+   kit são vermelhos (R≈130, G≈20) e o `Image` **multiplica sprite por cor**: o dourado do XP e o
+   verde da promoção saíam como vermelho escuro. A `XpBar` saiu do `BarSkin` e recebe o branco liso
+   do `UIUtil` em execução.
+2. **O aviso "A rota se divide…" ficava plantado sobre o balanço.** Os popups são levantados acima de
+   tudo de propósito, e a mensagem sobrevive à última parada. É o mesmo caso do "Prepare-se com
+   cartas…" no campo de batalha, já corrigido dentro do `EnterCombatScreen` — o trecho virou
+   `UIManager.EsconderMensagem`, e quem abre tela nova chama.
+
+**Medido em 27/08:** `PLAY MODE OK — nenhum erro capturado`, com o Mercado abrindo, trocando o foco
+pelo clique, comprando e mantendo o item no balcão; a tela de balanço com as quatro fichas visíveis,
+barra dourada e verde para quem subiu de nível. `SMOKE TEST OK — 45 verificações, 0 falhas`,
+letalidade 0,54.
 
 **O que falta:** a tela do **gerenciador de baralhos** nunca foi refeita — botões brancos escritos
 "Button", rótulos sobrepostos e cartas fora do lugar (`Assets/Screenshots/tela_deck.png`).
