@@ -705,11 +705,98 @@ Smoke test: **41 verificações, 0 falhas**, letalidade 0,51 mortes/jornada (alv
    desenho ocupando um terço do quadro, e `preserveAspect` encaixa o quadro inteiro, transparência
    incluída. É a mesma armadilha do `portraitScale` dos inimigos.
 
-**O que falta, já decidido pelo autor em 26/08:** *o motivo para voltar* será **estoque que muda por
+**O que faltava, decidido pelo autor em 26/08:** *o motivo para voltar* seria **estoque que muda por
 ciclo** — a cada volta de jornada a sala tem algo que não tinha antes, e perder um ciclo passa a
 custar. **Rejeitados:** encomenda com prazo, a sala evoluir por investimento e evento próprio de
-sala. Vale para as salas em geral, e o Mercado é o caso mais gritante: dez itens fixos, sempre os
-mesmos. Não está construído.
+sala. Construído na Fase 3.8, abaixo.
+
+---
+
+### Fase 3.8 — As outras salas seguem o molde ✅ *concluída em 26/08*
+
+O piloto convenceu, e as quatro salas restantes foram refeitas no mesmo desenho — **fila, foco,
+efeito visível** —, junto com o estoque por ciclo que a Fase 3.7 deixou pendente.
+
+| Sala | O que era | O que é |
+|---|---|---|
+| **Taverna** | três fichas iguais no meio da tela | fila de candidatos · um na mesa, rosto grande · **o que ele traz para o baralho**, comparado com o quadro atual |
+| **Biblioteca** | três cartas soltas com "COMPRAR" embaixo | fila de heróis · mesa com o baralho de quem está nela · estante julgando cada carta **contra esse baralho** ("não serve", "baralho cheio") |
+| **Cemitério** | uma linha de texto por morto, com um botão ao lado | tumbas · a tumba em foco com o retrato apagado e o que ele levava · **quem ficou**, com a barra de estresse que a vigília move no mesmo clique |
+| **Sala de Mapas** | pilha de botões | as sete regiões com a corrupção de cada uma · a região em foco com o contrato de lá · **a estrada até o destino desenhada sobre papel**, e o marco que se abre ao contratar o batedor |
+
+**Estoque por ciclo** (`CycleStock.cs`): o sorteio é uma **função do número do ciclo**, não um estado
+guardado. A mesma volta mostra sempre a mesma carroça, em qualquer sessão, e a seguinte mostra outra
+— sem entrar no save, e sem o jogador poder recarregar até sair o que ele quer. Usa FNV-1a e
+`System.Random` próprio: o hash de string do .NET é aleatorizado por processo, e semear o `Random` do
+Unity mudaria o dano do combate e a rota da jornada. Medido: `ciclo 0 → Poção de Cura + Poção de
+Fúria`, `ciclo 1 → Poção de Cura + Poção de Sonho`, estável dentro do ciclo, três prateleiras
+diferentes em seis voltas.
+
+**Junto vieram três coisas que as salas cobravam:**
+
+- **17 → 40 cartas.** Com 4 por classe, o "deck híbrido" era oito cópias de duas cartas, e seis
+  efeitos que o `CombatManager` executa — `Poison`, `DrawCards`, `GainEnergy`, `Debuff`, `GainGold`,
+  `ExtraRations` — não tinham carta nenhuma. Cada classe tem hoje 4 comuns, 3 raras, 2 épicas e 1
+  lendária. **Os nomes são provisórios**: descritivos, para dizer o que a carta faz. Batizar é do
+  autor.
+- **`CardRole`.** O baralho passa a ser montado por **função** e só então por raridade. Antes o
+  gerador sorteava entre as comuns da classe, e o do Curandeiro saía sem uma única carta que ferisse
+  alguém.
+- **Ilustração nos 25 eventos.** `EventData.eventImage` era campo serializado desde o começo do
+  projeto e **ninguém o lia**. Entraram 27 cenas do *Dwarves and Underground* (1,5 MB no repositório,
+  de um pacote de 273 MB), com `EventArtBackdrop` desenhando-as atrás do texto. A caixa do evento é a
+  tela que o jogador mais vê numa jornada, e era um retângulo preto.
+
+#### ⚠️ O achado: a régua reprovava por sorteio
+
+Três execuções seguidas do smoke test, **sem nada mudar no jogo**, deram **0,41 · 0,74 · 0,51**
+mortes por jornada. A oscilação era quase a largura do alvo inteiro (0,33–0,67), e uma delas acusou
+balanceamento quebrado.
+
+A causa não era o número de jornadas: `RodarJornadas` recicla **grupos**, e eram 25, sorteados de
+novo a cada execução. Quem mandava na letalidade era a composição desse elenco — o *n* de verdade era
+25, não 200. Subir só as jornadas não resolveria.
+
+Com **100 grupos e 1000 jornadas**, três execuções deram **0,58 · 0,53 · 0,52**: a dispersão caiu de
+±0,17 para ±0,03, e o relatório continua saindo em segundos. A letalidade real do jogo é **0,54**.
+
+**A regra que fica:** quando um número oscila entre execuções, procure o *n* efetivo antes de aumentar
+o *n* aparente. É a quarta vez que o instrumento, e não o jogo, produziu a conclusão errada.
+
+#### Defeitos que só a captura mostrou (o padrão de sempre, com o relatório em 0 erros)
+
+1. **Os painéis das salas eram translúcidos** (alfa 0,98) e o rodapé da guilda — nomes dos heróis,
+   ouro, "Baralhos" — atravessava cada sala. É o mesmo defeito de 2% que os menus tiveram na Fase 3.5,
+   agora no `PanelColor`. Como o alfa fica serializado na cena, o `FindOrCreatePanel` passou a
+   **repor o alfa** dos painéis que já existem, sem tocar na cor nem no sprite que cada sala escolheu.
+2. **O texto vazio do Cemitério transbordava a caixa** e saía da tela pelos dois lados, e a frase
+   "Nenhum herói tombou até aqui" aparecia duas vezes. `EnsureText` só configura quebra de linha ao
+   **criar** o objeto; num objeto que já existe na cena, o `enableWordWrapping` nunca era ligado, e
+   cada parágrafo virava uma linha única. As salas irmãs ligam a quebra explicitamente — o Cemitério
+   era o único que não.
+3. **23 das 40 cartas saíram sem ícone**: a tabela do `CardArt` só conhecia as 17 antigas.
+4. **A tela de baralhos mostrava "Custo m□dio" e "Ca□ador".** O `DeckManager.cs` ficou de fora da
+   reencodagem da Fase 0 e tinha 16 caracteres corrompidos — quatro deles visíveis ao jogador.
+
+#### ⚠️ O achado que a captura entregou de graça: a taverna vendia herói sem baralho
+
+O balcão ofereceu um **Ladino**. `HeroFactory.CreateRandomHero` sorteava o enum inteiro, e nem Ladino
+nem Bardo têm uma única carta em `Resources/Cards`: o recruta entrava pelo salário cheio com o
+baralho de emergência do `DeckGenerator` — **oito cópias de um "ataque básico" criado em memória**,
+sem arte e sem efeito de estrada. Nada na tela dizia isso.
+
+O sorteio passou a usar as quatro classes que têm cartas, e o smoke test ganhou a trava: *"a taverna
+oferece X e o acervo tem N cartas da classe"*. O teste de decks existia e não pegava o defeito —
+porque testava exatamente as quatro classes certas, e nunca o caminho que a taverna usa.
+
+**Medido em 26/08:** `SMOKE TEST OK — 45 verificações, 0 falhas`, letalidade 0,54 · `PLAY MODE OK —
+nenhum erro capturado`, com as seis salas abertas, compradas e fotografadas.
+
+**O que falta desta frente:** o **Mercado** continua sendo a lista de dez linhas com "COMPRAR" — é a
+única sala que não passou pelo molde, embora já use o estoque por ciclo. E ele tem **duas poções de
+cura de nomes quase iguais**: a antiga (70 de ouro, cura na guilda) e a do catálogo de itens (60,
+levada na estrada). A tela do **gerenciador de baralhos** também nunca foi refeita: botões brancos
+escritos "Button", rótulos sobrepostos e cartas fora do lugar.
 
 ---
 
