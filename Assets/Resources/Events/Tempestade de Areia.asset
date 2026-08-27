@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F3DC\uFE0F Tempestade de Areia"
   description: "A parede amarela cobre o horizonte inteiro e vem r\xE1pido. N\xE3o
     h\xE1 pedra grande o bastante para abrigar todo mundo."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 4ab6de7daab007147ac45a268c9ac878, type: 3}
   biome: 4
   minCorruptionToAppear: 0
   minDay: 1

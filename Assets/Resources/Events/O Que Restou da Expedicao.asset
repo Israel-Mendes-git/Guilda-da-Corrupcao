@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F480 O Que Restou da Expedi\xE7\xE3o"
   description: "Barracas rasgadas, uma fogueira apagada h\xE1 dias e pegadas que
     entram na mata mas nunca voltam. As mochilas continuam cheias."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 350f8c2a3814f1b49979e20a7e993c45, type: 3}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 3

@@ -175,6 +175,8 @@ public static class SceneToolsTriggerWatcher
     const string MapArtTrigger = "RunMapArt.trigger";
     const string EventBalanceTrigger = "RunEventBalance.trigger";
     const string ItemArtTrigger = "RunItemArt.trigger";
+    const string CardCreatorTrigger = "RunCardCreator.trigger";
+    const string EventArtTrigger = "RunEventArt.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -216,6 +218,16 @@ public static class SceneToolsTriggerWatcher
         Consumir(MapArtTrigger, () => MapArtBuilder.Montar(false));
         Consumir(EventBalanceTrigger, () => EventBalance.Ajustar(false));
         Consumir(ItemArtTrigger, ItemArt.Conferir);
+
+        // Semeia as cartas que faltam. Nunca sobrescreve carta existente — é a
+        // mesma precaução do catálogo de mapas, e a razão é a armadilha do Card
+        // Creator antigo, que regravava valores corrigidos à mão sem avisar.
+        Consumir(CardCreatorTrigger, CardCreator.Semear);
+
+        // Sem sobrescrever, pela mesma razão do catálogo de mapas: a escolha da
+        // cena é um chute por bioma e tema, e o que for trocado no Inspector tem
+        // de sobreviver.
+        Consumir(EventArtTrigger, () => EventArt.Aplicar(false));
         Consumir(PortraitTrigger, PortraitCatalogBuilder.Montar);
         Consumir(BiomeArtTrigger, BiomeArtBuilder.Montar);
         Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);

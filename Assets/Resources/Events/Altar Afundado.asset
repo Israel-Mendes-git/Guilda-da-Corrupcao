@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F6D0 Altar Afundado"
   description: "Metade de um templo submerso na \xE1gua parada. Moedas antigas cobrem
     o fundo, e algo se move devagar entre elas."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 2bcc4612d348cc4488f71afc576caebc, type: 3}
   biome: 3
   minCorruptionToAppear: 20
   minDay: 2

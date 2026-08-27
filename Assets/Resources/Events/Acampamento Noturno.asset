@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F525 Acampamento Noturno"
   description: "A luz morre cedo aqui. O grupo precisa decidir como passar a noite,
     e nenhuma escolha sai de gra\xE7a."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 8f792692e0dfa69439955edd7ee0c730, type: 3}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 1

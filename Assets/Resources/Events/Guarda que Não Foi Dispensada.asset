@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u2694\uFE0F GUARDA QUE N\xC3O FOI DISPENSADA"
   description: "A armadura range ao se levantar. Ningu\xE9m veio render esse posto
     h\xE1 s\xE9culos."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 5eec615501b89fc4893092d8de94106d, type: 3}
   biome: 7
   minCorruptionToAppear: 0
   minDay: 1

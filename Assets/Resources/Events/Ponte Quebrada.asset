@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F309 Ponte Quebrada"
   description: "A ponte de madeira desabou faz tempo. O rio corre gelado e r\xE1pido
     logo abaixo, cheio de galhos afiados."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 04a06e20ddb73e941925e55da1d41283, type: 3}
   biome: 1
   minCorruptionToAppear: 0
   minDay: 1

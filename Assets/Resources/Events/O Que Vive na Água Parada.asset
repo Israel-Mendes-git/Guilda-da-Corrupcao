@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\u2694\uFE0F O QUE VIVE NA \xC1GUA PARADA"
   description: "A \xE1gua \xE0 frente ferve sem calor. Algo grande se mexe logo abaixo
     da superf\xEDcie."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: 7a2f694bf24348849ac1723135bf089f, type: 3}
   biome: 3
   minCorruptionToAppear: 0
   minDay: 1

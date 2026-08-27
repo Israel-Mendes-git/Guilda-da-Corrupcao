@@ -15,7 +15,7 @@ MonoBehaviour:
   eventTitle: "\U0001F6D2 Mercador Errante"
   description: "Um homem magro empurra uma carro\xE7a coberta. Ele sorri antes de
     voc\xEAs falarem, como se j\xE1 soubesse do que precisam."
-  eventImage: {fileID: 0}
+  eventImage: {fileID: 21300000, guid: b07762f61a14cb94bbc2d7a540aa435e, type: 3}
   biome: 0
   minCorruptionToAppear: 0
   minDay: 2
