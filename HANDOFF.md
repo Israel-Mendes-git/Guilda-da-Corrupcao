@@ -37,8 +37,7 @@ Biblioteca, Cemitério e Sala de Mapas. Junto vieram o **estoque por ciclo** (`C
 
 | O quê | Situação |
 |---|---|
-| **O Mercado** | É a única sala que não passou pelo molde: dez linhas com "COMPRAR". Já usa o estoque por ciclo |
-| **Duas poções de cura** | "Poção de cura" (70, cura na guilda) e "Poção de Cura" (60, levada na estrada) na mesma prateleira. Nomes quase iguais, efeitos diferentes |
+| **Tela de balanço** | A correção (o clone da ficha nascia desligado) **compila e não passou por Play Mode** — o Editor fechou o projeto antes. É a primeira coisa a rodar na próxima sessão |
 | **Tela de baralhos** (`Panel_DeckManager`) | Nunca foi refeita: botões brancos escritos "Button", rótulos sobrepostos, cartas fora do lugar. Ver `Assets/Screenshots/tela_deck.png` |
 | **Nomes das 23 cartas novas** | Provisórios e descritivos, à espera do autor |
 | **Cartas de Ladino e Bardo** | Não existem. Por isso a taverna deixou de oferecer as duas classes |
@@ -49,8 +48,9 @@ Biblioteca, Cemitério e Sala de Mapas. Junto vieram o **estoque por ciclo** (`C
 
 ## Próximos passos
 
-1. **O Mercado no molde das outras seis** — é o que sobrou da frente das salas, e o caso que o autor
-   apontou como o mais gritante.
+1. **Rodar o Play Mode** para confirmar a tela de balanço. Esperado no relatório: `linhas de herói no
+   balanço: 4` **sem** o aviso `BUG: ... na hierarquia sem aparecer na tela`, e as quatro fichas
+   visíveis em `Assets/Screenshots/fim_jornada_balanco.png`.
 2. **A tela de baralhos** — hoje é a tela mais quebrada do jogo, e aparece em toda preparação.
 3. **Fase 4** (`ROADMAP.md`): dar efeito a `corruptionExposure`, traços e personalidades — tudo já
    acumula e ninguém lê.
@@ -68,9 +68,21 @@ oscilação do tamanho do alvo inteiro. A causa não eram as 200 jornadas: `Roda
 100 grupos e 1000 jornadas a dispersão caiu para ±0,03. É a quarta vez que o instrumento, e não o
 jogo, produziu a conclusão errada (ver as outras três no `ROADMAP.md`).
 
+### Duas armadilhas de UGUI que custaram caro nesta sessão
+
+1. **`Image.type = Filled` é ignorado quando o `Image` não tem sprite.** Sem sprite o componente
+   desenha o retângulo inteiro e o `fillAmount` não vale nada — a barra fica sempre cheia, sem erro
+   no console. A tarja de estresse do Cemitério mentia desde que a sala foi feita, mudando só de cor.
+   Use `UIUtil.Branco()` em barra criada em execução.
+2. **`Instantiate` de um molde desligado devolve um clone desligado.** As fichas de herói da tela de
+   balanço eram instanciadas, preenchidas e nunca ligadas: existiam na hierarquia — o teste contava
+   as quatro — e a tela aparecia vazia. **Contar filhos não prova que a tela mostra algo**: conte os
+   `activeInHierarchy`.
+
 ### O padrão que mais se repete no projeto: dado certo, exibição ausente
 
-Já são **quinze** ocorrências, todas com o relatório em "0 erros". As quatro desta sessão:
+Já são **dezessete** ocorrências, todas com o relatório em "0 erros". As quatro da primeira metade
+desta sessão:
 
 1. Os painéis das salas a alfa 0,98 — o rodapé da guilda atravessava cada uma. O alfa fica
    **serializado na cena**, então mudar a constante não bastou: `FindOrCreatePanel` passou a repor o

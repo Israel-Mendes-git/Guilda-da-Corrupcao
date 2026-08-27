@@ -118,7 +118,7 @@ guilda fica no centro.
 |---|---|
 | Taverna | 3 recrutas por vez; contratar custa o salário; renovar a lista custa 50 |
 | Biblioteca | Vende cartas por raridade e sobe de nível, liberando raridades melhores |
-| Mercado | Rações e tochas; poção, bandagem e vinho de efeito imediato; frascos e a relíquia do dia |
+| Mercado | Rações e tochas; tratamento, bandagem e vinho de efeito imediato; frascos e a relíquia do ciclo |
 | Forja | Um herói na bigorna por vez: arma (+1 de dano nas cartas dele) e armadura (+4 de HP), até nível 3 |
 | Cemitério | Lista os caídos; monumento devolve reputação; vigília alivia estresse |
 | Sala de Mapas | Batedores revelam trechos da rota; desvios trocam um evento adiante |
@@ -128,13 +128,21 @@ guilda fica no centro.
 porta que resolve, sempre pela primeira condição que casa — da mais bloqueante à
 mais rotineira. O texto cita nomes e números reais, não instrução genérica.
 
-**Salas como lugar [PARCIAL]:** a **Forja** foi refeita e é o molde das outras —
-fila de heróis à esquerda, um deles na bigorna com a arma e o escudo que ele
-carrega, e à direita as cartas que a arma afeta, com o dano que elas vão causar.
-Comprar troca a peça, acende a moldura e sobe o número na carta no mesmo clique;
-antes o efeito só aparecia no combate seguinte. **[PLANEJADO]** as outras seis
-salas, que continuam lista e botão de comprar, com o mesmo peso visual: nada
-distingue a sala que faz o jogo andar da que só se visita quando alguém morre.
+**Salas como lugar [IMPLEMENTADO]:** a **Forja** estabeleceu o molde — fila à
+esquerda, um em foco no meio, e à direita o efeito da compra acontecendo —, e as
+outras cinco seguiram. A taverna mostra o que o candidato traz para o baralho; a
+biblioteca julga cada carta à venda contra o baralho de quem está na mesa; o
+cemitério mostra o que o morto levava e move a barra de estresse dos vivos no
+mesmo clique da vigília; a sala de mapas desenha a estrada até o destino e abre o
+marco quando o batedor é contratado; o mercado mostra em quem a compra pega,
+com a barra do antes e do depois, antes de o ouro sair. **[PLANEJADO]** o
+**Gerenciador de Deck**, a única tela da guilda que nunca foi refeita.
+
+**Motivo para voltar [IMPLEMENTADO]** (`CycleStock`): o estoque de cada sala é
+uma **função do número do ciclo**, não um estado guardado — a mesma volta mostra
+sempre a mesma carroça, em qualquer sessão, e a seguinte mostra outra. Não entra
+no save, e o jogador não pode recarregar até sair o que quer. Hoje vale para os
+frascos e a relíquia do Mercado e para a oferta da Forja.
 
 ## 7. Relíquias e poções **[IMPLEMENTADO]** (`ItemData`, `HeroGearUI`, `PotionBeltUI`)
 
@@ -200,19 +208,23 @@ sem regra, e os 6 estados mentais que hoje só têm nome.
 
 ## 9. Cartas e decks **[IMPLEMENTADO]**
 
-**17 cartas** em `Resources/Cards` — 5 de Guerreiro, 4 de Mago, 4 de Curandeiro e
-4 de Caçador. Cada uma traz **dois efeitos**, um de jornada e um de combate; o
-contexto escolhe qual vale.
+**40 cartas** em `Resources/Cards` — 10 por classe jogável (4 comuns, 3 raras, 2
+épicas e 1 lendária). Cada uma traz **dois efeitos**, um de jornada e um de
+combate; o contexto escolhe qual vale. **Os nomes das 23 acrescentadas em 26/08
+são provisórios**: descritivos, para dizer o que a carta faz.
 
 - **Deck por herói:** `clamp(8 + nível, 8, 12)`. Raras a partir do nível 3,
   lendária no 5. Preços: Comum 100 · Rara 250 · Épica 500 · Lendária 1000.
+- **Montado por função, e só então por raridade** (`CardRole`: ataque, defesa,
+  suporte, utilidade). Antes o gerador sorteava entre as comuns da classe, e o
+  baralho do Curandeiro saía sem uma única carta que ferisse alguém.
 - **Toda carta faz alguma coisa nos dois lados** — o smoke test tranca isso desde
   que quatro delas cobravam energia e não faziam nada.
-- **[PARCIAL]** Sobram efeitos implementados sem carta que os use: `GainGold` e
-  `ExtraRations` na jornada; `Debuff`, `DrawCards`, `GainEnergy` e `Poison` no
-  combate.
-- **[PLANEJADO]** Cartas de Ladino e Bardo, e ampliar de 4 para 6–8 por classe:
-  com 4, "deck híbrido" é só cópias.
+- **Nenhum efeito sobra sem carta**: `GainGold`, `ExtraRations`, `Debuff`,
+  `DrawCards`, `GainEnergy` e `Poison` ganharam dono na segunda leva.
+- **[PLANEJADO]** Cartas de Ladino e Bardo. Enquanto não existirem, a **taverna
+  não oferece as duas classes** — o recruta entrava com um baralho de emergência
+  de oito cópias de um "ataque básico" criado em memória, pelo salário cheio.
 
 > **Regra de manutenção:** valor novo de enum entra **só no fim**. Os assets
 > guardam o número, e inserir no meio troca o efeito de toda carta configurada.
@@ -352,11 +364,13 @@ no script não altera a instância salva na cena.
   confirmação e resultado. A cena é montada por código (`Tools ▸ Guild of Legends
   ▸ Montar Cena`), e é ali que se muda layout — não à mão no Inspector. Kit visual
   com molduras 9-slice e fonte medieval.
-- **Arte [PARCIAL]:** as 17 cartas e os 11 inimigos têm arte, os retratos de herói
-  vêm de um catálogo, e os corpos da estrada e do combate são bonecos com animação
-  pronta. Faltam a ilustração dos 25 eventos e a arte de bioma de Deserto e
-  Vulcão; 3 dos 11 inimigos usam desenho que não os representa; boa parte da UI
-  ainda usa emoji como ícone, e o projeto mistura pixel art com arte pintada.
+- **Arte [PARCIAL]:** as 40 cartas, os 11 inimigos e os 25 eventos têm arte, os
+  retratos de herói vêm de um catálogo, e os corpos da estrada e do combate são
+  bonecos com animação pronta. A cena do evento é desenhada atrás do texto da
+  caixa, em opacidade baixa — a tela é de leitura. Falta a arte de bioma de
+  Deserto e Vulcão; 3 dos 11 inimigos usam desenho que não os representa; boa
+  parte da UI ainda usa emoji como ícone, e o projeto mistura pixel art com arte
+  pintada.
 - **Áudio [IMPLEMENTADO]:** música por contexto com fade e 8 efeitos, num catálogo
   em `Resources`. Nasce sozinho, sem depender de objeto na cena.
 
