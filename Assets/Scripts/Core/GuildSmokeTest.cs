@@ -392,6 +392,28 @@ public static class GuildSmokeTest
     public static int? OverrideEnergiaDeCombate;
     public static int? OverrideCartasPorTurno;
 
+    /// <summary>
+    /// Ajuste aplicado a cada herói do grupo simulado, logo depois de criado e
+    /// antes de o baralho ser montado. Nulo na medição normal.
+    ///
+    /// É por aqui que a auditoria de jogabilidade compara "com" e "sem": a mesma
+    /// simulação roda duas vezes, e a diferença é o que aquele sistema vale.
+    /// </summary>
+    public static System.Action<HeroData> PrepararHeroi;
+
+    /// <summary>
+    /// O jogador que ignora o baralho fora do combate. Serve para medir quanto o
+    /// deck vale na estrada — a pergunta que o autor levantou em 21/08: "não
+    /// existe motivo real para usar as cartas fora de combate".
+    /// </summary>
+    public static bool SemCartasNaEstrada;
+
+    /// <summary>
+    /// Roda a simulação de jornada e devolve os números, sem escrever relatório.
+    /// Usada pela auditoria de jogabilidade.
+    /// </summary>
+    public static JourneyStats MedirJornadas(int runs) => RodarJornadas(runs);
+
     static CombatManager CombateDaCena =>
         Object.FindObjectOfType<CombatManager>(true);
 
@@ -479,6 +501,12 @@ public static class GuildSmokeTest
         public float sobrevivencia;
         public float duracaoMedia;
         public float aflicoes;
+
+        /// <summary>Ouro que a estrada paga por jornada, fora o contrato.</summary>
+        public float ouroDosEventos;
+
+        /// <summary>O contrato médio das missões sorteadas.</summary>
+        public float ouroDosContratos;
     }
 
     static void SimulateJourneys(int runs)
@@ -620,6 +648,11 @@ public static class GuildSmokeTest
         int combatesTravados = 0, cartasJogadas = 0;
         var duracoes = new List<int>();
 
+        // O que a estrada paga, sem o contrato da missão: é o que a auditoria de
+        // jogabilidade compara com o preço das coisas da guilda.
+        int ouroDosEventos = 0;
+        int ouroDosContratos = 0;
+
         // De onde vêm as mortes. Sem separar, "2,40 mortes por jornada" não diz
         // se o culpado é o chefe, o encontro do caminho ou a fome — e as três
         // causas pedem correções opostas.
@@ -646,6 +679,7 @@ public static class GuildSmokeTest
 
             int dias = quest.GetActualDuration();
             duracoes.Add(dias);
+            ouroDosContratos += quest.GetTotalReward(dias);
 
             // As provisões que a tela de preparação entrega. Antes a simulação
             // usava o padrão interno do StartJourney (10–14 rações), folga que o
@@ -701,7 +735,9 @@ public static class GuildSmokeTest
                     float mitigacao = 0f;
                     var efeitosJogados = new HashSet<JourneyEffectType>();
 
-                    foreach (CardData carta in mao.EscolherPreparo(energia, ev))
+                    foreach (CardData carta in SemCartasNaEstrada
+                                                 ? System.Linq.Enumerable.Empty<CardData>()
+                                                 : mao.EscolherPreparo(energia, ev))
                     {
                         energia -= carta.energyCost;
                         mitigacao = Mathf.Min(JourneyManager.MaxMitigationValue,
@@ -736,7 +772,8 @@ public static class GuildSmokeTest
                         };
                     }
 
-                    EventResolver.Resolve(escolha, party, mitigacao);
+                    EventResolver.Resolution efeito = EventResolver.Resolve(escolha, party, mitigacao);
+                    ouroDosEventos += efeito.goldChange;
                     diasGastos += escolha.extraDays;
                 }
 
@@ -795,7 +832,9 @@ public static class GuildSmokeTest
             combates = combatesTravados / (float)runs,
             sobrevivencia = sobreviventes / (float)totalHerois,
             duracaoMedia = (float)duracoes.Average(),
-            aflicoes = totalAflicoes / (float)totalHerois
+            aflicoes = totalAflicoes / (float)totalHerois,
+            ouroDosEventos = ouroDosEventos / (float)runs,
+            ouroDosContratos = ouroDosContratos / (float)runs
         };
     }
 
@@ -1020,6 +1059,13 @@ public static class GuildSmokeTest
                 HeroFactory.CreateHero("D", HeroClass.Hunter, 1)
             };
 
+            // O grupo que a auditoria de jogabilidade quiser: com a arma forjada,
+            // com relíquia, de nível mais alto. Sem isto, medir o que cada compra
+            // da guilda vale exigiria uma segunda cópia desta simulação inteira —
+            // e duas cópias divergem no primeiro ajuste de regra.
+            if (PrepararHeroi != null)
+                foreach (HeroData h in heroes) PrepararHeroi(h);
+
             var build = JourneyDeckBuilder.Build(heroes[0], heroes);
             return new SimParty { heroes = heroes, deck = build.deck, ownership = build.ownership };
         }
@@ -1214,6 +1260,13 @@ public static class GuildSmokeTest
             // ── Turno do jogador ──
             foreach (var h in party) heroBlock[h] = 0;   // bloqueio não acumula
 
+            // O broquel entra no primeiro turno, como no CombatManager.
+            if (turno == 1)
+                foreach (var h in party)
+                    heroBlock[h] += ItemCatalog.Total(h, RelicEffect.BloqueioInicial);
+
+            BeberPocoes(party, heroBlock, buffs);
+
             int aComprar = Mathf.Max(0, cardsPerTurn - hand.Count);
             for (int i = 0; i < aComprar; i++) comprar();
 
@@ -1275,6 +1328,19 @@ public static class GuildSmokeTest
             }
 
             RollIntents(enemies);
+        }
+
+        // O unguento fecha o combate vencido, como no CombatManager: cura pouca,
+        // e só depois da luta — no meio dela seria uma segunda barra de vida.
+        if (vitoria)
+        {
+            foreach (var hero in party.Where(h => h != null && h.IsAlive))
+            {
+                int unguento = ItemCatalog.Total(hero, RelicEffect.CuraPosCombate);
+                if (unguento <= 0) continue;
+
+                hero.currentHp = Mathf.Min(hero.maxHp, hero.currentHp + unguento);
+            }
         }
 
         return new CombatOutcome
@@ -1414,7 +1480,14 @@ public static class GuildSmokeTest
         // multiplicador fecha a conta — mesma ordem do CombatManager.
         if (damage > 0 && CausaDano(card))
         {
-            damage += ForgeManager.WeaponBonus(ownership?.BestOwner(card, party));
+            HeroData dono = ownership?.BestOwner(card, party);
+            damage += ForgeManager.WeaponBonus(dono);
+
+            // A relíquia de dano entra junto da arma, como no CombatManager. Sem
+            // esta linha o simulador media um jogo em que relíquia não faz nada:
+            // a auditoria de jogabilidade acusou "−0,01 mortes" para duas
+            // relíquias por herói, e o zero era do instrumento.
+            damage += ItemCatalog.Total(dono, RelicEffect.DanoDeCarta);
 
             if (buffs.groupDamageBonusTurns > 0)
                 damage += buffs.groupDamageBonus;
@@ -1538,15 +1611,21 @@ public static class GuildSmokeTest
         switch (enemy.intent)
         {
             case EnemyIntent.Attack:
-                DamageHero(PartyFormation.PickTarget(party), enemy.DanoAtual,
-                           party, heroBlock, buffs, resolution);
+            {
+                HeroData alvo = PartyFormation.PickTarget(party);
+                DamageHero(alvo, enemy.DanoAtual, party, heroBlock, buffs, resolution);
+                Espinhos(alvo, enemy);
                 break;
+            }
 
             case EnemyIntent.AttackAll:
             {
                 int dmg = Mathf.Max(1, Mathf.RoundToInt(enemy.DanoAtual * 0.6f));
                 foreach (var hero in party.Where(h => h.IsAlive).ToList())
+                {
                     DamageHero(hero, dmg, party, heroBlock, buffs, resolution);
+                    Espinhos(hero, enemy);
+                }
                 break;
             }
 
@@ -1559,6 +1638,82 @@ public static class GuildSmokeTest
                                         enemy.estresse, resolution);
                 break;
         }
+    }
+
+    /// <summary>
+    /// O frasco é uma ação do jogador, e o simulador precisa de uma política —
+    /// sem ela, a auditoria acusava "poção: −0,03 mortes", que era o instrumento
+    /// não bebendo nada, e não a poção sendo fraca.
+    ///
+    /// A política é a mesma do resto do simulador: um jogador competente, não
+    /// perfeito. Cura quando o dono está abaixo de 40% da vida — é quando o
+    /// próximo golpe leva à Beira da Morte —, calma quando o estresse passa de 70,
+    /// e as duas de combate no primeiro turno, que é quando ainda há turnos para
+    /// aproveitá-las.
+    /// </summary>
+    static void BeberPocoes(List<HeroData> party, Dictionary<HeroData, int> heroBlock, SimBuffs buffs)
+    {
+        foreach (HeroData hero in party.Where(h => h.IsAlive && h.potions != null && h.potions.Count > 0).ToList())
+        {
+            foreach (string id in hero.potions.ToList())
+            {
+                PotionDef def = ItemCatalog.Pocao(id);
+                if (def == null) continue;
+
+                bool bebe;
+
+                switch (def.efeito)
+                {
+                    case PotionEffect.Cura:
+                        bebe = hero.currentHp < hero.maxHp * 0.4f;
+                        break;
+
+                    case PotionEffect.Calma:
+                        bebe = hero.stress >= 70f;
+                        break;
+
+                    default:
+                        bebe = true;   // as de combate valem mais cedo do que tarde
+                        break;
+                }
+
+                if (!bebe) continue;
+
+                hero.potions.Remove(id);
+
+                switch (def.efeito)
+                {
+                    case PotionEffect.Cura:
+                        hero.currentHp = Mathf.Min(hero.maxHp, hero.currentHp + def.valor);
+                        break;
+
+                    case PotionEffect.Bloqueio:
+                        heroBlock[hero] = (heroBlock.TryGetValue(hero, out int b) ? b : 0) + def.valor;
+                        break;
+
+                    case PotionEffect.ForcaNaProximaCarta:
+                        buffs.nextCardMultiplier = 1f + def.valor / 100f;
+                        break;
+
+                    case PotionEffect.Calma:
+                        hero.stress = Mathf.Max(0f, hero.stress - def.valor);
+                        break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// A armadura de espinhos devolve o golpe a quem encostou. Só a quem encostou:
+    /// veneno e dano de evento não têm agressor, e devolver golpe ao nada mataria
+    /// inimigos sozinhos — a mesma guarda do <see cref="CombatManager"/>.
+    /// </summary>
+    static void Espinhos(HeroData hero, SimEnemy agressor)
+    {
+        if (hero == null || agressor == null || !agressor.IsAlive) return;
+
+        int espinhos = ItemCatalog.Total(hero, RelicEffect.Retaliacao);
+        if (espinhos > 0) agressor.hp -= espinhos;
     }
 
     static void DamageHero(HeroData hero, int amount, List<HeroData> party,
