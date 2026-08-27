@@ -50,10 +50,27 @@ public static class HeroFactory
         return hero;
     }
 
+    /// <summary>
+    /// As classes que a taverna pode oferecer.
+    ///
+    /// Sortear o enum inteiro punha Ladino e Bardo no balcão, e nenhum dos dois
+    /// tem uma única carta em <c>Resources/Cards</c>: o recruta entrava na guilda
+    /// com o baralho de emergência do <see cref="DeckGenerator"/> — oito cópias de
+    /// um "ataque básico" criado em memória, sem arte e sem efeito de estrada. O
+    /// jogador pagava o salário cheio por um herói pior que qualquer outro, sem
+    /// nada na tela que dissesse isso.
+    ///
+    /// Quando as cartas das duas classes existirem, é aqui que elas voltam.
+    /// </summary>
+    static readonly HeroClass[] classesJogaveis =
+    {
+        HeroClass.Warrior, HeroClass.Mage, HeroClass.Healer, HeroClass.Hunter
+    };
+
     public static HeroData CreateRandomHero(int minLevel, int maxLevel)
     {
         int level = Random.Range(minLevel, maxLevel + 1);
-        HeroClass randomClass = (HeroClass)Random.Range(0, System.Enum.GetValues(typeof(HeroClass)).Length);
+        HeroClass randomClass = classesJogaveis[Random.Range(0, classesJogaveis.Length)];
         string fullName = firstNames[Random.Range(0, firstNames.Length)] + " " + lastNames[Random.Range(0, lastNames.Length)];
 
         return CreateHero(fullName, randomClass, level);

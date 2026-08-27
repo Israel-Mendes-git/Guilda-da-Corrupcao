@@ -46,7 +46,14 @@ public static class GuildSmokeTest
         TestCombatRules();
 
         Header("SIMULACAO DE JORNADAS");
-        SimulateJourneys(200);
+
+        // 1000, e não 200. Três execuções seguidas do mesmo código deram 0,41 ·
+        // 0,74 · 0,51 mortes por jornada — a oscilação entre rodadas era quase a
+        // largura do alvo (0,33–0,67), e uma delas acusou balanceamento quebrado
+        // sem nada ter mudado no jogo. Uma régua que reprova por sorteio faz
+        // perder tempo caçando regressão que não existe, e pior: ensina a ignorar
+        // o aviso. A amostra maior custa segundos.
+        SimulateJourneys(1000);
 
         Header("SIMULACAO DE COMBATE");
         SimulateCombats(200);
@@ -282,6 +289,31 @@ public static class GuildSmokeTest
 
             Object.DestroyImmediate(hero);
             Object.DestroyImmediate(deck);
+        }
+
+        // O laço acima testa as quatro classes jogáveis, e era exatamente por
+        // isso que o defeito passava: quem sorteia o recruta da taverna é a
+        // HeroFactory, que varria o enum inteiro e oferecia Ladino e Bardo — sem
+        // uma única carta no acervo. O herói entrava com o baralho de emergência
+        // do DeckGenerator (oito cópias de um "ataque básico" criado em memória),
+        // pelo salário cheio e sem nada na tela dizendo isso.
+        var oferecidas = new HashSet<HeroClass>();
+        for (int i = 0; i < 200; i++)
+        {
+            HeroData recruta = HeroFactory.CreateRandomHero(1, 3);
+            oferecidas.Add(recruta.heroClass);
+            Object.DestroyImmediate(recruta);
+        }
+
+        CardData[] acervo = Resources.LoadAll<CardData>("Cards");
+
+        foreach (HeroClass cls in oferecidas)
+        {
+            int proprias = 0;
+            foreach (CardData c in acervo)
+                if (c != null && c.requiredClass == cls) proprias++;
+
+            Check(proprias >= 4, $"a taverna oferece {cls} e o acervo tem {proprias} carta(s) da classe");
         }
     }
 
@@ -595,8 +627,13 @@ public static class GuildSmokeTest
 
         // Grupos reciclados, como em SimulateCombats: recriar a party a cada run
         // geraria milhares de decks e travaria o Editor por minutos.
+        // 100 grupos, e não 25: com 25, o número de jornadas simuladas quase não
+        // importava — quem mandava na letalidade era o sorteio dessas 25 partys,
+        // refeito a cada execução. Daí três rodadas idênticas darem 0,41 · 0,74 ·
+        // 0,51: era a composição do elenco variando, não o jogo. Subir só as
+        // jornadas não resolvia, porque o n de verdade era o número de grupos.
         var grupos = new List<SimParty>();
-        for (int i = 0; i < 25; i++) grupos.Add(SimParty.Create());
+        for (int i = 0; i < 100; i++) grupos.Add(SimParty.Create());
 
         for (int r = 0; r < runs; r++)
         {
