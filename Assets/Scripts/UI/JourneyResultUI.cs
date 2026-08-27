@@ -97,6 +97,11 @@ public class JourneyResultUI : MonoBehaviour
             panel.transform.SetAsLastSibling();
         }
 
+        // O aviso da estrada ("A rota se divide…") sobrevive à última parada e
+        // ficava plantado sobre o balanço, porque os popups são levantados acima
+        // de tudo. Mesmo caso do "Prepare-se com cartas…" no campo de batalha.
+        UIManager.Instance?.EsconderMensagem();
+
         PreencherCabecalho(report);
         PreencherHerois(report);
         PreencherRecompensa(report);
@@ -215,6 +220,11 @@ public class JourneyResultUI : MonoBehaviour
         Image barra = item.transform.Find("XpBar/Fill")?.GetComponent<Image>();
         if (barra != null)
         {
+            // Branco liso, e não o preenchimento do kit: os do kit são vermelhos,
+            // e o Image multiplica sprite por cor — o dourado saía como vermelho
+            // escuro, igual à barra de vida. Sem sprite nenhum, o Filled seria
+            // ignorado e a barra apareceria cheia (ver UIUtil.Branco).
+            barra.sprite = UIUtil.Branco();
             barra.fillAmount = linha.morreu ? 0f : linha.xpProgresso;
             barra.color = linha.subiuDeNivel
                 ? new Color(0.45f, 0.72f, 0.40f)
