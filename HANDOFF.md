@@ -1,4 +1,4 @@
-# Handoff — Guilda da Corrupção: as salas viram lugar (2026-08-26)
+# Handoff — Guilda da Corrupção: as salas viram lugar (2026-08-27)
 
 ## Objetivo
 
@@ -15,29 +15,28 @@ eles não contam.
 
 ## Estado atual
 
-**Fases 0 a 3.8 concluídas.** Nada enviado a remoto até aqui.
+**Fases 0 a 3.9 concluídas.** Nada enviado a remoto até aqui.
 
-**Validado em 26/08, 23:32:**
+**Validado em 27/08, 00:33:**
 
 | Prova | Resultado |
 |---|---|
 | `SmokeTestReport.txt` | **45 verificações, 0 falhas** · letalidade 0,54 mortes/jornada (alvo 0,33–0,67) |
-| `PlayModeReport.txt` | **PLAY MODE OK — nenhum erro capturado**, jornada completa, seis salas abertas e compradas |
+| `PlayModeReport.txt` | **PLAY MODE OK — nenhum erro capturado**, jornada completa, as seis salas abertas e compradas |
 | Compilação por fora (Roslyn) | exit 0, só os avisos antigos de campo do Inspector |
-| Capturas | as seis salas, o combate, a jornada e os menus, todas olhadas uma a uma |
+| Capturas | as seis salas, o combate, a jornada, o balanço e os menus, todas olhadas uma a uma |
 
-### O que a Fase 3.8 entregou
+### O que as Fases 3.8 e 3.9 entregaram
 
-As quatro salas restantes seguiram o molde da Forja (**fila → foco → efeito visível**): Taverna,
-Biblioteca, Cemitério e Sala de Mapas. Junto vieram o **estoque por ciclo** (`CycleStock`), as
-**cartas de 17 para 40**, o **`CardRole`** (baralho montado por função, não só por raridade) e a
-**ilustração dos 25 eventos**. Detalhes e números no `ROADMAP.md`.
+**As seis salas da guilda seguem o molde da Forja** (fila → foco → efeito visível): Taverna,
+Biblioteca, Cemitério, Sala de Mapas e, por último, o Mercado. Junto vieram o **estoque por ciclo**
+(`CycleStock`), as **cartas de 17 para 40**, o **`CardRole`** (baralho montado por função, não só por
+raridade) e a **ilustração dos 25 eventos**. Detalhes e números no `ROADMAP.md`.
 
 ### 🔄 Pendências reais
 
 | O quê | Situação |
 |---|---|
-| **Tela de balanço** | A correção (o clone da ficha nascia desligado) **compila e não passou por Play Mode** — o Editor fechou o projeto antes. É a primeira coisa a rodar na próxima sessão |
 | **Tela de baralhos** (`Panel_DeckManager`) | Nunca foi refeita: botões brancos escritos "Button", rótulos sobrepostos, cartas fora do lugar. Ver `Assets/Screenshots/tela_deck.png` |
 | **Nomes das 23 cartas novas** | Provisórios e descritivos, à espera do autor |
 | **Cartas de Ladino e Bardo** | Não existem. Por isso a taverna deixou de oferecer as duas classes |
@@ -48,10 +47,7 @@ Biblioteca, Cemitério e Sala de Mapas. Junto vieram o **estoque por ciclo** (`C
 
 ## Próximos passos
 
-1. **Rodar o Play Mode** para confirmar a tela de balanço. Esperado no relatório: `linhas de herói no
-   balanço: 4` **sem** o aviso `BUG: ... na hierarquia sem aparecer na tela`, e as quatro fichas
-   visíveis em `Assets/Screenshots/fim_jornada_balanco.png`.
-2. **A tela de baralhos** — hoje é a tela mais quebrada do jogo, e aparece em toda preparação.
+1. **A tela de baralhos** — hoje é a tela mais quebrada do jogo, e aparece em toda preparação.
 3. **Fase 4** (`ROADMAP.md`): dar efeito a `corruptionExposure`, traços e personalidades — tudo já
    acumula e ninguém lê.
 4. **Fase 5**: cartas de Ladino e Bardo, eventos e chefes para Deserto, Tundra e Vulcão, áudio.
