@@ -23,7 +23,10 @@ public static class GuildSceneSetup
     const string CardPath = "Assets/Prefabs/UI/CardPrefab.prefab";
     const string CaveBackgroundPath = "Assets/Pixel Fantasy Caves/background3.png";
 
-    internal static readonly Color PanelColor = new Color(0.08f, 0.07f, 0.09f, 0.98f);
+    // Opaco. Os 2% que faltavam deixavam o rodapé da guilda — nomes dos heróis,
+    // ouro, "Baralhos" — atravessar cada sala e brigar com o texto de cima. É o
+    // mesmo defeito que os painéis de menu já tiveram, e só a captura mostra.
+    internal static readonly Color PanelColor = new Color(0.08f, 0.07f, 0.09f, 1f);
     internal static readonly Color BoxColor = new Color(0.13f, 0.12f, 0.14f, 1f);
     internal static readonly Color ButtonColor = new Color(0.20f, 0.17f, 0.16f);
     internal static readonly Color ButtonLabelColor = new Color(0.94f, 0.88f, 0.72f);
@@ -106,11 +109,16 @@ public static class GuildSceneSetup
         GameObject combatPanel = BuildCombat(canvas, cardPrefab);
         BuildJourneyResult(canvas);
         BuildRunEnd(canvas);
-        GameObject mapRoomPanel = BuildMapRoom(canvas);
+        GameObject mapRoomPanel = MapRoom.Montar(canvas);
         GameObject marketPanel = BuildMarket(canvas);
-        GameObject cemeteryPanel = BuildCemetery(canvas);
+        GameObject cemeteryPanel = CemeteryRoom.Montar(canvas);
         GameObject forgePanel = BuildForge(canvas, cardPrefab);
-        BuildTavern(canvas);
+
+        // As salas refeitas no molde da Forja moram em arquivo próprio: este
+        // setup já tem 3.000 linhas, e uma sala por arquivo é o que permitiu
+        // trabalhá-las em paralelo sem que uma pisasse na outra.
+        GameObject libraryPanel = LibraryRoom.Montar(canvas, cardPrefab);
+        GameObject tavernPanel = TavernRoom.Montar(canvas);
         BuildProvisions();
         BuildFormation();
 
@@ -142,11 +150,22 @@ public static class GuildSceneSetup
             if (ui.cemeteryPanel == null) ui.cemeteryPanel = cemeteryPanel;
             if (ui.forgePanel == null) ui.forgePanel = forgePanel;
 
+            // A biblioteca é o único caso em que o painel novo substitui um que
+            // já existia na cena: o `if (== null)` dos outros deixaria o
+            // UIManager apontando para a tela velha para sempre. O painel antigo
+            // sai de cena em vez de ser destruído — apagar objeto de cena por
+            // ferramenta é irreversível, e ele ainda guarda a hierarquia que o
+            // desenho novo substituiu.
+            ReapontarSala(ref ui.libraryPanel, libraryPanel, "biblioteca");
+            ReapontarSala(ref ui.tavernPanel, tavernPanel, "taverna");
+
             // O rodapé da guilda não faz sentido durante o combate e ficava
             // sobreposto às cartas.
             var downBar = canvas.transform.Find("Background/Panel_DownBar");
             if (downBar != null && (ui.hideDuringCombat == null || ui.hideDuringCombat.Length == 0))
                 ui.hideDuringCombat = new[] { downBar.gameObject };
+
+            LigarAtalhoDeBaralhos(canvas, ui);
 
             EditorUtility.SetDirty(ui);
         }
@@ -1163,93 +1182,13 @@ public static class GuildSceneSetup
 
     #endregion
 
-    #region Sala de Mapas
 
-    static GameObject BuildMapRoom(Canvas canvas)
-    {
-        GameObject panel = FindOrCreatePanel(canvas, "Panel_MapRoom");
+    // A Taverna, a Biblioteca, o Cemitério e a Sala de Mapas passaram a ser
+    // montados por `Assets/Scripts/Core/Rooms/`, um arquivo por sala. Este setup
+    // já tinha 3.000 linhas, e uma sala por arquivo é o que permitiu refazê-las em
+    // paralelo sem que uma pisasse na outra.
 
-        var title = EnsureText(panel.transform, "Txt_Title", "🗺️ Sala de Mapas", 32,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -70), new Vector2(-20, -20));
-        var level = EnsureText(panel.transform, "Txt_Level", "Nível 1", 24,
-            new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(20, -110), new Vector2(0, -74));
-        var scouting = EnsureText(panel.transform, "Txt_Scouting", "", 22,
-            new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(20, -150), new Vector2(0, -114));
-        var detours = EnsureText(panel.transform, "Txt_Detours", "", 22,
-            new Vector2(0.5f, 1), new Vector2(1, 1), new Vector2(0, -150), new Vector2(-20, -114));
-        var empty = EnsureText(panel.transform, "Txt_Empty", "Nenhum evento revelado.", 20,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -230), new Vector2(-20, -170));
-
-        var revealed = EnsureColumn(panel.transform, "RevealedEvents",
-            new Vector2(0, 0), new Vector2(1, 1), new Vector2(20, 120), new Vector2(-20, -240), 6);
-
-        var upgrade = EnsureButton(panel.transform, "Btn_Upgrade", "MELHORAR",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 60), new Vector2(280, 100));
-        var buyScout = EnsureButton(panel.transform, "Btn_Scout", "CONTRATAR BATEDOR",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(292, 60), new Vector2(600, 100));
-        var buyDetour = EnsureButton(panel.transform, "Btn_Detour", "TRAÇAR DESVIO",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(612, 60), new Vector2(900, 100));
-        var close = EnsureButton(panel.transform, "Btn_Close", "Voltar",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 14), new Vector2(200, 50));
-
-        MapRoomManager mr = Object.FindObjectOfType<MapRoomManager>();
-        if (mr == null)
-        {
-            var host = new GameObject("MapRoomManager");
-            Undo.RegisterCreatedObjectUndo(host, "Criar MapRoomManager");
-            mr = host.AddComponent<MapRoomManager>();
-        }
-
-        Undo.RecordObject(mr, "Montar Cena");
-        mr.levelText = level;
-        mr.scoutingText = scouting;
-        mr.detourText = detours;
-        mr.emptyStateText = empty;
-        mr.revealedEventsContainer = revealed.transform;
-        mr.upgradeButton = upgrade;
-        mr.buyScoutingButton = buyScout;
-        mr.buyDetourButton = buyDetour;
-        mr.closeButton = close;
-        EditorUtility.SetDirty(mr);
-
-        panel.SetActive(false);
-        return panel;
-    }
-
-    #endregion
-
-    #region Taverna
-
-    /// <summary>
-    /// Completa a Taverna. Contratar já funcionava, mas o botão de renovar a
-    /// lista nunca existiu na cena: os campos do TavernManager estavam nulos e a
-    /// única forma de ver outros candidatos era sair da sala e entrar de novo.
-    /// </summary>
-    static void BuildTavern(Canvas canvas)
-    {
-        Transform panel = canvas.transform.Find("Background/Taverna")
-                       ?? canvas.transform.Find("Taverna");
-        if (panel == null) return;
-
-        TavernManager tv = panel.GetComponent<TavernManager>();
-        if (tv == null) tv = panel.gameObject.AddComponent<TavernManager>();
-
-        Button refresh = EnsureButton(panel, "Btn_Refresh", "NOVOS CANDIDATOS",
-            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-330, 24), new Vector2(-30, 78));
-
-        TMP_Text cost = EnsureText(panel, "Txt_RefreshCost", "", 20,
-            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-330, 82), new Vector2(-30, 116));
-        cost.alignment = TextAlignmentOptions.Center;
-
-        Undo.RecordObject(tv, "Montar Cena");
-        if (tv.refreshButton == null) tv.refreshButton = refresh;
-        if (tv.refreshCostText == null) tv.refreshCostText = cost;
-        EditorUtility.SetDirty(tv);
-    }
-
-    #endregion
-
-    #region Mercado, Cemitério e Forja
+    #region Mercado e Forja
 
     /// <summary>
     /// As três salas seguem o mesmo desenho: cabeçalho, uma lista que o manager
@@ -1319,40 +1258,61 @@ public static class GuildSceneSetup
         return panel;
     }
 
-    static GameObject BuildCemetery(Canvas canvas)
+
+    /// <summary>
+    /// Liga o atalho de Baralhos do rodapé, que nasceu sem ouvinte nenhum.
+    ///
+    /// O botão está na cena desde sempre com o <c>onClick</c> vazio: o jogador
+    /// clica e não acontece nada, que é pior do que não haver botão. Ele passa a
+    /// abrir a tela de baralhos — e o rodapé inteiro some na preparação e no
+    /// combate, porque entrar nos baralhos no meio da preparação descarta a
+    /// missão e a formação já escolhidas.
+    ///
+    /// O ouvinte é <b>persistente</b> (gravado na cena, como se tivesse sido
+    /// arrastado no Inspector), e não um <c>AddListener</c> de runtime: este
+    /// código roda no Editor, e um ouvinte de runtime não sobreviveria ao salvar.
+    /// </summary>
+    static void LigarAtalhoDeBaralhos(Canvas canvas, UIManager ui)
     {
-        GameObject list;
-        TMP_Text feedback;
-        Button close;
-        GameObject panel = BuildRoomShell(canvas, "Panel_Cemetery", "⚰️ Cemitério", out list, out feedback, out close);
+        Transform atalho = canvas.transform.Find("Background/Panel_DownBar/DownInfo/DeckConfig");
+        if (atalho == null) return;
 
-        var summary = EnsureText(panel.transform, "Txt_Summary", "", 22,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -112), new Vector2(-20, -76));
-        var empty = EnsureText(panel.transform, "Txt_Empty",
-            "Nenhum herói tombou até aqui. Aproveite enquanto dura.", 20,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -180), new Vector2(-20, -130));
+        var botao = atalho.GetComponent<Button>();
+        if (botao == null) return;
 
-        var vigil = EnsureButton(panel.transform, "Btn_Vigil", "VIGÍLIA",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(232, 20), new Vector2(492, 60));
+        // Já ligado numa montagem anterior: religar duplicaria o ouvinte e a
+        // tela abriria duas vezes.
+        for (int i = 0; i < botao.onClick.GetPersistentEventCount(); i++)
+            if (botao.onClick.GetPersistentMethodName(i) == nameof(UIManager.ShowDeckManager))
+                return;
 
-        CemeteryManager cemetery = Object.FindObjectOfType<CemeteryManager>();
-        if (cemetery == null)
+        Undo.RecordObject(botao, "Ligar atalho de baralhos");
+        UnityEditor.Events.UnityEventTools.AddPersistentListener(
+            botao.onClick, new UnityEngine.Events.UnityAction(ui.ShowDeckManager));
+        EditorUtility.SetDirty(botao);
+    }
+
+    /// <summary>
+    /// Aponta o <see cref="UIManager"/> para a sala refeita e tira a antiga de
+    /// cena.
+    ///
+    /// As salas novas substituem painéis que já existiam na cena, então o
+    /// <c>if (== null)</c> usado para os painéis inéditos deixaria o UIManager
+    /// preso à tela velha para sempre. A antiga é <b>desligada</b>, não
+    /// destruída: apagar objeto de cena por ferramenta é irreversível, e ela
+    /// ainda guarda a hierarquia que o desenho novo substituiu.
+    /// </summary>
+    static void ReapontarSala(ref GameObject campo, GameObject novo, string nome)
+    {
+        if (novo == null || campo == novo) return;
+
+        if (campo != null)
         {
-            var host = new GameObject("CemeteryManager");
-            Undo.RegisterCreatedObjectUndo(host, "Criar CemeteryManager");
-            cemetery = host.AddComponent<CemeteryManager>();
+            Undo.RecordObject(campo, $"Aposentar {nome} antiga");
+            campo.SetActive(false);
         }
 
-        Undo.RecordObject(cemetery, "Montar Cena");
-        cemetery.summaryText = summary;
-        cemetery.emptyStateText = empty;
-        cemetery.graveContainer = list.transform;
-        cemetery.feedbackText = feedback;
-        cemetery.vigilButton = vigil;
-        cemetery.closeButton = close;
-        EditorUtility.SetDirty(cemetery);
-
-        return panel;
+        campo = novo;
     }
 
     /// <summary>
@@ -1702,24 +1662,10 @@ public static class GuildSceneSetup
         Rotular(canvas, "Background/Panel_DeckManager/Panel_DeckContent/Panel_Collection/Text_SectionTitle",
                 "Cartas guardadas");
 
-        // Os dois "Panel_SectionTitle" da biblioteca estão trocados de lado em
-        // relação ao nome: quem se chama Panel_Right desenha o quadro do meio,
-        // onde ficam as cartas. Descoberto por captura, não por leitura da
-        // hierarquia — o nome mente e a tela não.
-        Rotular(canvas, "Background/Library/Panel_Content/Panel_Right/Text_SectionTitle", "À venda hoje");
-        Rotular(canvas, "Background/Library/Panel_Content/Panel_Left/Text_SectionTitle", "Cartas da biblioteca");
-        Rotular(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_BonusTitle",
-                "Este nível dá");
-
-        // O título do painel de bônus e as duas linhas que ele encabeça nasciam
-        // empilhados no mesmo ponto, um por cima do outro. Três faixas de altura
-        // fixa, do topo para baixo, resolvem sem mexer no resto do painel.
-        Reposicionar(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_BonusTitle",
-                     new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -64), new Vector2(-16, -16));
-        Reposicionar(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_Bonus1",
-                     new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -142), new Vector2(-16, -76));
-        Reposicionar(canvas, "Background/Library/Panel_Content/Panel_Left/Panel_EventsRevealed/Panel_Bonus/Text_Bonus2",
-                     new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -220), new Vector2(-16, -154));
+        // A biblioteca herdada (`Background/Library`) foi substituída pelo
+        // `Panel_Library` do `LibraryRoom`. Os rótulos e reposicionamentos que
+        // existiam aqui — inclusive o do painel de bônus que prometia revelar
+        // eventos, o que é a Sala de Mapas — saíram junto com ela.
     }
 
     /// <summary>
@@ -2899,7 +2845,23 @@ public static class GuildSceneSetup
     internal static GameObject FindOrCreatePanel(Canvas canvas, string name)
     {
         Transform existing = canvas.transform.Find(name);
-        if (existing != null) return existing.gameObject;
+        if (existing != null)
+        {
+            // O painel da cena guarda o alfa com que nasceu, e mudar a constante
+            // acima não o alcança. Só o alfa é reposto: a cor e o sprite podem
+            // ter sido escolhidos pela sala (a caverna da Forja, o papel da Sala
+            // de Mapas) e não são deste método.
+            var fundoExistente = existing.GetComponent<Image>();
+            if (fundoExistente != null && fundoExistente.color.a < 1f)
+            {
+                Undo.RecordObject(fundoExistente, "Opacificar painel");
+                Color c = fundoExistente.color;
+                fundoExistente.color = new Color(c.r, c.g, c.b, 1f);
+                EditorUtility.SetDirty(fundoExistente);
+            }
+
+            return existing.gameObject;
+        }
 
         var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         Undo.RegisterCreatedObjectUndo(go, "Criar painel");

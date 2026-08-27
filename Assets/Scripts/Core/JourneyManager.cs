@@ -124,6 +124,9 @@ public class JourneyManager : MonoBehaviour
     // Entre resolver um evento e entrar no próximo, o grupo escolhe por onde seguir.
     private bool isChoosingRoute = false;
 
+    /// <summary>A dica de bifurcação já foi dada nesta jornada.</summary>
+    private bool avisouDaBifurcacao = false;
+
     /// <summary>O grupo está atravessando um trecho neste instante.</summary>
     private bool caminhando = false;
 
@@ -269,6 +272,7 @@ public class JourneyManager : MonoBehaviour
         journeyEnded = false;
         isChoosingRoute = false;
         caminhando = false;
+        avisouDaBifurcacao = false;
         skipNextCombat = false;
         weatherProtectionDays = 0;
 
@@ -389,10 +393,19 @@ public class JourneyManager : MonoBehaviour
         // ficavam metade cobertos pela caixa que falava do lugar anterior.
         MostrarParada(false);
 
-        // Curto: a caminhada até o próximo ponto leva mais de um segundo, e um
-        // aviso de 2,5s ainda estava na tela quando o evento seguinte abria —
-        // falando de uma decisão que o jogador já tomou.
-        UIManager.Instance?.ShowMessage("A rota se divide — escolha para onde o grupo segue.", 1.5f);
+        // Só na primeira bifurcação da jornada. O aviso ensina uma coisa que o
+        // mapa já diz sozinho — os pontos alcançáveis são os únicos clicáveis —,
+        // e repeti-lo em cada um dos seis ou sete cruzamentos da viagem é um
+        // popup atravessando o mapa justamente quando se quer olhar para ele.
+        //
+        // Curto pelo mesmo motivo de sempre: a caminhada até o próximo ponto leva
+        // mais de um segundo, e um aviso de 2,5s ainda estava na tela quando o
+        // evento seguinte abria.
+        if (!avisouDaBifurcacao)
+        {
+            avisouDaBifurcacao = true;
+            UIManager.Instance?.ShowMessage("A rota se divide — escolha para onde o grupo segue.", 1.5f);
+        }
     }
 
     /// <summary>Chamado pelo mapa quando o jogador escolhe um nó alcançável.</summary>
@@ -1445,13 +1458,16 @@ public class JourneyManager : MonoBehaviour
         int reward = contrato + porSobreviventes;
         int bonusBiblioteca = 0;
 
-        // Aplica bônus de ouro da biblioteca
+        // Aplica bônus de ouro da biblioteca.
+        //
+        // Sem popup: o aviso disparava um instante antes da tela de balanço, que
+        // discrimina "Biblioteca: +N" na lista de recompensas. Era a mesma linha
+        // duas vezes, e a segunda por cima da primeira.
         if (goldBonus > 0)
         {
             int bonusReward = Mathf.RoundToInt(reward * goldBonus);
             bonusBiblioteca = bonusReward;
             reward += bonusReward;
-            UIManager.Instance?.ShowMessage($"Bônus da Biblioteca: +{bonusReward} ouro!", 2f);
         }
 
         GuildManager.Instance.AddGold(reward);

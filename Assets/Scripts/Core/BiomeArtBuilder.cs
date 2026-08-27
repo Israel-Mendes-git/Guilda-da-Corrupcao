@@ -13,8 +13,13 @@ using UnityEngine;
 /// deixa coerentes entre si — são as três regiões que o jogador mais atravessa.
 /// Montanha e Ruínas usam a rocha escura do Pixel Fantasy Caves.
 ///
-/// Deserto e Vulcão ficam de fora: nenhum pacote importado tem arte para eles, e
-/// inventar um substituto que não combina seria pior do que a ausência.
+/// <b>Deserto e Vulcão eram os dois buracos da lista</b>, e agora são empréstimos
+/// declarados. Nenhum pacote de cenário do projeto tem duna nem cratera; o que
+/// existe são duas cenas pintadas do <i>Dwarves and Underground</i> — cristas
+/// ocres e uma câmara de lava — trazidas junto com a arte dos eventos. Elas não
+/// são silhuetas em camadas como as outras cinco, e isso se vê de perto: aqui o
+/// fundo do bioma fica a 22% de opacidade atrás do mapa, onde o que chega ao
+/// jogador é a cor da região, não o traço.
 /// </summary>
 public static class BiomeArtBuilder
 {
@@ -28,11 +33,26 @@ public static class BiomeArtBuilder
         (BiomeType.Tundra,   "TaigaBg_1",        "Assets/Distant Forest Assets"),
         (BiomeType.Mountain, "background2",      "Assets/Pixel Fantasy Caves"),
         (BiomeType.Ruins,    "background4a",     "Assets/Pixel Fantasy Caves"),
+
+        // Empréstimo: cristas de rocha ocre sob poeira. Não é areia, é o deserto
+        // de pedra — a cor bate, a duna não existe em pacote nenhum do projeto.
+        (BiomeType.Desert,   "Mountains 4",      EventArt.Pasta),
+
+        // Empréstimo: câmara de lava, portanto interior. O que ela entrega ao
+        // painel é o laranja aceso, que é o que separa o Vulcão das outras seis
+        // regiões à primeira vista.
+        (BiomeType.Volcano,  "Molten 1",         EventArt.Pasta),
     };
 
     [MenuItem("Tools/Guild of Legends/Montar Catálogo de Biomas")]
     public static void Montar()
     {
+        // As duas cenas do Dwarves chegam como JPG, que o Unity importa como
+        // textura comum: sem este ajuste elas não são Sprite, e a busca abaixo
+        // as daria como ausentes estando no disco. O ajuste mora no EventArt
+        // porque a pasta é dele; aqui só se pede que ele já tenha rodado.
+        EventArt.AjustarImportacao();
+
         var entradas = new List<BiomeArtCatalog.Entrada>();
         var faltando = new List<string>();
 
