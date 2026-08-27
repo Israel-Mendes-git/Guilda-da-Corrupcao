@@ -155,7 +155,7 @@ public class DeckManager : MonoBehaviour
         // Cópia de trabalho: as edições só valem para a jornada depois de Salvar.
         currentDeck = DeckRepository.GetDeck(hero).Clone();
 
-        // Carrega cole��o de cartas do her�i
+        // Carrega coleção de cartas do herói
         LoadHeroCollection(hero);
 
         // Atualiza UI
@@ -171,10 +171,10 @@ public class DeckManager : MonoBehaviour
     {
         allOwnedCards.Clear();
 
-        // Carrega todas as cartas dispon�veis
+        // Carrega todas as cartas disponíveis
         CardData[] allCards = Resources.LoadAll<CardData>("Cards");
 
-        // Filtra cartas da classe do her�i OU cartas curinga que ele pode usar
+        // Filtra cartas da classe do herói OU cartas curinga que ele pode usar
         foreach (var card in allCards)
         {
             if (card.requiredClass == hero.heroClass || card.requiredClass == HeroClass.Bard) // Bard = curinga
@@ -183,7 +183,7 @@ public class DeckManager : MonoBehaviour
             }
         }
 
-        // Adiciona cartas que j� est�o no deck (mesmo se n�o estiverem na cole��o padr�o)
+        // Adiciona cartas que já estão no deck (mesmo se não estiverem na coleção padrão)
         foreach (var card in currentDeck.cards)
         {
             if (!allOwnedCards.Contains(card))
@@ -369,7 +369,7 @@ public class DeckManager : MonoBehaviour
         int avgCost = currentDeck.cards.Count > 0 ?
             (int)currentDeck.cards.Average(c => c.energyCost) : 0;
 
-        deckStatsText.text = $"{cardCount}/{currentDeck.maxDeckSize} cartas | Custo m�dio: {avgCost}";
+        deckStatsText.text = $"{cardCount}/{currentDeck.maxDeckSize} cartas | Custo médio: {avgCost}";
     }
 
     void UpdateCollectionStats()
@@ -382,8 +382,8 @@ public class DeckManager : MonoBehaviour
     {
         if (currentHero == null)
         {
-            Debug.LogError("DeckManager: Nenhum her�i selecionado para salvar!");
-            UIManager.Instance?.ShowMessage("Selecione um her�i primeiro!", 2f);
+            Debug.LogError("DeckManager: Nenhum herói selecionado para salvar!");
+            UIManager.Instance?.ShowMessage("Selecione um herói primeiro!", 2f);
             return;
         }
 
@@ -414,8 +414,8 @@ public class DeckManager : MonoBehaviour
             case HeroClass.Healer: return "Curandeiro";
             case HeroClass.Rogue: return "Ladino";
             case HeroClass.Bard: return "Bardo";
-            case HeroClass.Hunter: return "Ca�ador";
-            default: return "Her�i";
+            case HeroClass.Hunter: return "Caçador";
+            default: return "Herói";
         }
     }
 }
