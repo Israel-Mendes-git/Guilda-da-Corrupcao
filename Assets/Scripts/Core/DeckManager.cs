@@ -37,7 +37,6 @@ public class DeckManager : MonoBehaviour
 
     [Header("Hero Selection")]
     public Transform heroSelectionContainer;
-    public GameObject heroSelectionButtonPrefab;
 
     [Header("Deck Display")]
     public Transform currentDeckContainer;
@@ -130,22 +129,80 @@ public class DeckManager : MonoBehaviour
     {
         if (heroSelectionContainer == null) return;
 
-        foreach (Transform child in heroSelectionContainer)
-            Destroy(child.gameObject);
+        UIUtil.ClearChildrenNow(heroSelectionContainer);
 
         if (GuildManager.Instance == null) return;
 
         foreach (var hero in GuildManager.Instance.roster)
         {
-            if (hero.isDead) continue;
-
-            GameObject btnObj = Instantiate(heroSelectionButtonPrefab, heroSelectionContainer);
-            TMP_Text btnText = btnObj.GetComponentInChildren<TMP_Text>();
-            if (btnText != null) btnText.text = $"{hero.heroName}\n{GetClassName(hero.heroClass)} Nv.{hero.level}";
-
-            Button btn = btnObj.GetComponent<Button>();
-            btn.onClick.AddListener(() => SelectHero(hero));
+            if (hero == null || hero.isDead) continue;
+            MontarFichaDeHeroi(hero);
         }
+    }
+
+    /// <summary>
+    /// A ficha da fila, no molde das salas da guilda.
+    ///
+    /// Nasce aqui, e não de um prefab: o <c>heroSelectionButtonPrefab</c> era o
+    /// botão branco padrão do Unity, e o código escrevia no primeiro
+    /// <c>TMP_Text</c> que achasse — o segundo continuava com a palavra "Button"
+    /// de fábrica, aparecendo por baixo do nome do herói em toda a fila.
+    /// </summary>
+    void MontarFichaDeHeroi(HeroData hero)
+    {
+        bool ativo = hero == currentHero;
+
+        var row = new GameObject(hero.heroName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        row.transform.SetParent(heroSelectionContainer, false);
+        row.GetComponent<Image>().color = ativo
+            ? new Color(0.26f, 0.22f, 0.30f)
+            : new Color(0.16f, 0.15f, 0.17f);
+
+        var element = row.AddComponent<LayoutElement>();
+        element.minHeight = 76;
+        element.preferredHeight = 76;
+
+        if (hero.portrait != null)
+        {
+            var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            portraitGo.transform.SetParent(row.transform, false);
+
+            var portrait = portraitGo.GetComponent<Image>();
+            portrait.sprite = hero.portrait;
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+
+            var portraitRect = portraitGo.GetComponent<RectTransform>();
+            portraitRect.anchorMin = new Vector2(0, 0.5f);
+            portraitRect.anchorMax = new Vector2(0, 0.5f);
+            portraitRect.sizeDelta = new Vector2(60, 60);
+            portraitRect.anchoredPosition = new Vector2(42, 0);
+        }
+
+        DeckData deck = DeckRepository.GetDeck(hero);
+        int cartas = deck != null && deck.cards != null ? deck.cards.Count : 0;
+        int teto = deck != null ? deck.maxDeckSize : 0;
+
+        var labelGo = new GameObject("Label", typeof(RectTransform));
+        labelGo.transform.SetParent(row.transform, false);
+
+        var label = labelGo.AddComponent<TextMeshProUGUI>();
+        label.fontSize = 18;
+        label.alignment = TextAlignmentOptions.Left;
+        label.raycastTarget = false;
+        label.color = ativo ? new Color(0.98f, 0.92f, 0.72f) : new Color(0.88f, 0.86f, 0.82f);
+        label.text = $"{PartyFormation.PreferenceIcon(hero.heroClass)} {hero.heroName}\n"
+                   + $"<size=13>{GetClassName(hero.heroClass)} Nv.{hero.level}   ·   "
+                   + $"baralho {cartas}/{teto}</size>";
+
+        var labelRect = labelGo.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(hero.portrait != null ? 80 : 14, 4);
+        labelRect.offsetMax = new Vector2(-10, -4);
+
+        HeroData capturado = hero;
+        row.GetComponent<Button>().onClick.AddListener(() => SelectHero(capturado));
     }
 
     void SelectHero(HeroData hero)
@@ -160,7 +217,12 @@ public class DeckManager : MonoBehaviour
 
         // Atualiza UI
         if (heroNameText != null)
-            heroNameText.text = $"{hero.heroName} - {GetClassName(hero.heroClass)} Nv.{hero.level}";
+            heroNameText.text = $"{hero.heroName}  <size=18><color=#B8B0A0>"
+                              + $"{GetClassName(hero.heroClass)} Nv.{hero.level}</color></size>";
+
+        // A fila é remontada para o destaque acompanhar quem está em foco — sem
+        // isso, a tela mostrava o baralho de um e a ficha acesa de outro.
+        RefreshHeroList();
 
         RefreshDeckDisplay();
         RefreshCollectionDisplay();
@@ -231,14 +293,13 @@ public class DeckManager : MonoBehaviour
 
         foreach (var card in currentDeck.cards)
         {
-            GameObject cardObj = Instantiate(cardPrefab, currentDeckContainer);
-            CardInDeck cardScript = GarantirCarta(cardObj);
-            cardScript.Initialize(card, true);
+            CardData capturada = card;
+            GameObject cardObj = MontarCarta(card, currentDeckContainer, true);
 
             // Adiciona listener para remover do deck
             Button btn = cardObj.GetComponent<Button>();
             if (btn != null)
-                btn.onClick.AddListener(() => RemoveCardFromDeck(card));
+                btn.onClick.AddListener(() => RemoveCardFromDeck(capturada));
         }
 
         UpdateDeckStats();
@@ -257,17 +318,66 @@ public class DeckManager : MonoBehaviour
         // Quem removesse uma carta não tinha como recolocá-la.
         foreach (var card in allOwnedCards)
         {
-            GameObject cardObj = Instantiate(cardPrefab, collectionContainer);
-            CardInDeck cardScript = GarantirCarta(cardObj);
-            cardScript.Initialize(card, false);
+            CardData capturada = card;
+            GameObject cardObj = MontarCarta(card, collectionContainer, false);
 
             // Adiciona listener para adicionar ao deck
             Button btn = cardObj.GetComponent<Button>();
             if (btn != null)
-                btn.onClick.AddListener(() => AddCardToDeck(card));
+                btn.onClick.AddListener(() => AddCardToDeck(capturada));
         }
 
         UpdateCollectionStats();
+    }
+
+    /// <summary>
+    /// O tamanho para o qual o <c>CardPrefab</c> foi desenhado. Os textos e a
+    /// moldura dele são ancorados a esta medida.
+    /// </summary>
+    static readonly Vector2 TamanhoDaCarta = new Vector2(245, 345);
+
+    /// <summary>Quanto a carta encolhe para caber na célula da grade.</summary>
+    const float EscalaDaCarta = 0.69f;
+
+    /// <summary>
+    /// Uma carta na grade, dentro de um envelope.
+    ///
+    /// O <c>GridLayoutGroup</c> controla o retângulo do filho direto, e a carta
+    /// tem 245×345 com tudo ancorado a esse tamanho: espremida numa célula de
+    /// 170×240 ela saía com o nome cortado ("Brado de G"), a arte deformada e o
+    /// rodapé fora do quadro. O envelope é quem obedece à grade; a carta vive
+    /// dentro dele no tamanho certo e encolhe por <c>localScale</c>, que o layout
+    /// não toca.
+    /// </summary>
+    GameObject MontarCarta(CardData card, Transform container, bool noDeck)
+    {
+        var slot = new GameObject(card.cardName, typeof(RectTransform));
+        slot.transform.SetParent(container, false);
+
+        GameObject cardObj = Instantiate(cardPrefab, slot.transform);
+
+        var rt = (RectTransform)cardObj.transform;
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.sizeDelta = TamanhoDaCarta;
+        rt.localScale = Vector3.one * EscalaDaCarta;
+
+        CardInDeck cardScript = GarantirCarta(cardObj);
+        cardScript.Initialize(card, noDeck);
+
+        // A descrição aqui traz as duas linhas — combate e estrada — e no corpo
+        // do prefab elas não cabem: o texto saía cortado no meio da palavra
+        // ("+25 de our"). O ajuste é no clone, não no prefab, que também serve ao
+        // combate e à jornada, onde só uma das linhas aparece.
+        if (cardScript.cardDescriptionText != null)
+        {
+            cardScript.cardDescriptionText.fontSize = 12;
+            cardScript.cardDescriptionText.enableWordWrapping = true;
+        }
+
+        return cardObj;
     }
 
     /// <summary>
@@ -361,21 +471,57 @@ public class DeckManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// O que o baralho é, e não só quantas cartas tem.
+    ///
+    /// A contagem sozinha não ajuda a decidir o que trocar: "12/12 cartas, custo
+    /// médio 1" não diz que o herói não leva nada que cure. O balanço por
+    /// <see cref="CardRole"/> é a mesma conta que o <c>DeckGenerator</c> usa para
+    /// montar o baralho inicial — aqui ela fica à vista de quem edita.
+    /// </summary>
     void UpdateDeckStats()
     {
         if (deckStatsText == null) return;
 
         int cardCount = currentDeck.cards.Count;
-        int avgCost = currentDeck.cards.Count > 0 ?
-            (int)currentDeck.cards.Average(c => c.energyCost) : 0;
+        float avgCost = currentDeck.cards.Count > 0
+            ? (float)currentDeck.cards.Average(c => c.energyCost)
+            : 0f;
 
-        deckStatsText.text = $"{cardCount}/{currentDeck.maxDeckSize} cartas | Custo médio: {avgCost}";
+        int ataque = 0, defesa = 0, suporte = 0, utilidade = 0;
+
+        foreach (CardData card in currentDeck.cards)
+        {
+            switch (CardRoleUtil.Of(card))
+            {
+                case CardRole.Ataque: ataque++; break;
+                case CardRole.Defesa: defesa++; break;
+                case CardRole.Suporte: suporte++; break;
+                default: utilidade++; break;
+            }
+        }
+
+        // O vermelho marca a falta, não a quantidade: um baralho sem ataque
+        // nenhum não vence combate, e sem suporte nenhum não atravessa a estrada.
+        string Parte(string rotulo, int quantas)
+            => quantas == 0
+                ? $"<color=#C0483E>{rotulo} 0</color>"
+                : $"{rotulo} {quantas}";
+
+        // Emoji, e não sinais tipográficos: o ✚ não existe na fonte do jogo e
+        // saía como caixinha. O 🩹 já aparece no Mercado e no fim de jornada.
+        deckStatsText.text = $"{cardCount}/{currentDeck.maxDeckSize} cartas   ·   "
+                           + $"custo médio {avgCost:0.0}   ·   "
+                           + $"{Parte("⚔️", ataque)}   {Parte("🛡️", defesa)}   "
+                           + $"{Parte("🩹", suporte)}   ◆ {utilidade}";
     }
 
     void UpdateCollectionStats()
     {
         if (collectionStatsText == null) return;
-        collectionStatsText.text = $"Total: {allOwnedCards.Count} cartas";
+
+        string quem = currentHero != null ? GetClassName(currentHero.heroClass) : "";
+        collectionStatsText.text = $"{allOwnedCards.Count} cartas de {quem} no acervo da guilda";
     }
 
     public void SaveCurrentDeck()

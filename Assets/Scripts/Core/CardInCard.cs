@@ -50,8 +50,29 @@ public class CardInDeck : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
         if (cardNameText != null) cardNameText.text = card.cardName;
         if (cardCostText != null) cardCostText.text = $"⚡ {card.energyCost}";
-        if (cardDescriptionText != null) cardDescriptionText.text = card.cardDescription;
+
+        // Os dois efeitos, e não o campo `cardDescription`: aquele é legado e
+        // guarda o **nome** da carta em todos os 40 assets, então a tela de
+        // baralhos escrevia "Investida" no lugar de dizer o que a Investida faz.
+        // O combate e a jornada já leem por GetDescription; aqui as duas linhas
+        // aparecem juntas, porque é a tela onde se decide o que levar — e a carta
+        // vale pelos dois lados.
+        if (cardDescriptionText != null)
+        {
+            string combate = card.GetDescription(false);
+            string estrada = card.GetDescription(true);
+
+            cardDescriptionText.text = string.IsNullOrWhiteSpace(estrada)
+                ? combate
+                : $"{combate}\n<color=#B8B0A0>Na estrada: {estrada}</color>";
+        }
+
         if (cardImage != null && card.cardImage != null) cardImage.sprite = card.cardImage;
+
+        // O CardPrefab não tem um slot de arte com nome próprio — são quatro
+        // objetos chamados "Image". Quem sabe achar o certo é o CardUI, que o
+        // combate e a jornada já usam.
+        CardUI.AplicarArte(gameObject, card);
 
         if (rarityBorder != null)
         {
