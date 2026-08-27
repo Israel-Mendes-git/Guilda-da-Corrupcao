@@ -119,6 +119,7 @@ public static class GuildSceneSetup
         // trabalhá-las em paralelo sem que uma pisasse na outra.
         GameObject libraryPanel = LibraryRoom.Montar(canvas, cardPrefab);
         GameObject tavernPanel = TavernRoom.Montar(canvas);
+        DeckScreen.Montar(canvas);
         BuildProvisions();
         BuildFormation();
 
@@ -1588,14 +1589,8 @@ public static class GuildSceneSetup
     {
         Rotular(canvas, "Background/Taverna/Image/ReturnBtn", "VOLTAR");
 
-        Rotular(canvas, "Background/Panel_DeckManager/Panel_TopBar/Text_Title", "Baralhos");
-        Rotular(canvas, "Background/Panel_DeckManager/Button_Save", "SALVAR");
-        Rotular(canvas, "Background/Panel_DeckManager/Button_Reset", "DESFAZER");
-        Rotular(canvas, "Background/Panel_DeckManager/Panel_HeroSelector/Text_SelectHero", "Escolha o herói");
-        Rotular(canvas, "Background/Panel_DeckManager/Panel_DeckContent/Panel_CurrentDeck/Text_SectionTitle",
-                "Baralho deste herói");
-        Rotular(canvas, "Background/Panel_DeckManager/Panel_DeckContent/Panel_Collection/Text_SectionTitle",
-                "Cartas guardadas");
+        // Os rótulos da tela de baralhos saíram daqui: a montagem herdada foi
+        // substituída pelo DeckScreen, que cria os textos com o conteúdo certo.
 
         // A biblioteca herdada (`Background/Library`) foi substituída pelo
         // `Panel_Library` do `LibraryRoom`. Os rótulos e reposicionamentos que

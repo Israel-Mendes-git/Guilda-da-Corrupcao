@@ -153,6 +153,17 @@ public class UIManager : MonoBehaviour
         SetPanelActive(cemeteryPanel, false);
         SetPanelActive(forgePanel, false);
 
+        // O rodapé da guilda sai daqui pelo mesmo motivo que sai da preparação e
+        // do combate: a tela de baralhos ocupa a tela inteira, e o rodapé
+        // continuava desenhado por cima dela — nomes de herói, ouro e o próprio
+        // atalho de Baralhos atravessando as cartas.
+        //
+        // Sem passar pelo Hide: aquele método alimenta a lista que o combate usa
+        // para restaurar o que escondeu, e sujá-la daqui fazia o fim de um
+        // combate reacender o rodapé por cima do mapa da jornada — os nós
+        // paravam de receber clique e o grupo ficava preso no meio do caminho.
+        EsconderHudDaGuilda();
+
         // Ativar o painel não preenche nada: a lista de heróis, o deck e a
         // coleção são montados aqui. Sem esta chamada a tela abria vazia, que é
         // como ela vinha se comportando desde sempre.
@@ -163,6 +174,7 @@ public class UIManager : MonoBehaviour
     public void CloseDeckManager()
     {
         SetPanelActive(deckManagerPanel, false);
+        RestoreGuildHud();
         SetPanelActive(guildPanel, true);
         SetPanelActive(tavernPanel, false);
         SetPanelActive(questSelectionPanel, false);
@@ -320,6 +332,21 @@ public class UIManager : MonoBehaviour
 
         foreach (var painel in hideDuringCombat)
             if (painel != null) painel.SetActive(true);
+    }
+
+    /// <summary>
+    /// Tira o rodapé da guilda da tela, sem entrar na contabilidade do combate.
+    ///
+    /// O par disto é <see cref="RestoreGuildHud"/>. Quem esconde por causa de uma
+    /// tela cheia — baralhos, preparação — usa este; <see cref="Hide"/> é do
+    /// combate, que devolve exatamente o que escondeu.
+    /// </summary>
+    public void EsconderHudDaGuilda()
+    {
+        if (hideDuringCombat == null) return;
+
+        foreach (var painel in hideDuringCombat)
+            if (painel != null) painel.SetActive(false);
     }
 
     void Hide(GameObject painel)
@@ -684,7 +711,15 @@ public class UIManager : MonoBehaviour
     static void RestaurarVisual(GameObject panel)
     {
         var cg = panel.GetComponent<CanvasGroup>();
-        if (cg != null) cg.alpha = 1f;
+        if (cg != null)
+        {
+            cg.alpha = 1f;
+
+            // Uma saída interrompida no meio deixa o painel sem receber clique —
+            // e ele volta assim na próxima abertura, mudo.
+            cg.blocksRaycasts = true;
+        }
+
         panel.transform.localScale = Vector3.one;
     }
 
@@ -695,6 +730,7 @@ public class UIManager : MonoBehaviour
 
         panel.transform.localScale = new Vector3(0.9f, 0.9f, 1);
         cg.alpha = 0;
+        cg.blocksRaycasts = true;
 
         float elapsed = 0;
         while (elapsed < fadeDuration)
@@ -717,6 +753,12 @@ public class UIManager : MonoBehaviour
         CanvasGroup cg = panel.GetComponent<CanvasGroup>();
         if (cg == null) cg = panel.AddComponent<CanvasGroup>();
 
+        // Painel que está saindo não come mais clique. O alfa cai, mas o raycast
+        // continuava valendo até o SetActive(false) do fim da animação: quem
+        // clicasse no que aparece por baixo nesse meio segundo não era atendido.
+        // Só se nota em tela cheia — a de baralhos cobre o rodapé inteiro.
+        cg.blocksRaycasts = false;
+
         float elapsed = 0;
         while (elapsed < fadeDuration)
         {
@@ -729,6 +771,7 @@ public class UIManager : MonoBehaviour
 
         panel.SetActive(false);
         cg.alpha = 1;
+        cg.blocksRaycasts = true;
         panel.transform.localScale = Vector3.one;
 
         panelAnimations.Remove(panel);
