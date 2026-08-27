@@ -110,7 +110,7 @@ public static class GuildSceneSetup
         BuildJourneyResult(canvas);
         BuildRunEnd(canvas);
         GameObject mapRoomPanel = MapRoom.Montar(canvas);
-        GameObject marketPanel = BuildMarket(canvas);
+        GameObject marketPanel = MarketRoom.Montar(canvas);
         GameObject cemeteryPanel = CemeteryRoom.Montar(canvas);
         GameObject forgePanel = BuildForge(canvas, cardPrefab);
 
@@ -1190,74 +1190,9 @@ public static class GuildSceneSetup
 
     #region Mercado e Forja
 
-    /// <summary>
-    /// As três salas seguem o mesmo desenho: cabeçalho, uma lista que o manager
-    /// preenche em tempo de execução e um rodapé com o retorno da última ação.
-    /// As linhas são criadas por código (não há prefab para elas), então a coluna
-    /// precisa controlar a largura dos filhos.
-    /// </summary>
-    static GameObject BuildRoomShell(Canvas canvas, string panelName, string title,
-                                     out GameObject list, out TMP_Text feedback, out Button close)
-    {
-        GameObject panel = FindOrCreatePanel(canvas, panelName);
-
-        EnsureText(panel.transform, "Txt_Title", title, 32,
-            new Vector2(0, 1), new Vector2(0.7f, 1), new Vector2(20, -70), new Vector2(0, -20));
-
-        list = EnsureScrollColumn(panel.transform, "List",
-            new Vector2(0, 0), new Vector2(1, 1), new Vector2(20, 120), new Vector2(-20, -190), 8);
-
-        var layout = list.GetComponent<VerticalLayoutGroup>();
-        if (layout != null)
-        {
-            layout.childControlWidth = true;
-            layout.childForceExpandWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandHeight = false;
-            layout.childAlignment = TextAnchor.UpperCenter;
-        }
-
-        feedback = EnsureText(panel.transform, "Txt_Feedback", "", 18,
-            new Vector2(0, 0), new Vector2(1, 0), new Vector2(240, 66), new Vector2(-20, 108));
-
-        close = EnsureButton(panel.transform, "Btn_Close", "Voltar",
-            new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 20), new Vector2(220, 60));
-
-        panel.SetActive(false);
-        return panel;
-    }
-
-    static GameObject BuildMarket(Canvas canvas)
-    {
-        GameObject list;
-        TMP_Text feedback;
-        Button close;
-        GameObject panel = BuildRoomShell(canvas, "Panel_Market", "🛒 Mercado", out list, out feedback, out close);
-
-        var gold = EnsureText(panel.transform, "Txt_Gold", "💰 0", 26,
-            new Vector2(0.7f, 1), new Vector2(1, 1), new Vector2(0, -70), new Vector2(-20, -20));
-        var stock = EnsureText(panel.transform, "Txt_Stock", "", 20,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -112), new Vector2(-20, -76));
-
-        MarketManager market = Object.FindObjectOfType<MarketManager>();
-        if (market == null)
-        {
-            var host = new GameObject("MarketManager");
-            Undo.RegisterCreatedObjectUndo(host, "Criar MarketManager");
-            market = host.AddComponent<MarketManager>();
-        }
-
-        Undo.RecordObject(market, "Montar Cena");
-        market.goldText = gold;
-        market.stockText = stock;
-        market.itemContainer = list.transform;
-        market.feedbackText = feedback;
-        market.closeButton = close;
-        EditorUtility.SetDirty(market);
-
-        return panel;
-    }
-
+    // O BuildRoomShell saiu daqui: era o molde "cabeçalho, lista, rodapé" que as
+    // salas usavam antes de virarem lugar, e o Mercado foi a última a deixá-lo.
+    // Cada sala agora mora no próprio arquivo, em Core/Rooms.
 
     /// <summary>
     /// Liga o atalho de Baralhos do rodapé, que nasceu sem ouvinte nenhum.
