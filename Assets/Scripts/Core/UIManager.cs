@@ -267,18 +267,27 @@ public class UIManager : MonoBehaviour
             foreach (var painel in hideDuringCombat)
                 Hide(painel);
 
-        // O aviso da tela anterior morre aqui.
-        //
-        // A mensagem da jornada ("Prepare-se com cartas…") dura 3 segundos e o
-        // combate abre antes disso, então ela ficava plantada no meio do campo de
-        // batalha — um retângulo preto cobrindo party e inimigos, falando de uma
-        // tela que não está mais lá. Os popups são levantados acima de tudo de
-        // propósito (LiftPopups), o que fazia deste o objeto mais visível da luta.
-        if (messagePopup != null && messagePopup.activeSelf)
-        {
-            if (currentMessageCoroutine != null) StopCoroutine(currentMessageCoroutine);
-            messagePopup.SetActive(false);
-        }
+        EsconderMensagem();
+    }
+
+    /// <summary>
+    /// Apaga o aviso da tela anterior.
+    ///
+    /// A mensagem da jornada dura alguns segundos e a tela seguinte abre antes
+    /// disso, então ela ficava plantada por cima: o "Prepare-se com cartas…" no
+    /// meio do campo de batalha, e o "A rota se divide…" sobre a tela de balanço,
+    /// falando de uma tela que não está mais lá. Os popups são levantados acima de
+    /// tudo de propósito (<c>LiftPopups</c>), o que faz deles o objeto mais
+    /// visível de quem chega depois.
+    ///
+    /// <b>Quem abre uma tela nova chama isto.</b>
+    /// </summary>
+    public void EsconderMensagem()
+    {
+        if (messagePopup == null || !messagePopup.activeSelf) return;
+
+        if (currentMessageCoroutine != null) StopCoroutine(currentMessageCoroutine);
+        messagePopup.SetActive(false);
     }
 
     /// <summary>

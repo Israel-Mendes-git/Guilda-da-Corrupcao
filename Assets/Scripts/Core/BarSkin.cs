@@ -46,8 +46,7 @@ public static class BarSkin
     static readonly Dictionary<string, Color> CorPorBarra = new Dictionary<string, Color>
     {
         { "HPBar",     Color.white },
-        { "StressBar", Color.white },
-        { "XpBar",     Color.white }
+        { "StressBar", Color.white }
     };
 
     [MenuItem("Tools/Guild of Legends/Aplicar Kit Visual nas Barras")]
@@ -110,7 +109,14 @@ public static class BarSkin
         Image imagemTrilho = t.GetComponent<Image>();
         Image imagemFill = preenchimento != null ? preenchimento.GetComponent<Image>() : null;
 
-        if (imagemTrilho != null && imagemFill != null && imagemFill.type == Image.Type.Filled)
+        // A barra de XP fica de fora: os cinco preenchimentos do kit são vermelhos
+        // (R≈130, G≈20), e o Image multiplica sprite por cor — o dourado do XP e o
+        // verde da promoção saíam como vermelho escuro, iguais à barra de vida
+        // logo ao lado. Ela recebe o branco liso do UIUtil em execução, onde a cor
+        // que o JourneyResultUI escolhe é a que aparece.
+        bool ehXp = t.name == "XpBar";
+
+        if (imagemTrilho != null && imagemFill != null && imagemFill.type == Image.Type.Filled && !ehXp)
         {
             if (registrarUndo)
             {
