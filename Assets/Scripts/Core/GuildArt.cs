@@ -44,21 +44,33 @@ public static class GuildArt
     /// exatas deixou a Sala de Mapas sem cena na primeira aplicação, e o silêncio
     /// só apareceu na captura.
     /// </summary>
+    /// <remarks>
+    /// <b>Segunda escolha, de 28/08.</b> A primeira não agradou, e o problema era
+    /// de método: eu tinha escolhido por assunto, e metade do acervo é
+    /// <i>paisagem aberta</i> — menires numa clareira, caverna de chão dourado,
+    /// vale enevoado. Reduzidas ao tamanho de uma porta, paisagens viram manchas
+    /// coloridas: não se lê o que são, e sete delas lado a lado não parecem o
+    /// mesmo lugar.
+    ///
+    /// Agora todas são <b>interiores de pedra</b>, com um foco de luz e um teto
+    /// visível. O critério é esse antes de ser o assunto: a tela precisa ler como
+    /// sete portas de uma mesma guilda, e não como sete quadros pendurados.
+    /// </remarks>
     static readonly (string trecho, string arquivo, string porque)[] CenaPorSala =
     {
-        ("taverna",    "City 7",     "rua de barracas com lanternas acesas — o único lugar do acervo com gente e luz quente"),
-        ("tavern",     "City 7",     "idem, para o objeto em inglês"),
-        ("biblioteca", "Interior 7", "salão de colunas e arcos dourados, o mais próximo de um arquivo"),
-        ("librar",     "Interior 7", "idem"),
+        ("taverna",    "Interior 7", "salão de colunas com luz dourada entrando pelos arcos — o interior mais acolhedor do acervo"),
+        ("tavern",     "Interior 7", "idem, para o objeto em inglês"),
+        ("biblioteca", "Tunnel 13",  "câmara com tapete, janelas altas e nichos: o que mais parece um arquivo"),
+        ("librar",     "Tunnel 13",  "idem"),
         ("forja",      "Interior 8", "o forno aceso no fundo da câmara; é a forja de qualquer jogo"),
         ("forge",      "Interior 8", "idem"),
-        ("mercado",    "Interior 6", "a caverna de chão dourado — riqueza é o assunto da sala"),
-        ("market",     "Interior 6", "idem"),
-        ("cemiterio",  "Lake 1",     "menires na névoa fria, e um caminho de pedra entre eles"),
-        ("cemetery",   "Lake 1",     "idem"),
-        ("mapa",       "Tunnel 13",  "salão com tapete e janelas altas: onde se planeja, não onde se anda"),
-        ("map",        "Tunnel 13",  "idem"),
-        ("jornada",    "Fortress 1", "a fortaleza distante na névoa: o destino, e não a guilda"),
+        ("mercado",    "City 7",     "rua coberta de barracas e lanternas — comércio, e não tesouro"),
+        ("market",     "City 7",     "idem"),
+        ("cemiterio",  "Tunnel 14",  "cripta de arcadas na névoa fria, sem uma única cor quente"),
+        ("cemetery",   "Tunnel 14",  "idem"),
+        ("mapa",       "Tunnel 17",  "câmara de estátuas e lampiões: um gabinete de pedra, onde se planeja"),
+        ("map",        "Tunnel 17",  "idem"),
+        ("jornada",    "Fortress 1", "a fortaleza distante na névoa: é a única que mostra o lá fora, e é o que a porta oferece"),
         ("journey",    "Fortress 1", "idem"),
         ("quest",      "Fortress 1", "idem")
     };
