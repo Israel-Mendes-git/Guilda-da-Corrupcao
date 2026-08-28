@@ -81,12 +81,17 @@ public class JourneyMapUI : MonoBehaviour
     /// dela. À direita da caixa, o que se vê adiante é o que interessa decidir.
     /// </summary>
     /// <remarks>
-    /// Subiu de 0,58 para 0,70 quando o mapa passou a ser o fundo da travessia:
-    /// o que se quer ver agora não é só o que vem pela frente, mas <b>o caminho
-    /// já andado</b> — de onde o grupo partiu até onde está. Com o grupo mais à
-    /// direita, o percorrido cabe na tela em vez de sair pela borda esquerda.
+    /// Subiu de 0,58 para 0,70 quando o mapa passou a ser o fundo da travessia —
+    /// para o caminho já andado caber na tela em vez de sair pela borda esquerda.
+    /// <b>Voltou para 0,52 em 28/08</b>, a pedido do autor: "mapa e personagens
+    /// muito à direita, no canto da tela". A 0,70 o grupo andava a 1.316px de uma
+    /// janela de 1.880 e ficava colado na borda, com os pontos seguintes cortados
+    /// pelo recorte — e o que vem pela frente é justamente o que se decide.
+    ///
+    /// 0,52 e não 0,50: a caixa do evento ocupa até 35% da largura, e o grupo
+    /// precisa parar à direita dela, não em cima.
     /// </remarks>
-    const float AncoraDoGrupo = 0.70f;
+    const float AncoraDoGrupo = 0.52f;
 
     void Awake()
     {

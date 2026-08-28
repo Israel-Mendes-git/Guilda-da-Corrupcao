@@ -216,8 +216,11 @@ public static class GuildSceneSetup
 
         // Mapa: área livre, pois o JourneyMapUI posiciona nós e arestas por
         // coordenada — um LayoutGroup sobrescreveria tudo.
+        // Desce até 210, e não 340: o papel terminava a 130px dos cards do grupo e
+        // sobrava uma faixa preta atravessando a tela inteira — o mapa é o fundo
+        // da travessia e precisa chegar até onde a informação começa.
         var mapRow = EnsureFreeArea(panel.transform, "MapNodes", new Vector2(0, 0), new Vector2(1, 1),
-            new Vector2(20, 340), new Vector2(-20, -96));
+            new Vector2(20, 210), new Vector2(-20, -96));
 
         // O terreno desliza sob esta janela, e o que sai dela precisa sumir:
         // sem recorte, um ponto rolado para fora aparece por cima do HUD e dos
@@ -676,10 +679,36 @@ public static class GuildSceneSetup
 
         // O log sobe para o canto: no rodapé ele disputava espaço com a mão, e a
         // mão é onde o jogador olha.
-        var log = EnsureText(panel.transform, "Txt_CombatLog", "", 17,
-            new Vector2(0.66f, 1), new Vector2(1, 1), new Vector2(0, -176), new Vector2(-24, -16));
+        //
+        // Ganhou caixa em 28/08. Solto sobre o fundo escuro, ele lia como texto
+        // esquecido na tela — o autor o listou entre os problemas de layout. A
+        // caixa também o separa da barra de ordem do round, que fica logo abaixo
+        // e à esquerda.
+        GameObject caixaDoLog = EnsureFreeArea(panel.transform, "CombatLogBox",
+            new Vector2(0.655f, 1), new Vector2(1, 1), new Vector2(0, -186), new Vector2(-16, -12));
+
+        var fundoDoLog = caixaDoLog.GetComponent<Image>();
+        if (fundoDoLog == null) fundoDoLog = Undo.AddComponent<Image>(caixaDoLog);
+        fundoDoLog.color = new Color(0.10f, 0.09f, 0.10f, 0.78f);
+        fundoDoLog.raycastTarget = false;
+
+        Sprite molduraDoLog = AssetDatabase.LoadAssetAtPath<Sprite>(PanelSpritePath);
+        if (molduraDoLog != null)
+        {
+            fundoDoLog.sprite = molduraDoLog;
+            fundoDoLog.type = Image.Type.Sliced;
+        }
+
+        var log = EnsureText(caixaDoLog.transform, "Txt_CombatLog", "", 17,
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(14, 10), new Vector2(-14, -10));
         log.alignment = TextAlignmentOptions.TopRight;
         log.color = SubtleTextColor;
+
+        // A referência do CombatManager aponta para o texto, que mudou de pai:
+        // o objeto antigo, solto no painel, ficaria na cena sem ninguém escrever
+        // nele — um log fantasma por cima do novo.
+        Transform logVelho = panel.transform.Find("Txt_CombatLog");
+        if (logVelho != null) Undo.DestroyObjectImmediate(logVelho.gameObject);
 
         // --- O campo de batalha: dois lados, frente a frente ------------------
 
@@ -688,8 +717,12 @@ public static class GuildSceneSetup
         // das barras e da intenção — quem nasce depois é desenhado por cima.
         BattleFieldUI campo = BuildBattleField(panel);
 
+        // As duas fileiras descem até -640, e não -566: sobrava uma faixa morta de
+        // 80px entre os cards e a mão, e o campo de batalha é onde a luta
+        // acontece. Corpo maior também dá presença às criaturas, que é o ponto do
+        // campo frente a frente.
         var heroes = EnsureRow(panel.transform, "HeroContainer", new Vector2(0, 1), new Vector2(0.5f, 1),
-            new Vector2(30, -566), new Vector2(-10, -196), 12);
+            new Vector2(30, -640), new Vector2(-10, -180), 12);
 
         var filaDoGrupo = heroes.GetComponent<HorizontalLayoutGroup>();
         if (filaDoGrupo != null)
@@ -701,13 +734,17 @@ public static class GuildSceneSetup
         }
 
         var enemies = EnsureRow(panel.transform, "EnemyContainer", new Vector2(0.5f, 1), new Vector2(1, 1),
-            new Vector2(10, -566), new Vector2(-30, -196), 16);
+            new Vector2(10, -640), new Vector2(-30, -180), 16);
 
         var filaInimiga = enemies.GetComponent<HorizontalLayoutGroup>();
         if (filaInimiga != null)
         {
             Undo.RecordObject(filaInimiga, "Montar Cena");
-            filaInimiga.childAlignment = TextAnchor.LowerLeft;
+
+            // Centrado, e não encostado à esquerda: com um ou dois inimigos, o
+            // alinhamento à esquerda deixava o terço direito da tela vazio — foi a
+            // primeira coisa que saltou na captura do combate.
+            filaInimiga.childAlignment = TextAnchor.LowerCenter;
             filaInimiga.reverseArrangement = false;
             EditorUtility.SetDirty(filaInimiga);
         }
