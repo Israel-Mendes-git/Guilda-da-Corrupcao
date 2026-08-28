@@ -23,18 +23,25 @@ public static class GuildSceneSetup
     const string CardPath = "Assets/Prefabs/UI/CardPrefab.prefab";
     const string CaveBackgroundPath = "Assets/Pixel Fantasy Caves/background3.png";
 
-    // Opaco. Os 2% que faltavam deixavam o rodapé da guilda — nomes dos heróis,
-    // ouro, "Baralhos" — atravessar cada sala e brigar com o texto de cima. É o
-    // mesmo defeito que os painéis de menu já tiveram, e só a captura mostra.
-    internal static readonly Color PanelColor = new Color(0.08f, 0.07f, 0.09f, 1f);
-    internal static readonly Color BoxColor = new Color(0.13f, 0.12f, 0.14f, 1f);
-    internal static readonly Color ButtonColor = new Color(0.20f, 0.17f, 0.16f);
-    internal static readonly Color ButtonLabelColor = new Color(0.94f, 0.88f, 0.72f);
-    internal static readonly Color TextColor = new Color(0.92f, 0.90f, 0.85f);
-    internal static readonly Color TrackColor = new Color(0.10f, 0.09f, 0.11f);
-    internal static readonly Color HandleColor = new Color(0.30f, 0.27f, 0.24f);
-    static readonly Color ToggleBoxColor = new Color(0.24f, 0.21f, 0.19f);
-    internal static readonly Color SubtleTextColor = new Color(0.66f, 0.63f, 0.58f);
+    // A paleta do jogo. Clareada em 27/08 a pedido do autor: "jogo muito escuro".
+    //
+    // O painel estava em 8% de luminância e a caixa em 13% — sobre um fundo
+    // quase preto, isso é preto sobre preto, e nenhuma captura mostrava onde uma
+    // caixa terminava e a outra começava. Os valores subiram cerca de 8 pontos,
+    // e o marrom entrou no lugar do cinza puro: continua um jogo de masmorra,
+    // mas com as bordas visíveis.
+    //
+    // Opaco, e não 0,98: os 2% que faltavam deixavam o rodapé da guilda
+    // atravessar cada sala e brigar com o texto de cima.
+    internal static readonly Color PanelColor = new Color(0.13f, 0.115f, 0.125f, 1f);
+    internal static readonly Color BoxColor = new Color(0.19f, 0.175f, 0.185f, 1f);
+    internal static readonly Color ButtonColor = new Color(0.27f, 0.23f, 0.21f);
+    internal static readonly Color ButtonLabelColor = new Color(0.96f, 0.91f, 0.77f);
+    internal static readonly Color TextColor = new Color(0.94f, 0.92f, 0.88f);
+    internal static readonly Color TrackColor = new Color(0.14f, 0.125f, 0.15f);
+    internal static readonly Color HandleColor = new Color(0.38f, 0.34f, 0.30f);
+    static readonly Color ToggleBoxColor = new Color(0.30f, 0.27f, 0.24f);
+    internal static readonly Color SubtleTextColor = new Color(0.74f, 0.71f, 0.65f);
 
     // Kit Bloodlines UI: molduras de pedra, botões e marcas de seleção prontos em
     // 9-slice. Substituem os retângulos chapados que o setup vinha desenhando.
@@ -2782,12 +2789,28 @@ public static class GuildSceneSetup
             // ter sido escolhidos pela sala (a caverna da Forja, o papel da Sala
             // de Mapas) e não são deste método.
             var fundoExistente = existing.GetComponent<Image>();
-            if (fundoExistente != null && fundoExistente.color.a < 1f)
+            if (fundoExistente != null)
             {
-                Undo.RecordObject(fundoExistente, "Opacificar painel");
                 Color c = fundoExistente.color;
-                fundoExistente.color = new Color(c.r, c.g, c.b, 1f);
-                EditorUtility.SetDirty(fundoExistente);
+
+                // Painel de cor chapada e escuro demais: recebe a paleta nova.
+                // Quem tem sprite fica de fora — a caverna da Forja e o papel da
+                // Sala de Mapas são escolha da sala, não sobra da paleta velha.
+                bool chapado = fundoExistente.sprite == null;
+                float luz = c.r * 0.299f + c.g * 0.587f + c.b * 0.114f;
+
+                if (chapado && luz < PanelColor.g)
+                {
+                    Undo.RecordObject(fundoExistente, "Clarear painel");
+                    fundoExistente.color = PanelColor;
+                    EditorUtility.SetDirty(fundoExistente);
+                }
+                else if (c.a < 1f)
+                {
+                    Undo.RecordObject(fundoExistente, "Opacificar painel");
+                    fundoExistente.color = new Color(c.r, c.g, c.b, 1f);
+                    EditorUtility.SetDirty(fundoExistente);
+                }
             }
 
             return existing.gameObject;

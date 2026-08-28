@@ -310,6 +310,16 @@ public class PlayModeProbe : MonoBehaviour
             Line("pulada: JourneyManager ausente na cena");
 
         Section("DIARIO DE UMA PARTIDA");
+
+        // A guilda é a tela que o jogador mais vê e a única sem captura no
+        // relatório — o que a deixava fora de toda revisão visual.
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowGuildScreen();
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("guilda");
+        }
+
         yield return DiarioDaPartida();
 
         Section("O QUE CADA TELA OFERECE");

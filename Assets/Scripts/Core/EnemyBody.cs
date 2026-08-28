@@ -54,7 +54,8 @@ public class EnemyBody : MonoBehaviour
         if (dados == null) return;
 
         quadros = dados.animation;
-        sr.color = dados.portraitTint;
+        corNatural = dados.portraitTint;
+        sr.color = corNatural;
         sr.sortingOrder = ordemNaCena;
 
         // Os inimigos ficam à direita e encaram a party. Quem foi desenhado
@@ -96,6 +97,20 @@ public class EnemyBody : MonoBehaviour
         if (estado == Estado.Morte && novo != Estado.Idle) return;
         if (estado == Estado.Morte && novo == Estado.Idle) return;
 
+        // "Apanhou" vira um clarão, e não uma troca de série.
+        //
+        // O Take Hit destes pacotes é a criatura inteira pintada de branco, e o
+        // boneco ficava assim por meio segundo: parecia defeito de renderização,
+        // não golpe recebido — foi o que o autor reportou. O clarão dura 0,12s,
+        // some sozinho e não mexe na animação em curso, então a criatura continua
+        // respirando enquanto apanha.
+        if (novo == Estado.Apanhou)
+        {
+            if (clarao != null) StopCoroutine(clarao);
+            clarao = StartCoroutine(Clarao());
+            return;
+        }
+
         if (novo == estado && emLoop) return;
 
         Sprite[] serie = Serie(novo);
@@ -126,6 +141,44 @@ public class EnemyBody : MonoBehaviour
             sr.enabled = true;
             sr.sprite = serie[0];
         }
+    }
+
+    Coroutine clarao;
+
+    /// <summary>
+    /// A cor com que esta criatura foi vestida — é ela que separa duas criaturas
+    /// que dividem o mesmo desenho (ver <c>EnemyArt</c>).
+    ///
+    /// Guardada aqui, e não lida do <c>SpriteRenderer</c> na hora do golpe: dois
+    /// golpes seguidos tomariam a cor do clarão como se fosse a natural, e a
+    /// criatura ficaria branca pelo resto da luta.
+    /// </summary>
+    Color corNatural = Color.white;
+
+    /// <summary>O golpe recebido: a criatura clareia e volta à cor dela.</summary>
+    System.Collections.IEnumerator Clarao()
+    {
+        if (sr == null) yield break;
+
+        Color natural = corNatural;
+        Color claro = Color.Lerp(natural, Color.white, 0.85f);
+
+        const float duracao = 0.12f;
+
+        sr.color = claro;
+
+        float t = 0f;
+        while (t < duracao)
+        {
+            t += Time.deltaTime;
+            if (sr == null) yield break;
+
+            sr.color = Color.Lerp(claro, natural, t / duracao);
+            yield return null;
+        }
+
+        sr.color = natural;
+        clarao = null;
     }
 
     void Update()
