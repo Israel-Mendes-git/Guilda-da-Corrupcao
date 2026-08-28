@@ -184,6 +184,7 @@ public static class SceneToolsTriggerWatcher
     const string CardCreatorTrigger = "RunCardCreator.trigger";
     const string EventArtTrigger = "RunEventArt.trigger";
     const string GameplayAuditTrigger = "RunGameplayAudit.trigger";
+    const string GuildArtTrigger = "RunGuildArt.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -236,6 +237,7 @@ public static class SceneToolsTriggerWatcher
         // de sobreviver.
         Consumir(EventArtTrigger, () => EventArt.Aplicar(false));
         Consumir(GameplayAuditTrigger, GameplayAudit.Rodar);
+        Consumir(GuildArtTrigger, GuildArt.Aplicar);
         Consumir(PortraitTrigger, PortraitCatalogBuilder.Montar);
         Consumir(BiomeArtTrigger, BiomeArtBuilder.Montar);
         Consumir(UiPrefabsTrigger, UiSkinPrefabs.Aplicar);

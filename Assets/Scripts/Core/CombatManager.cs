@@ -29,6 +29,18 @@ public class EnemyInstance
     public int damageDebuff;
     public int debuffTurns;
 
+    /// <summary>
+    /// Em quem este inimigo vai bater neste turno.
+    ///
+    /// O alvo era sorteado no instante do golpe, então a intenção dizia "⚔️ 12" e
+    /// o jogador só descobria em quem ao levar. Não dava para decidir se valia
+    /// gastar o bloqueio, nem em quem — que é a decisão inteira do turno num jogo
+    /// de formação. Sorteado junto com a intenção, ele pode ser anunciado.
+    ///
+    /// Nulo quando a intenção não tem alvo único (defender, atacar todos).
+    /// </summary>
+    public HeroData plannedTarget;
+
     public bool IsAlive => currentHp > 0;
 
     /// <summary>Dano de ataque já descontado o enfraquecimento em vigor.</summary>
@@ -577,7 +589,7 @@ public class CombatManager : MonoBehaviour
         {
             case EnemyIntent.Attack:
             {
-                HeroData target = PickTargetHero();
+                HeroData target = AlvoDoTurno(enemy);
                 if (target == null) return;
 
                 // AttackDamage, não data.attackDamage: é aqui que o
@@ -606,7 +618,7 @@ public class CombatManager : MonoBehaviour
 
             case EnemyIntent.Stress:
             {
-                HeroData target = PickTargetHero();
+                HeroData target = AlvoDoTurno(enemy);
                 if (target == null) return;
 
                 EventResolver.AddStress(target, enemy.data.stressDamage, resolution);
@@ -633,10 +645,31 @@ public class CombatManager : MonoBehaviour
         return PartyFormation.PickTarget(party);
     }
 
+    /// <summary>
+    /// O alvo anunciado, ou um novo se aquele já caiu no meio do turno — o
+    /// inimigo não passa a vez porque o alvo dele morreu antes de ele agir.
+    /// </summary>
+    HeroData AlvoDoTurno(EnemyInstance enemy)
+    {
+        if (enemy.plannedTarget != null && enemy.plannedTarget.IsAlive)
+            return enemy.plannedTarget;
+
+        return PickTargetHero();
+    }
+
     void RollAllIntents()
     {
         foreach (var enemy in enemies.Where(e => e.IsAlive))
+        {
             enemy.intent = RollIntent(enemy.data);
+
+            // O alvo sai junto com a intenção, e não na hora do golpe: é o que
+            // permite anunciá-lo. A regra do sorteio é a mesma de sempre — a
+            // formação decide —, só mudou o momento.
+            enemy.plannedTarget = enemy.intent == EnemyIntent.Attack || enemy.intent == EnemyIntent.Stress
+                ? PickTargetHero()
+                : null;
+        }
 
         RefreshEnemies();
     }
@@ -1434,8 +1467,11 @@ public class CombatManager : MonoBehaviour
 
         switch (enemy.intent)
         {
+            // O nome do alvo entra na intenção. Sem ele, "⚔️ 12" não diz se o
+            // golpe vai no guerreiro de 42 de vida ou no mago de 23 — e é essa a
+            // decisão do turno.
             case EnemyIntent.Attack:
-                return $"<color=#E04B44>⚔️ Ataca {enemy.AttackDamage}{marca}</color>";
+                return $"<color=#E04B44>⚔️ Ataca {enemy.AttackDamage}{marca}</color>{Alvo(enemy)}";
 
             case EnemyIntent.AttackAll:
                 return $"<color=#E04B44>💥 Ataca todos ({Mathf.RoundToInt(enemy.AttackDamage * 0.6f)}){marca}</color>";
@@ -1444,11 +1480,19 @@ public class CombatManager : MonoBehaviour
                 return $"<color=#8CB8F0>🛡️ Defende {enemy.data.blockAmount}</color>";
 
             case EnemyIntent.Stress:
-                return $"<color=#D9B85A>🧠 Aterroriza {enemy.data.stressDamage}</color>";
+                return $"<color=#D9B85A>🧠 Aterroriza {enemy.data.stressDamage}</color>{Alvo(enemy)}";
 
             default:
                 return "<color=#9A9A9A>❔ Indeciso</color>";
         }
+    }
+
+    /// <summary>Em quem, na segunda linha da intenção.</summary>
+    static string Alvo(EnemyInstance enemy)
+    {
+        if (enemy.plannedTarget == null || !enemy.plannedTarget.IsAlive) return "";
+
+        return $"\n<size=15><color=#D8CDB8>em {enemy.plannedTarget.heroName}</color></size>";
     }
 
     /// <summary>Aflições em vigor sobre o inimigo, para a view mostrar.</summary>
@@ -1495,8 +1539,16 @@ public class CombatManager : MonoBehaviour
                 bool front = position < PartyFormation.FrontSlots;
                 string aviso = PartyFormation.IsWellPlaced(hero, party) ? "" : " <color=#B04040>⚠️</color>";
 
+                // Quem está na mira leva a marca no próprio card, e não só na
+                // intenção do inimigo do outro lado da tela: é aqui que o jogador
+                // olha para decidir em quem gastar o bloqueio.
+                int golpesRecebendo = enemies.Count(e => e.IsAlive && e.plannedTarget == hero);
+                string mira = golpesRecebendo > 0
+                    ? $" <color=#E04B44>🎯{(golpesRecebendo > 1 ? golpesRecebendo.ToString() : "")}</color>"
+                    : "";
+
                 SetText(view, "Name",
-                    $"<color=#8CB8F0>{position + 1}{(front ? "⚔️" : "🏹")}</color> {hero.heroName}{aviso}");
+                    $"<color=#8CB8F0>{position + 1}{(front ? "⚔️" : "🏹")}</color> {hero.heroName}{aviso}{mira}");
             }
             SetText(view, "HP", hero.isDead ? "💀"
                               : hero.isOnDeathsDoor ? "<color=#E04B44>☠️ BEIRA DA MORTE</color>"

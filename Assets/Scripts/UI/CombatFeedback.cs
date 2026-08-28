@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -63,30 +64,63 @@ public class CombatFeedback : MonoBehaviour
         var go = new GameObject("FloatingNumber", typeof(RectTransform));
         go.transform.SetParent(canvas.transform, false);
 
-        var label = go.AddComponent<TextMeshProUGUI>();
+        var rt = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(220, 60);
+
+        // A sombra nasce primeiro, para ficar atrás. Sem ela o número se perdia
+        // dentro do desenho da criatura: texto claro sobre pixel art clara, no
+        // meio de uma figura de 300px, é a mesma coisa que não mostrar número.
+        var sombraGo = new GameObject("Sombra", typeof(RectTransform));
+        sombraGo.transform.SetParent(go.transform, false);
+
+        var sombra = sombraGo.AddComponent<TextMeshProUGUI>();
+        sombra.text = texto;
+        sombra.color = new Color(0f, 0f, 0f, 0.85f);
+        sombra.fontSize = 32f * escala;
+        sombra.alignment = TextAlignmentOptions.Center;
+        sombra.fontStyle = FontStyles.Bold;
+        sombra.raycastTarget = false;
+
+        var sombraRt = sombraGo.GetComponent<RectTransform>();
+        sombraRt.anchorMin = Vector2.zero;
+        sombraRt.anchorMax = Vector2.one;
+        sombraRt.offsetMin = new Vector2(3, -3);
+        sombraRt.offsetMax = new Vector2(3, -3);
+
+        var labelGo = new GameObject("Numero", typeof(RectTransform));
+        labelGo.transform.SetParent(go.transform, false);
+
+        var label = labelGo.AddComponent<TextMeshProUGUI>();
         label.text = texto;
         label.color = cor;
-        label.fontSize = 30f * escala;
+        label.fontSize = 32f * escala;
         label.alignment = TextAlignmentOptions.Center;
         label.fontStyle = FontStyles.Bold;
         label.raycastTarget = false;
 
-        var rt = go.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(220, 60);
+        var labelRt = labelGo.GetComponent<RectTransform>();
+        labelRt.anchorMin = Vector2.zero;
+        labelRt.anchorMax = Vector2.one;
+        labelRt.offsetMin = Vector2.zero;
+        labelRt.offsetMax = Vector2.zero;
 
-        // Nasce sobre o alvo, convertendo do mundo para o espaço do Canvas.
+        // Nasce ACIMA do alvo, e não no centro dele: no centro, o número caía
+        // sobre a barriga da criatura ou sobre o retrato do herói, disputando
+        // leitura com o desenho. Acima da cabeça é onde o jogador já olha para
+        // ler a intenção.
         var alvoRect = target.GetComponent<RectTransform>();
         if (alvoRect != null)
         {
-            Vector3 canto = alvoRect.TransformPoint(alvoRect.rect.center);
-            rt.position = canto;
+            Vector3 acima = alvoRect.TransformPoint(
+                new Vector3(alvoRect.rect.center.x, alvoRect.rect.yMax - 24f, 0f));
+            rt.position = acima;
         }
 
         go.transform.SetAsLastSibling();
-        StartCoroutine(FloatAndFade(rt, label));
+        StartCoroutine(FloatAndFade(rt, label, sombra));
     }
 
-    IEnumerator FloatAndFade(RectTransform rt, TextMeshProUGUI label)
+    IEnumerator FloatAndFade(RectTransform rt, TextMeshProUGUI label, TextMeshProUGUI sombra)
     {
         Vector3 inicio = rt.position;
         Vector3 fim = inicio + Vector3.up * floatDistance;
@@ -104,7 +138,9 @@ public class CombatFeedback : MonoBehaviour
             rt.position = Vector3.Lerp(inicio, fim, 1f - (1f - p) * (1f - p));  // desacelera
 
             // Some só na segunda metade, para o número ser lido antes.
-            label.alpha = p < 0.5f ? 1f : Mathf.Lerp(1f, 0f, (p - 0.5f) * 2f);
+            float alfa = p < 0.5f ? 1f : Mathf.Lerp(1f, 0f, (p - 0.5f) * 2f);
+            label.alpha = alfa;
+            if (sombra != null) sombra.alpha = alfa * 0.85f;
 
             yield return null;
         }
@@ -144,10 +180,29 @@ public class CombatFeedback : MonoBehaviour
         if (rt != null) rt.anchoredPosition = origem;
     }
 
+    /// <summary>
+    /// Uma animação por barra. Sem isto, cada refresh do combate — e há um por
+    /// carta jogada, por golpe e por morte — largava uma corrotina nova sobre a
+    /// mesma barra, cada uma partindo de onde encontrou o preenchimento. Três
+    /// correndo juntas faziam a barra do inimigo saltar para trás e voltar no
+    /// meio do ataque, que é o defeito que o autor reportou.
+    ///
+    /// É a mesma proteção que o <c>UIManager</c> já tem para painéis e popups.
+    /// </summary>
+    private readonly Dictionary<Image, Coroutine> animacoesDeBarra = new Dictionary<Image, Coroutine>();
+
     /// <summary>Move a barra de vida suavemente até o novo valor.</summary>
     public void LerpBar(Image bar, float alvo)
     {
         if (bar == null) return;
+
+        alvo = Mathf.Clamp01(alvo);
+
+        if (animacoesDeBarra.TryGetValue(bar, out Coroutine emCurso))
+        {
+            if (emCurso != null) StopCoroutine(emCurso);
+            animacoesDeBarra.Remove(bar);
+        }
 
         if (!bar.gameObject.activeInHierarchy)
         {
@@ -155,7 +210,11 @@ public class CombatFeedback : MonoBehaviour
             return;
         }
 
-        StartCoroutine(LerpBarRoutine(bar, Mathf.Clamp01(alvo)));
+        // Já está onde deveria: reanimar faria a barra piscar sem nada ter
+        // mudado, e o refresh do combate chama isto o tempo todo.
+        if (Mathf.Approximately(bar.fillAmount, alvo)) return;
+
+        animacoesDeBarra[bar] = StartCoroutine(LerpBarRoutine(bar, alvo));
     }
 
     IEnumerator LerpBarRoutine(Image bar, float alvo)
@@ -172,6 +231,10 @@ public class CombatFeedback : MonoBehaviour
             yield return null;
         }
 
-        if (bar != null) bar.fillAmount = alvo;
+        if (bar != null)
+        {
+            bar.fillAmount = alvo;
+            animacoesDeBarra.Remove(bar);
+        }
     }
 }
