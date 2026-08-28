@@ -877,6 +877,63 @@ letalidade 0,54.
 
 ---
 
+### Fase 3.10 — A apresentação ✅ *concluída em 28/08*
+
+Quatro queixas do autor sobre como o jogo se apresenta, e o que cada uma era de fato.
+
+| A queixa | O que era | Como ficou |
+|---|---|---|
+| "as áreas do mapa da guilda são só botões" | literalmente sete retângulos pretos com o nome escrito; nenhuma imagem na tela inicial | as sete portas mostram cenas pintadas do *Dwarves and Underground* |
+| "jogo muito escuro" | painel a 8% de luminância, caixa a 13%, sobre fundo quase preto | paleta +8 pontos, com marrom no lugar do cinza puro |
+| "mapa e personagens muito à direita" | a câmera do mapa estava ancorada em 0,70 da largura — o grupo andava colado na borda | 0,52, à direita da caixa de evento e longe da borda |
+| "feedback bugado no combate" | três defeitos distintos, abaixo | os três corrigidos |
+
+**O pedido que virou regra de design:** *"não parece justo eu não saber quem o inimigo vai atacar"*.
+O alvo era sorteado **no instante do golpe**, então a intenção dizia "⚔️ 12" e o jogador só descobria
+em quem ao levar — não dava para decidir se valia gastar o bloqueio, nem em quem, que é a decisão
+inteira do turno num jogo de formação. O alvo passou a sair junto com a intenção, aparece no anúncio
+do inimigo e como 🎯 no card de quem está na mira. **A regra do sorteio não mudou, só o momento** —
+e a letalidade medida confirmou: 0,55, dentro do alvo.
+
+#### Os três defeitos de feedback
+
+1. **A barra do inimigo saltava para trás no meio do ataque.** Não havia proteção contra animações
+   concorrentes na mesma barra, e há um refresh por carta jogada, por golpe e por morte: três
+   corrotinas correndo juntas, cada uma partindo de onde encontrou o preenchimento. É a mesma
+   proteção que o `UIManager` já tinha para painéis e popups.
+2. **A criatura ficava branca ao apanhar.** O "take hit" destes pacotes é a criatura inteira pintada
+   de branco, e o boneco ficava assim por meio segundo — parecia defeito de renderização. Virou um
+   clarão de 0,12s que não interrompe a animação em curso.
+3. **Os números de dano nasciam no centro do alvo**, sobre a barriga da criatura ou o retrato do
+   herói. Passam a nascer acima da cabeça, com sombra.
+
+#### ⚠️ O achado: escolher arte por assunto não funciona em miniatura
+
+A primeira leva de cenas das salas foi rejeitada pelo autor. O erro era de método: eu tinha escolhido
+por **assunto**, e metade do acervo é paisagem aberta — menires numa clareira, caverna de chão
+dourado, vale enevoado. Reduzidas ao tamanho de uma porta, paisagens viram manchas coloridas: não se
+lê o que são, e sete delas lado a lado não parecem o mesmo lugar.
+
+O critério passou a vir antes do assunto: **interiores de pedra, com um foco de luz e teto visível**.
+A tela precisa ler como sete portas de uma mesma guilda, e não como sete quadros pendurados.
+
+#### Defeitos encontrados no caminho
+
+- **A tela de balanço nunca mostrou os heróis** desde a Fase 2.5: o molde da ficha vive desligado na
+  cena, e `Instantiate` devolve o clone desligado. As quatro fichas existiam na hierarquia — o teste
+  contava as quatro — e a tela aparecia vazia.
+- **`Image.type = Filled` é ignorado sem sprite**: a tarja de estresse do Cemitério aparecia lotada
+  com 0/100 desde que a sala foi feita, mudando só de cor.
+- **A barra de XP era vermelha**, colada na de vida: os cinco preenchimentos do kit são vermelhos e o
+  `Image` multiplica sprite por cor.
+- **Os retratos do rodapé da guilda estavam vazios** — os cards são objetos da cena herdada, sem
+  código que os monte.
+
+**O que falta desta frente está no `HANDOFF.md`**, na seção "O que a próxima sessão precisa
+discutir": tipografia, vinheta, paleta sépia, o momento da quebra do herói, o narrador e a tocha.
+
+---
+
 ### Fase 4 — Dar peso ao que já está escrito
 *Barato, porque os dados já existem e só falta quem os leia.*
 
