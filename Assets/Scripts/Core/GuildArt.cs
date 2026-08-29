@@ -85,7 +85,7 @@ public static class GuildArt
     [MenuItem("Tools/Guild of Legends/Vestir a Guilda")]
     public static void Aplicar()
     {
-        Canvas canvas = Object.FindObjectOfType<Canvas>();
+        Canvas canvas = UIUtil.CanvasPrincipal();
         if (canvas == null)
         {
             Debug.LogError("Vestir a Guilda: nenhum Canvas na cena aberta.");

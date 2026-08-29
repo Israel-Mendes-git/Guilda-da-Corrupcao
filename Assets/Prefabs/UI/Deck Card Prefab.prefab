@@ -67,8 +67,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Nv.1
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
+  m_sharedMaterial: {fileID: 1630518315104373316, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -201,8 +201,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 0 cartas
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
+  m_sharedMaterial: {fileID: 1630518315104373316, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -506,8 +506,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Classe
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
+  m_sharedMaterial: {fileID: 1630518315104373316, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -715,8 +715,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "Nome do her\xF3i"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
+  m_sharedMaterial: {fileID: 1630518315104373316, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -795,6 +795,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 387090239097535564, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
+    - target: {fileID: 387090239097535564, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
       propertyPath: m_fontColor.b
       value: 0.72
       objectReference: {fileID: 0}
@@ -806,10 +810,18 @@ PrefabInstance:
       propertyPath: m_fontColor.r
       value: 0.94
       objectReference: {fileID: 0}
+    - target: {fileID: 387090239097535564, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 1630518315104373316, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
     - target: {fileID: 4482325731209759285, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
       propertyPath: m_text
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 4482325731209759285, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
     - target: {fileID: 4482325731209759285, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
       propertyPath: m_fontColor.b
       value: 0.65
@@ -822,6 +834,10 @@ PrefabInstance:
       propertyPath: m_fontColor.r
       value: 0.74
       objectReference: {fileID: 0}
+    - target: {fileID: 4482325731209759285, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 1630518315104373316, guid: a45f97c2e791a4a42b1364635521f637, type: 2}
     - target: {fileID: 4828440511800789638, guid: 5b67b9b5ba9c9d5409a8616bb85fad63, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5

@@ -50,7 +50,7 @@ public class GuildRosterPortraits : MonoBehaviour
 
         if (rodape == null)
         {
-            var canvas = Object.FindObjectOfType<Canvas>();
+            var canvas = UIUtil.CanvasPrincipal();
             if (canvas == null) return;
 
             rodape = canvas.transform.Find(CaminhoDoRodape);

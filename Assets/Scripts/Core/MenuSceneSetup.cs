@@ -126,7 +126,7 @@ public static class MenuSceneSetup
 
     static Canvas GarantirCanvas()
     {
-        Canvas canvas = Object.FindObjectOfType<Canvas>();
+        Canvas canvas = UIUtil.CanvasPrincipal();
         if (canvas != null) return canvas;
 
         var go = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
