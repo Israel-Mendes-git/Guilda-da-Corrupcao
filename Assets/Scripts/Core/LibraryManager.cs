@@ -95,6 +95,10 @@ public class LibraryManager : MonoBehaviour
     HeroData naMesa;
     bool estoqueSorteado;
     int nivelDoEstoque;
+    string classesDoEstoque;
+
+    /// <summary>A mesa foi escolhida na fila, e não pela sala. Quem escolheu manda.</summary>
+    bool mesaEscolhidaPeloJogador;
 
     void Awake()
     {
@@ -131,12 +135,24 @@ public class LibraryManager : MonoBehaviour
                           + $"no máximo {DeckManager.MaxCopiasPorCarta} cópias de cada. "
                           + "Melhorar a sala traz raridades melhores para a estante.";
 
+        // A estante antes da mesa: quem senta é escolhido pelo que há para lhe
+        // vender, e para isso o estoque de hoje já precisa estar sorteado.
+        GarantirEstoque();
+
         // Quem morreu na última jornada não pode continuar na mesa, e quem entrou
         // agora precisa aparecer na fila.
-        if (naMesa == null || naMesa.isDead || !EstaNoRoster(naMesa))
-            naMesa = PrimeiroVivo();
+        //
+        // A última condição é a sala se corrigindo: se quem sentou foi a própria
+        // sala e não há mais nada para lhe vender, ela cede o lugar. Escolha do
+        // jogador não é desfeita — comprar a última carta útil de um herói não
+        // pode tirá-lo da mesa nas costas de quem o pôs ali.
+        if (naMesa == null || naMesa.isDead || !EstaNoRoster(naMesa)
+            || (!mesaEscolhidaPeloJogador && !PodeComprarAlgo(naMesa)))
+        {
+            naMesa = PrimeiroQuePodeComprar() ?? PrimeiroVivo();
+            mesaEscolhidaPeloJogador = false;
+        }
 
-        GarantirEstoque();
         AtualizarBotaoDeMelhora();
 
         BuildHeroes();
@@ -153,6 +169,37 @@ public class LibraryManager : MonoBehaviour
     {
         if (GuildManager.Instance == null) return null;
         return GuildManager.Instance.roster.FirstOrDefault(h => h != null && !h.isDead);
+    }
+
+    /// <summary>
+    /// Quem a sala põe na mesa sozinha: o primeiro herói vivo que <b>pode</b>
+    /// receber alguma carta da estante de hoje.
+    ///
+    /// Era o primeiro vivo, e mais nada. Com o baralho dele cheio em 12/12 — que
+    /// é o estado comum de quem está na guilda há alguns ciclos —, a Biblioteca
+    /// abria com todos os botões desligados e parecia quebrada; o remédio era um
+    /// clique numa ficha da fila, e nada na tela dizia isso.
+    ///
+    /// O ouro não entra na conta: um herói que o jogador ainda não pode pagar
+    /// continua sendo o certo para mostrar.
+    /// </summary>
+    HeroData PrimeiroQuePodeComprar()
+    {
+        if (GuildManager.Instance == null) return null;
+        return GuildManager.Instance.roster.FirstOrDefault(PodeComprarAlgo);
+    }
+
+    /// <summary>Há na estante de hoje alguma carta que entra no baralho deste herói?</summary>
+    bool PodeComprarAlgo(HeroData hero)
+    {
+        if (hero == null || hero.isDead) return false;
+
+        DeckData deck = DeckRepository.GetDeck(hero);
+        if (deck == null || deck.cards == null) return false;
+        if (deck.cards.Count >= deck.maxDeckSize) return false;
+
+        return availableCards.Any(c => ServeA(c, hero)
+            && Copias(deck, c) < DeckManager.MaxCopiasPorCarta);
     }
 
     void SetFeedback(string message)
@@ -246,6 +293,7 @@ public class LibraryManager : MonoBehaviour
         if (hero == null || hero.isDead) return;
 
         naMesa = hero;
+        mesaEscolhidaPeloJogador = true;
         SetFeedback($"O que for comprado vai para o baralho de {hero.heroName}.");
 
         BuildHeroes();
@@ -485,8 +533,11 @@ public class LibraryManager : MonoBehaviour
         var drag = view.GetComponent<CardDragHandler>();
         if (drag != null) Destroy(drag);
 
+        // Destruído, e não desligado: um Button desligado continua sendo um
+        // botão para quem conta a tela, e seis mostruários faziam a auditoria
+        // anunciar dez controles indisponíveis numa sala que tem dois.
         var botao = view.GetComponent<Button>();
-        if (botao != null) botao.interactable = false;
+        if (botao != null) Destroy(botao);
     }
 
     void MontarBotaoDeCompra(GameObject nicho, CardData card)
@@ -636,6 +687,13 @@ public class LibraryManager : MonoBehaviour
         DeckData deck = DeckRepository.GetDeck(naMesa);
         int copias = Copias(deck, card);
 
+        // O baralho cheio vem antes das cópias e do valor: em 12/12 nenhuma carta
+        // entra, e a saída é a tela de Baralhos. A frase que ensina isso existia
+        // só dentro de Comprar — e o botão desligado nunca deixava chegar lá.
+        if (deck != null && deck.cards != null && deck.cards.Count >= deck.maxDeckSize)
+            return $"<color=#B04040>Baralho cheio ({deck.cards.Count}/{deck.maxDeckSize}) — "
+                 + "tire uma carta em Baralhos para abrir espaço.</color>";
+
         if (copias > 0)
         {
             string quantas = copias == 1 ? "esta carta" : $"{copias} cópias desta";
@@ -749,17 +807,52 @@ public class LibraryManager : MonoBehaviour
 
     void GarantirEstoque()
     {
-        if (estoqueSorteado && nivelDoEstoque == libraryLevel) return;
+        string classes = ClassesDaGuilda();
+
+        if (estoqueSorteado && nivelDoEstoque == libraryLevel && classesDoEstoque == classes) return;
 
         GenerateCardsByLevel();
 
         estoqueSorteado = true;
         nivelDoEstoque = libraryLevel;
+        classesDoEstoque = classes;
+    }
+
+    /// <summary>
+    /// As classes vivas da guilda, em texto estável — a chave do estoque.
+    ///
+    /// A estante é sorteada para elas, e precisa ser sorteada de novo quando
+    /// entra uma classe que a guilda não tinha: senão o recruta chega e a sala
+    /// não tem uma única carta dele. Só quando o <i>conjunto</i> muda, e não a
+    /// cada abertura — re-sortear em todo <see cref="RefreshLibrary"/> devolvia à
+    /// estante a carta recém-comprada, que é o defeito que fechou esse caminho.
+    /// </summary>
+    string ClassesDaGuilda()
+    {
+        if (GuildManager.Instance == null) return "";
+
+        return string.Join(",", GuildManager.Instance.roster
+            .Where(h => h != null && h.IsAlive)
+            .Select(h => (int)h.heroClass)
+            .Distinct()
+            .OrderBy(c => c));
     }
 
     /// <summary>
     /// O que a estante oferece. É a única costura do estoque: quem for fazer o
     /// acervo mudar por ciclo troca o miolo daqui e nada mais precisa saber.
+    ///
+    /// <b>A estante é sorteada para quem está na guilda.</b> Antes o sorteio
+    /// varria o acervo inteiro com uma moeda por carta e ficava com o que caísse.
+    /// O roster não entrava na conta: com quatro classes, a maior parte da
+    /// estante era carta de classe que ninguém tinha — a captura da sala mostrou
+    /// cinco nichos e cinco botões dizendo "NÃO SERVE", e o teste de cliques
+    /// anotou "comprar carta: nenhuma disponível". Uma sala de compra que não
+    /// vende nada é uma porta a menos, e não uma escolha.
+    ///
+    /// Agora só entram cartas que servem a <i>alguém</i> do roster, e cada classe
+    /// presente tem um nicho reservado antes de o resto ser preenchido. Bardo é
+    /// curinga e serve a todos — a mesma regra do <see cref="ServeA"/>.
     /// </summary>
     void GenerateCardsByLevel()
     {
@@ -773,22 +866,42 @@ public class LibraryManager : MonoBehaviour
             return;
         }
 
-        foreach (var card in allCards)
-        {
-            if (!RaridadeLiberada(card.rarity)) continue;
+        List<HeroData> guilda = GuildManager.Instance != null
+            ? GuildManager.Instance.roster.Where(h => h != null && h.IsAlive).ToList()
+            : new List<HeroData>();
 
-            // 50% de chance de aparecer.
-            if (Random.value < 0.5f)
-                availableCards.Add(card);
+        List<CardData> liberadas = allCards.Where(c => c != null && RaridadeLiberada(c.rarity)).ToList();
+
+        // Sem ninguém vivo não há a quem servir, e a estante volta a ser o acervo
+        // inteiro — é o que a sala mostra enquanto a guilda não tem heróis.
+        List<CardData> servem = guilda.Count == 0
+            ? liberadas
+            : liberadas.Where(c => guilda.Any(h => ServeA(c, h))).ToList();
+
+        if (servem.Count == 0) servem = liberadas;
+
+        // Um nicho reservado por classe presente: toda ficha da fila precisa ter
+        // o que comprar quando o jogador a põe na mesa.
+        foreach (HeroClass classe in guilda.Select(h => h.heroClass).Distinct())
+        {
+            if (availableCards.Count >= NichosNaEstante) break;
+
+            List<CardData> daClasse = servem
+                .Where(c => c.requiredClass == classe && !availableCards.Contains(c)).ToList();
+
+            if (daClasse.Count > 0)
+                availableCards.Add(daClasse[Random.Range(0, daClasse.Count)]);
         }
 
-        while (availableCards.Count > NichosNaEstante)
-            availableCards.RemoveAt(Random.Range(0, availableCards.Count));
+        // O resto é sorteio livre dentro do mesmo bolo, sem repetir nicho.
+        List<CardData> sobra = servem.Where(c => !availableCards.Contains(c)).ToList();
 
-        // Garante que a estante nunca abra quase vazia.
-        var liberadas = allCards.Where(c => RaridadeLiberada(c.rarity)).ToList();
-        while (availableCards.Count < 3 && liberadas.Count > 0)
-            availableCards.Add(liberadas[Random.Range(0, liberadas.Count)]);
+        while (availableCards.Count < NichosNaEstante && sobra.Count > 0)
+        {
+            int i = Random.Range(0, sobra.Count);
+            availableCards.Add(sobra[i]);
+            sobra.RemoveAt(i);
+        }
     }
 
     bool RaridadeLiberada(CardRarity rarity)
