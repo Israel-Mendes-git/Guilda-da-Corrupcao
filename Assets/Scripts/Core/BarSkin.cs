@@ -185,6 +185,9 @@ public static class SceneToolsTriggerWatcher
     const string EventArtTrigger = "RunEventArt.trigger";
     const string GameplayAuditTrigger = "RunGameplayAudit.trigger";
     const string GuildArtTrigger = "RunGuildArt.trigger";
+    const string BodyFontTrigger = "RunBodyFont.trigger";
+    const string BodyFontApplyTrigger = "RunBodyFontApply.trigger";
+    const string ScreenVeilTrigger = "RunScreenVeil.trigger";
     static double nextCheck;
 
     static SceneToolsTriggerWatcher()
@@ -245,6 +248,9 @@ public static class SceneToolsTriggerWatcher
         Consumir(AudioTrigger, AudioCatalogBuilder.Montar);
         Consumir(PartyCardTrigger, PartyCardSkin.Vestir);
         Consumir(CardFrameTrigger, CardFrameSkin.Vestir);
+        Consumir(BodyFontTrigger, BodyFont.Gerar);
+        Consumir(BodyFontApplyTrigger, BodyFont.Vestir);
+        Consumir(ScreenVeilTrigger, ScreenVeil.Aplicar);
     }
 
     static void Consumir(string arquivo, System.Action acao)

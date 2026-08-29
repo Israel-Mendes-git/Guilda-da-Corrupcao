@@ -6,6 +6,33 @@ using UnityEngine;
 public static class UIUtil
 {
     /// <summary>
+    /// O Canvas de tela cheia da cena — aquele de quem todos os painéis descem.
+    ///
+    /// <b>Por que não serve um <c>FindObjectOfType&lt;Canvas&gt;()</c>.</b> Ele
+    /// devolve <i>um</i> Canvas qualquer, e quem chama sempre navega a partir
+    /// dele: <c>Find("Background/Panel_DownBar/...")</c>. Basta existir um
+    /// segundo Canvas na cena para a busca cair no errado e o caminho não
+    /// existir — e o código então sai em silêncio, sem sprite e sem erro.
+    ///
+    /// Foi o que aconteceu quando o véu da tela ganhou Canvas próprio para poder
+    /// ficar acima dos popups: os retratos do rodapé da guilda pararam de
+    /// aparecer, com o relatório em "0 erros". Canvas aninhado tem
+    /// <c>isRootCanvas</c> falso, e é isso que separa um do outro.
+    /// </summary>
+    public static Canvas CanvasPrincipal()
+    {
+        Canvas[] todos = Object.FindObjectsOfType<Canvas>();
+        if (todos == null || todos.Length == 0) return null;
+
+        foreach (Canvas c in todos)
+            if (c != null && c.isRootCanvas) return c;
+
+        // Nenhum se diz raiz (cena meio montada, prefab aberto): o de cima da
+        // hierarquia ainda é a melhor aposta, e é melhor que devolver nulo.
+        return todos[0].rootCanvas != null ? todos[0].rootCanvas : todos[0];
+    }
+
+    /// <summary>
     /// Esvazia um container agora, e não no fim do frame.
     ///
     /// `Destroy` apenas agenda a remoção: o objeto continua sendo filho e sendo
