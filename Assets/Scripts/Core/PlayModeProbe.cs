@@ -2368,7 +2368,12 @@ public class PlayModeProbe : MonoBehaviour
 
                 // A dica é a linha que ensina a sala: reconhecida pelo nome do
                 // objeto, que é como as salas refeitas a montam.
-                if (t.name.Contains("Hint") || t.name.Contains("Txt_Hint")) temDica = true;
+                //
+                // "Guia" entra na conta porque a guilda tem a sua — o GuildGuide
+                // escreve no Txt_Guia, e a auditoria vinha acusando a única tela
+                // que dá conselho de ser a única sem orientação. O relatório
+                // errou sobre o jogo, de novo; o defeito era do critério.
+                if (t.name.Contains("Hint") || t.name.Contains("Guia")) temDica = true;
             }
 
             Line($"  {tela.nome,-24} {ativos,6}   {desligados,10}   {textos,6}   {(temDica ? "sim" : "NÃO"),12}");

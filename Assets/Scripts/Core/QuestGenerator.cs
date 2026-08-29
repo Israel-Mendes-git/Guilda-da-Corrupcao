@@ -3,8 +3,24 @@ using UnityEngine;
 
 public static class QuestGenerator
 {
-    private static string[] questPrefixes = { "Túmulo", "Caverna", "Torre", "Santuário", "Vila", "Masmorra", "Templo", "Cripta" };
-    private static string[] questSuffixes = { "Antigo", "Perdido", "Abandonado", "Profano", "Assombrado", "Amaldiçoado", "Sagrado", "Esquecido" };
+    /// <summary>
+    /// O lugar da missão, com o gênero do substantivo. O gênero mora aqui porque
+    /// é dele que o estado depende: com as duas listas sorteadas à parte, o
+    /// quadro oferecia "Vila Antigo", "Cripta Sagrado" e "Masmorra Antigo".
+    /// </summary>
+    private static readonly (string nome, bool feminino)[] lugares =
+    {
+        ("Túmulo", false), ("Caverna", true), ("Torre", true), ("Santuário", false),
+        ("Vila", true), ("Masmorra", true), ("Templo", false), ("Cripta", true)
+    };
+
+    /// <summary>O estado do lugar, nas duas formas. Quem escolhe é o lugar sorteado.</summary>
+    private static readonly (string masculino, string feminino)[] estados =
+    {
+        ("Antigo", "Antiga"), ("Perdido", "Perdida"), ("Abandonado", "Abandonada"),
+        ("Profano", "Profana"), ("Assombrado", "Assombrada"), ("Amaldiçoado", "Amaldiçoada"),
+        ("Sagrado", "Sagrada"), ("Esquecido", "Esquecida")
+    };
     private static string[] objectives = {
         "Derrote o chefe",
         "Colete recursos",
@@ -25,10 +41,13 @@ public static class QuestGenerator
             // Bioma
             quest.biomeType = BiomeUtil.GetRandom();
 
-            // Nome da quest
-            string prefix = questPrefixes[Random.Range(0, questPrefixes.Length)];
-            string suffix = questSuffixes[Random.Range(0, questSuffixes.Length)];
-            quest.questName = $"{prefix} {suffix} - {quest.biome}";
+            // Nome da quest. Sem o bioma: todo lugar que mostra o nome mostra a
+            // região ao lado — o quadro tem o cabeçalho da região, a ficha tem a
+            // linha "📍 Bioma:" e o HUD da jornada tem o Txt_Biome. Escrito nos
+            // dois, saía "Santuário Amaldiçoado - 🏯 Ruínas" embaixo de "🏯 Ruínas".
+            var lugar = lugares[Random.Range(0, lugares.Length)];
+            var estado = estados[Random.Range(0, estados.Length)];
+            quest.questName = $"{lugar.nome} {(lugar.feminino ? estado.feminino : estado.masculino)}";
 
             // Duração (baseada no nível do jogador)
             int baseDuration = Random.Range(4, 8);
@@ -103,7 +122,7 @@ public static class QuestGenerator
     {
         QuestData bossQuest = ScriptableObject.CreateInstance<QuestData>();
         bossQuest.biomeType = BiomeUtil.GetRandom();
-        bossQuest.questName = $"⚔️ CHEFE SUPREMO - {bossQuest.biome} ⚔️";
+        bossQuest.questName = "⚔️ CHEFE SUPREMO ⚔️";
         bossQuest.minDuration = 10;
         bossQuest.maxDuration = 15;
         bossQuest.baseReward = 300 + (playerLevel * 30);
