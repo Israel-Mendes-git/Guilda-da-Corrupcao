@@ -1829,9 +1829,11 @@ public static class GuildSceneSetup
         if (!AplicarKitEm(canvas.gameObject)) return;
 
         Sprite moldura = AssetDatabase.LoadAssetAtPath<Sprite>(OutlineSpritePath);
+        Sprite fundoDeCaixa = AssetDatabase.LoadAssetAtPath<Sprite>(PanelSpritePath);
+
         if (moldura != null)
             foreach (var img in canvas.GetComponentsInChildren<Image>(true))
-                if (img.color == BoxColor && img.GetComponent<Button>() == null)
+                if (MereceMoldura(img, fundoDeCaixa))
                     EnsureOutline(img.rectTransform, moldura);
 
         ApplyTitleFont(canvas);
@@ -1955,6 +1957,40 @@ public static class GuildSceneSetup
     static bool IsFullScreenPanel(RectTransform rt)
     {
         return rt.rect.width > 1200f && rt.rect.height > 600f;
+    }
+
+    /// <summary>
+    /// Abaixo disto a moldura não cabe. Ela tem cantos ornamentados; num ícone ou
+    /// numa barra fina os quatro cantos se encostam e o que se vê é uma mancha.
+    /// </summary>
+    const float LadoMinimoDaMoldura = 90f;
+
+    /// <summary>
+    /// Esta caixa merece a moldura ornamentada do kit?
+    ///
+    /// <b>O critério era só <c>color == BoxColor</c></b>, e é por isso que a
+    /// moldura aparecia numas telas e faltava em outras: as salas refeitas dão
+    /// cor própria à caixa — a madeira quente da Taverna, o marrom frio da
+    /// Forja — e nenhuma delas bate com a cor exata. O que todas as caixas têm em
+    /// comum não é a cor, é o fundo: o <c>Frame_background</c> do kit, posto pelo
+    /// <c>VestirCaixa</c> de cada sala ou pelo próprio kit.
+    ///
+    /// Ficam de fora o botão, que tem skin de estados própria, e o painel de tela
+    /// cheia, que é fundo — emoldurar a tela inteira só desenharia uma borda em
+    /// volta da borda do monitor.
+    /// </summary>
+    static bool MereceMoldura(Image img, Sprite fundoDeCaixa)
+    {
+        if (img == null) return false;
+        if (img.GetComponent<Button>() != null) return false;
+        if (IsFullScreenPanel(img.rectTransform)) return false;
+
+        Rect r = img.rectTransform.rect;
+        if (r.width < LadoMinimoDaMoldura || r.height < LadoMinimoDaMoldura) return false;
+
+        if (img.color == BoxColor) return true;
+
+        return fundoDeCaixa != null && img.sprite == fundoDeCaixa;
     }
 
     /// <summary>Moldura desenhada por cima da caixa, sem tocar no fundo dela.</summary>
