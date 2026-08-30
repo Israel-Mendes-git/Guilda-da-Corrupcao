@@ -322,6 +322,9 @@ public class PlayModeProbe : MonoBehaviour
 
         yield return DiarioDaPartida();
 
+        Section("O MOMENTO DA QUEBRA");
+        yield return TestarMomentoDaQuebra();
+
         Section("O QUE CADA TELA OFERECE");
         yield return AuditarTelas();
 
@@ -2165,6 +2168,129 @@ public class PlayModeProbe : MonoBehaviour
             Line("FALHA: o grupo ficou pequeno demais para se reconhecer no mapa.");
     }
 
+    /// <summary>
+    /// O momento da quebra aparece mesmo?
+    ///
+    /// Não dá para esperar que uma jornada de teste produza uma aflição: numa
+    /// execução ninguém quebra, na outra quebram dois. O momento é chamado aqui
+    /// à mão, com um herói do roster, e o que se confere é o que a lição do
+    /// projeto manda conferir — não que o objeto exista na hierarquia, mas que
+    /// ele esteja <b>ativo, visível e com o rosto certo</b>.
+    /// </summary>
+    IEnumerator TestarMomentoDaQuebra()
+    {
+        var guilda = GuildManager.Instance;
+        HeroData cobaia = guilda != null
+            ? guilda.roster.FirstOrDefault(h => h != null && h.IsAlive)
+            : null;
+
+        if (cobaia == null)
+        {
+            Line("pulado: ninguém vivo no roster");
+            yield break;
+        }
+
+        MentalState antes = cobaia.mentalState;
+        cobaia.mentalState = MentalState.Hopeless;
+
+        var runner = UIManager.Instance;
+        if (runner == null)
+        {
+            Line("pulado: UIManager ausente");
+            cobaia.mentalState = antes;
+            yield break;
+        }
+
+        runner.StartCoroutine(AfflictionMoment.Mostrar(cobaia));
+
+        // Depois da entrada e antes da saída: o painel fica ~1,5s no ar.
+        yield return new WaitForSecondsRealtime(0.6f);
+
+        GameObject painel = GameObject.Find("AfflictionMoment");
+
+        if (painel == null)
+        {
+            Line("FALHA: o momento da quebra não chegou a existir.");
+            cobaia.mentalState = antes;
+            yield break;
+        }
+
+        var grupo = painel.GetComponent<CanvasGroup>();
+        var textos = painel.GetComponentsInChildren<TMP_Text>(true)
+                           .Where(t => t.gameObject.activeInHierarchy && !string.IsNullOrWhiteSpace(t.text))
+                           .ToList();
+
+        int retratos = painel.GetComponentsInChildren<Image>(true)
+                             .Count(i => i.gameObject.activeInHierarchy && i.sprite != null);
+
+        float alpha = grupo != null ? grupo.alpha : -1f;
+
+        Line($"painel no ar: ativo={painel.activeInHierarchy} alpha={alpha:0.00} "
+           + $"textos={textos.Count} retrato={(retratos > 0 ? "sim" : "NÃO")}");
+
+        foreach (var t in textos)
+            Line($"  {t.gameObject.name}: '{StripTags(t.text)}'");
+
+        if (alpha < 0.5f)
+            Line("FALHA: o momento existe mas está transparente — ninguém o veria.");
+
+        bool dizONome = textos.Any(t => StripTags(t.text).Contains(cobaia.heroName));
+        if (!dizONome)
+            Line($"FALHA: o momento não diz de quem é a quebra ({cobaia.heroName}).");
+
+        yield return Capture("momento_quebra");
+
+        // O painel se destrói sozinho ao fim da corrotina; o estado do herói,
+        // não — e este teste não pode deixar alguém afligido para as seções
+        // seguintes medirem.
+        yield return new WaitForSecondsRealtime(1.4f);
+        cobaia.mentalState = antes;
+    }
+
+    /// <summary>
+    /// A tocha muda a tela?
+    ///
+    /// Como o momento da quebra, isto não pode depender de a jornada de teste
+    /// por acaso ficar sem tocha. O contador é zerado à mão no meio da estrada e
+    /// o que se mede é o alfa da camada de escuridão do véu — antes e depois.
+    /// Sem o "antes", um valor alto não provaria nada: poderia já estar assim.
+    /// </summary>
+    IEnumerator MedirALuzDaTocha(JourneyManager jm)
+    {
+        Canvas canvas = UIUtil.CanvasPrincipal();
+        Transform achado = canvas != null ? canvas.transform.Find("ScreenVeil/Img_Escuridao") : null;
+        var escuridao = achado != null ? achado.GetComponent<Image>() : null;
+
+        if (escuridao == null)
+        {
+            Line("luz da tocha: camada de escuridão ausente no véu — o efeito não tem onde aparecer");
+            yield break;
+        }
+
+        int tochasAntes = jm.torches;
+        float alphaAntes = escuridao.color.a;
+
+        jm.torches = 0;
+
+        // A transição leva cerca de um segundo; um pouco mais para assentar.
+        yield return new WaitForSecondsRealtime(1.6f);
+
+        float alphaDepois = escuridao.color.a;
+
+        Line($"luz da tocha: {tochasAntes} tochas → escuridão {alphaAntes:0.00} | "
+           + $"0 tochas → {alphaDepois:0.00}");
+
+        if (alphaDepois <= alphaAntes + 0.05f)
+            Line("FALHA: apagar as tochas não escureceu a tela.");
+
+        yield return Capture("jornada_sem_tocha");
+
+        // Devolve as tochas: esta é a mesma jornada que o resto do teste mede, e
+        // deixá-la no escuro somaria estresse que nada no jogo pediu.
+        jm.torches = tochasAntes;
+        yield return new WaitForSecondsRealtime(1.2f);
+    }
+
     IEnumerator Capture(string nome)
     {
         string pasta = Path.Combine(Application.dataPath, "Screenshots");
@@ -3075,6 +3201,7 @@ public class PlayModeProbe : MonoBehaviour
                 {
                     meioCapturado = true;
                     yield return Capture("jornada_meio");
+                    yield return MedirALuzDaTocha(jm);
                 }
 
                 continue;
