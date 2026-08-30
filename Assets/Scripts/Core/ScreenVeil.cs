@@ -150,6 +150,13 @@ public static class ScreenVeil
         Camada(raiz.transform, "Img_Grao", grao, Image.Type.Tiled, Color.white);
         Camada(raiz.transform, "Img_Vinheta", vinheta, Image.Type.Simple, Color.white);
 
+        // A mesma vinheta de novo, apagada. Quem a acende é a tocha da jornada:
+        // duas cópias somadas escurecem mais E puxam a sombra para o centro, que
+        // é o aperto que se quer. Uma só não teria como ficar mais escura que o
+        // próprio alfa do sprite.
+        Camada(raiz.transform, "Img_Escuridao", vinheta, Image.Type.Simple,
+               new Color(1f, 1f, 1f, 0f));
+
         AjustarLadrilhoDoGrao(raiz.transform, canvas);
     }
 

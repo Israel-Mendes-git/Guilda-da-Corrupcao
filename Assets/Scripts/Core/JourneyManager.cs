@@ -765,7 +765,33 @@ public class JourneyManager : MonoBehaviour
             return;
         }
 
-        StartCoroutine(DelayedNextEvent());
+        StartCoroutine(DepoisDoEvento(resolution));
+    }
+
+    /// <summary>
+    /// A pausa entre um evento e o próximo, com o momento da quebra no meio.
+    ///
+    /// A quebra vem antes do próximo evento, e não junto: é a estrada parando
+    /// para mostrar o que acabou de acontecer com alguém do grupo. Emendar o
+    /// evento seguinte por cima devolveria o que havia — uma linha de log que
+    /// some antes de ser lida.
+    /// </summary>
+    IEnumerator DepoisDoEvento(EventResolver.Resolution resolution)
+    {
+        var quebrados = new List<HeroData>();
+
+        if (resolution != null)
+            quebrados.AddRange(resolution.newlyAfflicted);
+
+        foreach (var doTrecho in quebradosNoTrecho)
+            if (!quebrados.Contains(doTrecho)) quebrados.Add(doTrecho);
+
+        quebradosNoTrecho.Clear();
+
+        if (quebrados.Count > 0)
+            yield return AfflictionMoment.MostrarTodos(quebrados);
+
+        yield return DelayedNextEvent();
     }
 
     /// <summary>
@@ -1383,12 +1409,31 @@ public class JourneyManager : MonoBehaviour
             }
         }
 
+        // A barra pode ter enchido aqui, e não num evento. Sem esta linha, quem
+        // chegava aos 100 andando no escuro terminava a jornada em "estresse 100,
+        // Estável": a quebra simplesmente não acontecia por este caminho.
+        EventResolver.ResolveStressBreakpoints(currentParty, upkeep);
+
         foreach (var deadHero in upkeep.died)
             journeyCasualties.Add(deadHero);
+
+        // Guardado para o momento da quebra, que só pode rodar quando a estrada
+        // parar — aqui ainda estamos no meio do consumo de um trecho.
+        foreach (var quebrado in upkeep.newlyAfflicted)
+            if (!quebradosNoTrecho.Contains(quebrado)) quebradosNoTrecho.Add(quebrado);
 
         if (upkeep.lines.Count > 0)
             Debug.Log($"[Manutenção diária]\n{upkeep.ToText()}");
     }
+
+    /// <summary>
+    /// Quem quebrou na manutenção diária desde o último evento resolvido.
+    ///
+    /// A manutenção roda no meio do avanço — às vezes várias vezes seguidas, num
+    /// desvio de rota — e não é hora de parar a tela. O momento sai quando o
+    /// trecho termina.
+    /// </summary>
+    readonly List<HeroData> quebradosNoTrecho = new List<HeroData>();
 
     /// <summary>
     /// Avança pela rota sem resolver os eventos do caminho.

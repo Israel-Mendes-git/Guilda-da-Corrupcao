@@ -329,8 +329,16 @@ public static class EventResolver
         result.lines.Add("🌑 A corrupção da região se infiltra no grupo — e no mundo.");
     }
 
-    /// <summary>Converte estresse máximo em Aflição (comum) ou Virtude (rara).</summary>
-    static void ResolveStressBreakpoints(List<HeroData> party, Resolution result)
+    /// <summary>
+    /// Converte estresse máximo em Aflição (comum) ou Virtude (rara).
+    ///
+    /// <b>Público porque o evento não é o único caminho até os 100.</b> A
+    /// escuridão e a fome cobram estresse na manutenção diária, fora de
+    /// <see cref="Resolve"/> — e como só ele chamava isto, quem enchia a barra
+    /// andando no escuro ficava em "estresse 100, Estável" até o fim da jornada.
+    /// O relatório de uma partida trazia dois heróis assim.
+    /// </summary>
+    public static void ResolveStressBreakpoints(List<HeroData> party, Resolution result)
     {
         foreach (var hero in party.Where(h => h != null && h.IsAlive))
         {

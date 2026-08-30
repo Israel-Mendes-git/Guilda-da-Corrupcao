@@ -40,6 +40,28 @@ public class GuildGuide : MonoBehaviour
     /// </summary>
     const int GrupoConfortavel = PartyFormation.MaxSlots;
 
+    /// <summary>
+    /// A partir daqui o guia avisa, embora o herói ainda possa partir.
+    ///
+    /// O limite de viagem é 85; avisar só ao chegar lá seria avisar tarde, porque
+    /// aí ele já está fora do grupo. 65 dá uma volta de guilda de antecedência.
+    /// </summary>
+    const float AvisoDeEstresse = 65f;
+
+    /// <summary>
+    /// O custo da primeira arma na Forja (<c>weaponBaseCost × 1</c>). Escrito aqui
+    /// porque o guia não deve acordar o ForgeManager só para perguntar um preço —
+    /// a Forja é uma sala, e o guia é lido a cada mudança de ouro.
+    /// </summary>
+    const int CustoDeUmaPrimeiraArma = 120;
+
+    /// <summary>
+    /// Ouro que já daria para várias compras e continua no cofre. A auditoria
+    /// mediu ~395 de entrada por jornada; acima de três jornadas guardadas, o
+    /// jogador não está economizando, está sem saber onde gastar.
+    /// </summary>
+    const int OuroParado = 1200;
+
     bool inscrito;
 
     void OnEnable()
@@ -153,7 +175,46 @@ public class GuildGuide : MonoBehaviour
             return;
         }
 
-        // 4. O caminho de sempre: o jogo anda pela Jornada.
+        // 4. Alguém à beira de quebrar. Ainda pode viajar — e é justamente por
+        //    isso que precisa ser dito: o jogador só descobre o limite quando o
+        //    herói já voltou afligido.
+        HeroData naBeira = aptos
+            .Where(h => h.stress >= AvisoDeEstresse)
+            .OrderByDescending(h => h.stress)
+            .FirstOrDefault();
+
+        if (naBeira != null)
+        {
+            sala = guilda.gold >= 1 ? "Mercado" : "Cemitério";
+            texto = $"{naBeira.heroName} viaja com {Mathf.RoundToInt(naBeira.stress)}/100 de estresse — "
+                  + $"a {Mathf.RoundToInt(HeroData.StressLimiteParaViajar - naBeira.stress)} de não poder mais partir. "
+                  + "O vinho do Mercado e a vigília do Cemitério aliviam.";
+            return;
+        }
+
+        // 5. Arma nunca forjada. É a compra de maior efeito por ouro, e a que o
+        //    jogador esquece que existe — a Forja não avisa nada da guilda.
+        HeroData semArma = aptos.FirstOrDefault(h => h.weaponLevel <= 0);
+
+        if (semArma != null && guilda.gold >= CustoDeUmaPrimeiraArma)
+        {
+            sala = "Forja";
+            texto = $"A arma de {semArma.heroName} nunca foi forjada. "
+                  + $"Há {guilda.gold} de ouro parado, e a Forja é o que se sente no primeiro combate.";
+            return;
+        }
+
+        // 6. Ouro parado. Último aviso antes da rotina: se nada acima casou, a
+        //    guilda está saudável e o que sobra é ouro sem uso.
+        if (guilda.gold >= OuroParado)
+        {
+            sala = "Biblioteca";
+            texto = $"{guilda.gold} de ouro no cofre e nada comprado. "
+                  + "A Biblioteca vende cartas para um baralho, e a Forja melhora arma e armadura.";
+            return;
+        }
+
+        // 7. O caminho de sempre: o jogo anda pela Jornada.
         sala = "Jornada";
         texto = $"{aptos.Count} heróis prontos. Escolha uma missão em Jornada e parta.";
     }
