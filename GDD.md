@@ -1,11 +1,11 @@
 # Game Design Document — Guilda da Corrupção
 
-Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.0 — 26/08/2026 (substitui a 1.1, de 14/08)
+Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.1 — 08/09/2026 (substitui a 2.0, de 26/08)
 
-Descreve o código como ele está em 21/08/2026, conferido contra o
-`SmokeTestReport.txt` (41 verificações, 0 falhas) e o `PlayModeReport.txt`
-(nenhum erro) daquela data. Plano de trabalho em [`ROADMAP.md`](ROADMAP.md),
-inventário de arte em [`ASSETS.md`](ASSETS.md).
+Descreve o jogo como ele está em 29/08/2026, conferido contra o `SmokeTestReport.txt`
+(45 verificações, 0 falhas), o `PlayModeReport.txt` (nenhum erro) e o
+`GameplayReport.txt` (auditoria de jogabilidade). Plano de trabalho em
+[`ROADMAP.md`](ROADMAP.md), inventário de arte em [`ASSETS.md`](ASSETS.md).
 
 **[IMPLEMENTADO]** existe e funciona · **[PARCIAL]** existe pela metade, ou
 existe e ninguém usa · **[PLANEJADO]** decidido, não construído.
@@ -13,9 +13,18 @@ existe e ninguém usa · **[PLANEJADO]** decidido, não construído.
 ## 1. O que é
 
 Roguelike de gerência de guilda com combate por cartas — *Darkest Dungeon* na
-guilda, *Slay the Spire* na estrada. O jogador é o mestre: recruta heróis, monta
-os baralhos deles, escolhe quem parte, para onde e com que provisões. Ele não
-controla o herói em campo; controla a preparação e as decisões do caminho.
+guilda, *Slay the Spire* na estrada.
+
+O jogador é o mestre da guilda. Ele recruta heróis, monta os baralhos deles,
+escolhe quem parte, para onde e com quantas provisões — e então a expedição sai
+pela estrada e ele a acompanha. Não se controla o herói em campo: controla-se a
+preparação e as decisões do caminho.
+
+O que dá urgência a isso é a Corrupção, um medidor que sobe a cada expedição e
+encerra o mundo ao encher. Uma partida é a história de uma guilda tentando
+alcançar o Chefe Supremo antes disso, gastando gente no caminho. Quem morre não
+volta e leva o que carregava; o que atravessa o fim da guilda é a **memória**,
+moeda que funda a próxima.
 
 | Pilar | O que significa em jogo |
 |---|---|
@@ -24,9 +33,10 @@ controla o herói em campo; controla a preparação e as decisões do caminho.
 | A Corrupção como relógio | Um medidor que sobe a cada ciclo e encerra a partida no máximo |
 
 **Sobre a ficção:** o tema é dark fantasy com uma Corrupção que se alastra. Os
-nomes de regiões, chefes e eventos que estão nos assets são de trabalho — o world
-building segue como decisão em aberto do autor, e este documento descreve o jogo
-por estrutura e função. **[PLANEJADO]**
+nomes de regiões, chefes, eventos e heróis que estão nos assets são **de
+trabalho**: descrevem a função. O world building **[PLANEJADO]** é decisão em
+aberto do autor; até lá, este documento apresenta o mundo pelo que já existe
+dentro do jogo.
 
 ## 2. Os três loops **[IMPLEMENTADO]**
 
@@ -39,7 +49,7 @@ PARTIDA      nova guilda → ciclos → a Corrupção enche ou a guilda cai → 
 Um ciclo é uma jornada concluída. É o pulso da partida: é ele que faz a Corrupção
 avançar.
 
-## 3. A partida **[IMPLEMENTADO]** (`RunManager`, `RunFlow`)
+## 3. A partida **[IMPLEMENTADO]**
 
 | Régua | Valor |
 |---|---|
@@ -51,10 +61,9 @@ avançar.
 Fim da partida: **derrota** quando a Corrupção chega a 100, quando a reputação
 zera, ou quando não há herói vivo **e** falta ouro para recrutar (menos de 30);
 **vitória** ao derrotar o Chefe Supremo. Vem então uma tela de balanço com ciclos,
-mortos, corrupção final e o botão de nova guilda. A reputação, que por muito tempo
-só era exibida, hoje encerra a partida quando zera.
+mortos, corrupção final e o botão de nova guilda.
 
-### 3.1 Meta-progressão **[IMPLEMENTADO]** (`MetaProgression`)
+### 3.1 Meta-progressão **[IMPLEMENTADO]**
 
 A moeda entre partidas é a **memória**: `ciclo × 3`, mais 25 por vencer. Fica no
 perfil do jogador, fora dos slots de save — apagar uma partida não apaga o que as
@@ -69,41 +78,48 @@ compra vale para a próxima guilda fundada, não para a que está em andamento.
 | Contatos na estrada | +1 missão no quadro | 1 | 20 |
 
 Os quatro caem em pontos que já existiam no jogo: destrave que exigisse sistema
-novo seria design a fazer, não meta-progressão a ligar.
-
-**[PLANEJADO]** Destravar cartas do acervo da Biblioteca e as classes Ladino e
-Bardo — as duas dependem de conteúdo que ainda não existe (§7).
+novo seria design a fazer, não meta-progressão a ligar. **[PLANEJADO]** Destravar
+cartas do acervo da Biblioteca e as classes Ladino e Bardo — as duas dependem de
+conteúdo que ainda não existe (§9).
 
 ## 4. Sessão: menus, pausa e save **[IMPLEMENTADO]**
 
-- **Tela de título** em cena própria (cena 0 da build): continuar, nova guilda,
-  slots, opções e Santuário, com memórias, guildas fundadas, vitórias e recorde.
-- **Pausa no ESC**, com o estado da partida escrito. `Time.timeScale` não é
-  tocado: o jogo é de turnos por clique e nada avança sozinho.
+- **Tela de título** em cena própria: continuar, nova guilda, slots, opções e
+  Santuário, com memórias, guildas fundadas, vitórias e recorde.
+- **Pausa no ESC**, com o estado da partida escrito. O tempo não é congelado: o
+  jogo é de turnos por clique e nada avança sozinho.
 - **Opções** de áudio e vídeo, guardadas no perfil.
 - **Save em JSON**, um arquivo por slot, com escrita atômica e detecção de arquivo
   corrompido. **Autosave + 3 slots manuais** — o autosave é do jogo, e o botão
   "Salvar" da pausa não escreve nele; é o que impede desfazer uma morte.
-- **Perfil separado** do save: memórias, destraves, recordes e opções.
 - **Não se salva no meio da estrada.** O botão aparece desligado com o motivo
   escrito. O ponto seguro é a guilda entre jornadas, onde o autosave já cai.
 
-## 5. O mundo: sete regiões **[IMPLEMENTADO]** (`RegionMap`)
+## 5. O mundo: sete regiões **[IMPLEMENTADO]**
 
-Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas — cada uma com
-**corrupção própria**, posição fixa no mapa e ritmo próprio de apodrecimento. A
-guilda fica no centro.
+A guilda fica no centro do mapa e sete regiões a cercam. Cada uma tem **corrupção
+própria**, ritmo próprio de apodrecimento, eventos que só acontecem nela e um
+chefe que a fecha. É o que o jogador aprende a ler: "o Pântano está pior que a
+Floresta" é informação estável, não sorteio por missão.
 
-- A corrupção de uma missão é a da região (±5), não um sorteio: "esta região está
-  pior que aquela" vira informação estável, e é isso que o mapa serve para mostrar.
-- Corrupção alta significa requisitos de classe mais duros, eventos piores
-  liberados, e mais XP e ouro.
-- **[PARCIAL]** Cada região tem seu chefe, mas Deserto, Tundra e Vulcão ainda caem
-  no chefe curinga e têm um evento próprio cada — uma jornada nelas repete os
-  genéricos.
+| Região | Como começa | Quem a fecha |
+|---|---|---|
+| 🌲 Floresta | a mais limpa, e a que apodrece mais devagar | A Coisa da Mata |
+| ⛰️ Montanha | pouco abaixo do relógio do mundo | O Gigante de Pedra |
+| 🏚️ Pântano | nasce pior que o mundo, e piora rápido | O Afogado |
+| 🏯 Ruínas | acima do relógio | O Bibliotecário Cego |
+| 🌋 Vulcão | a pior de saída, e a mais rápida a virar | **[PARCIAL]** O Guardião Sem Nome |
+| ❄️ Tundra | acompanha o relógio | **[PARCIAL]** idem |
+| 🏜️ Deserto | limpo, e o mais lento a apodrecer | **[PARCIAL]** idem |
+
+- A corrupção de uma missão é a da região (±5). Corrupção alta significa
+  requisitos de classe mais duros, eventos piores liberados, e mais XP e ouro.
+- **Atravessar suja o lugar:** +4 de corrupção na região que a expedição percorreu.
+- **[PARCIAL]** Deserto, Tundra e Vulcão caem no chefe curinga e têm um evento
+  próprio cada — uma jornada nelas repete os genéricos.
 - **[PARCIAL]** O mapa é feito de círculos e linhas montados por código, pintados
-  pela corrupção. A geometria sai de um dicionário de coordenadas de 0 a 1: trocar
-  por um mapa ilustrado é trocar o fundo e aqueles números.
+  pela corrupção; trocar por um mapa ilustrado é trocar o fundo e sete pares de
+  coordenadas.
 
 ## 6. A guilda **[IMPLEMENTADO]**
 
@@ -122,33 +138,39 @@ guilda fica no centro.
 | Forja | Um herói na bigorna por vez: arma (+1 de dano nas cartas dele) e armadura (+4 de HP), até nível 3 |
 | Cemitério | Lista os caídos; monumento devolve reputação; vigília alivia estresse |
 | Sala de Mapas | Batedores revelam trechos da rota; desvios trocam um evento adiante |
-| Gerenciador de Deck | Monta o baralho de cada herói dentro do limite do nível dele |
+| Baralhos | Monta o baralho de cada herói dentro do limite do nível dele |
 
-**Guia da guilda [IMPLEMENTADO]:** uma linha diz o que fazer agora e acende a
-porta que resolve, sempre pela primeira condição que casa — da mais bloqueante à
-mais rotineira. O texto cita nomes e números reais, não instrução genérica.
-
-**Salas como lugar [IMPLEMENTADO]:** a **Forja** estabeleceu o molde — fila à
-esquerda, um em foco no meio, e à direita o efeito da compra acontecendo —, e as
-outras cinco seguiram. A taverna mostra o que o candidato traz para o baralho; a
-biblioteca julga cada carta à venda contra o baralho de quem está na mesa; o
+**As salas são lugares [IMPLEMENTADO].** A **Forja** estabeleceu o molde — fila à
+esquerda, um em foco no meio, e à direita o efeito da compra acontecendo — e as
+outras seis seguiram. A taverna mostra o que o candidato traz para o baralho; o
 cemitério mostra o que o morto levava e move a barra de estresse dos vivos no
-mesmo clique da vigília; a sala de mapas desenha a estrada até o destino e abre o
-marco quando o batedor é contratado; o mercado mostra em quem a compra pega,
-com a barra do antes e do depois, antes de o ouro sair. **[PLANEJADO]** o
-**Gerenciador de Deck**, a única tela da guilda que nunca foi refeita.
+mesmo clique da vigília; o mercado mostra em quem a compra pega, com a barra do
+antes e do depois, antes de o ouro sair. A tela de **Baralhos** foi a última a
+sair da lista, e mostra o acervo em grade — carta se lê pelo desenho, e numa
+coluna comparar era impossível.
 
-**Motivo para voltar [IMPLEMENTADO]** (`CycleStock`): o estoque de cada sala é
-uma **função do número do ciclo**, não um estado guardado — a mesma volta mostra
-sempre a mesma carroça, em qualquer sessão, e a seguinte mostra outra. Não entra
-no save, e o jogador não pode recarregar até sair o que quer. Hoje vale para os
-frascos e a relíquia do Mercado e para a oferta da Forja.
+**A Biblioteca vende para quem está em casa [IMPLEMENTADO]:** a estante só traz
+cartas que servem a alguém do roster, com um nicho por classe presente. Antes ela
+saía do acervo inteiro, e quase todo nicho era carta de classe que a guilda não
+tinha. O veredito de cada carta é dado contra o baralho de quem está na mesa.
 
-## 7. Relíquias e poções **[IMPLEMENTADO]** (`ItemData`, `HeroGearUI`, `PotionBeltUI`)
+**O guia da guilda [IMPLEMENTADO]:** uma linha diz o que fazer agora e acende a
+porta que resolve, pela primeira condição que casa — da mais bloqueante à mais
+rotineira. Antes de cair na rotina ele lê três coisas: herói viajando perto do
+limite de estresse, arma nunca forjada e ouro parado acima de três jornadas de
+renda. E cita nomes e números reais — *"A arma de Gromm nunca foi forjada. Há
+3575 de ouro parado, e a Forja é o que se sente no primeiro combate."*
+
+**Motivo para voltar [IMPLEMENTADO]:** o estoque de cada sala é uma **função do
+número do ciclo** — a mesma volta mostra sempre a mesma carroça, e a seguinte
+mostra outra. Não entra no save, então não há como recarregar até sair o que se
+quer. Hoje vale para o Mercado e para a oferta da Forja.
+
+## 7. Relíquias e poções **[IMPLEMENTADO]**
 
 Catálogo em código: **6 relíquias e 4 poções**. São poucos itens e o efeito de
-cada um é um `case` no combate de todo jeito — um asset por item seria só mais um
-lugar para sair de sincronia.
+cada um é um caso tratado dentro do combate de todo jeito — um asset por item
+seria só mais um lugar para sair de sincronia.
 
 - **O item é do herói, não da guilda.** Cada um equipa até **duas relíquias**,
   escolhidas no rodapé da ficha dele: é a única tela que mostra nível, estresse,
@@ -168,7 +190,13 @@ lugar para sair de sincronia.
 Dois efeitos iguais empilham: abrir mão de variedade por concentração é escolha
 legítima. Os nomes são provisórios e descrevem a função.
 
-## 8. Heróis
+## 8. Os heróis
+
+O elenco é gerado, não escrito: cada herói nasce com nome, retrato, classe,
+nível, traço e personalidade, e o que o torna *seu* é a folha de serviço que ele
+acumula — quanto subiu, o que carrega, quantas vezes voltou da Beira da Morte.
+Ele acaba de duas maneiras: envelhecendo no roster ou virando uma linha no
+Cemitério, com o nome, a jornada e o que levava no bolso.
 
 | Campo | Regra |
 |---|---|
@@ -176,7 +204,7 @@ legítima. Os nomes são provisórios e descrevem a função.
 | HP · salário | `20 + nível×4` (+10 Guerreiro, −5 Mago) · `20 + nível×10` |
 | XP | Curva `100 + (nível−1)×75` |
 | Estresse 0–100 | Ao estourar, vira Aflição (78%) ou Virtude (22%) |
-| Ferido · Beira da Morte | +25% de dano recebido · o HP para em 0 na primeira vez |
+| Ferido · Beira da Morte | +25% de dano recebido · o HP para em 0 na primeira vez; o golpe seguinte mata em 45%, e pior com estresse alto |
 | Relíquias, poções, arma, armadura | Até 2 relíquias; frascos sem limite; equipamento da Forja |
 | Exposição à corrupção | **[PARCIAL]** acumula de 5 a 15 por evento e ninguém lê |
 
@@ -185,22 +213,25 @@ multiplicado pela corrupção da região (até +50%), 40% se a missão fracassa.
 **5º herói da formação em diante o XP rende metade** — grupo grande ajuda na
 estrada, dilui a experiência e come uma ração a mais por dia.
 
-**Beira da Morte [IMPLEMENTADO]:** o primeiro golpe letal só zera o HP; o seguinte
-mata por rolagem, 45% de base e pior com estresse alto.
-
 **Estresse [IMPLEMENTADO]:** sobe com dano recebido (0,8 por ponto de HP), ao ver
 um companheiro cair (+12) ou morrer (+25), com escuridão e com corrupção. Só
 alivia fora da estrada — vinho, vigília, −15 ao voltar. Acima de **85 o herói
 recusa partir**, e aparece bloqueado com o motivo na preparação.
 
+**A quebra é um momento [IMPLEMENTADO].** Quando o estresse estoura, a estrada
+para: a tela escurece, o rosto de quem quebrou ocupa o meio dela e a aflição é
+dita pelo nome, por menos de dois segundos. Antes, a coisa mais dramática de uma
+jornada era uma troca de cor num rótulo de lista. A quebra também é resolvida na
+manutenção diária — quem enchia a barra andando no escuro nunca quebrava.
+
 **Morte permanente [IMPLEMENTADO]:** quem morre sai do roster no fim da jornada e
 é registrado no Cemitério.
 
 **Classes, traços e personalidades:** Guerreiro, Mago, Curandeiro e Caçador têm
-cartas; **[PARCIAL]** Ladino e Bardo existem no enum e não têm nenhuma (o Bardo é
-usado como curinga no Gerenciador de Deck). **[PARCIAL]** O estresse é a única
-coisa que lê traço e personalidade — covarde sofre +35%, valente −25%, amaldiçoado
-+25%, sortudo resiste melhor na Beira da Morte. O resto é rótulo na ficha.
+cartas; **[PARCIAL]** Ladino e Bardo existem no enum e não têm nenhuma. **[PARCIAL]**
+O estresse é a única coisa que lê traço e personalidade — covarde sofre +35%,
+valente −25%, amaldiçoado +25%, sortudo resiste melhor na Beira da Morte. O resto
+é rótulo na ficha.
 
 **[PLANEJADO]** Dar efeito ao que só acumula: exposição à corrupção (traço
 negativo acima de 50, risco de "virar" acima de 80), os traços e personalidades
@@ -208,20 +239,19 @@ sem regra, e os 6 estados mentais que hoje só têm nome.
 
 ## 9. Cartas e decks **[IMPLEMENTADO]**
 
-**40 cartas** em `Resources/Cards` — 10 por classe jogável (4 comuns, 3 raras, 2
-épicas e 1 lendária). Cada uma traz **dois efeitos**, um de jornada e um de
-combate; o contexto escolhe qual vale. **Os nomes das 23 acrescentadas em 26/08
-são provisórios**: descritivos, para dizer o que a carta faz.
+**40 cartas** — 10 por classe jogável (4 comuns, 3 raras, 2 épicas e 1 lendária).
+Cada uma traz **dois efeitos**, um de jornada e um de combate; o contexto escolhe
+qual vale. **Os nomes das 23 acrescentadas em 26/08 são provisórios**: descritivos,
+para dizer o que a carta faz.
 
 - **Deck por herói:** `clamp(8 + nível, 8, 12)`. Raras a partir do nível 3,
   lendária no 5. Preços: Comum 100 · Rara 250 · Épica 500 · Lendária 1000.
-- **Montado por função, e só então por raridade** (`CardRole`: ataque, defesa,
-  suporte, utilidade). Antes o gerador sorteava entre as comuns da classe, e o
-  baralho do Curandeiro saía sem uma única carta que ferisse alguém.
-- **Toda carta faz alguma coisa nos dois lados** — o smoke test tranca isso desde
-  que quatro delas cobravam energia e não faziam nada.
-- **Nenhum efeito sobra sem carta**: `GainGold`, `ExtraRations`, `Debuff`,
-  `DrawCards`, `GainEnergy` e `Poison` ganharam dono na segunda leva.
+- **Montado por função, e só então por raridade** (ataque, defesa, suporte,
+  utilidade). Antes o gerador sorteava entre as comuns da classe, e o baralho do
+  Curandeiro saía sem uma única carta que ferisse alguém.
+- **Toda carta faz alguma coisa nos dois lados, e nenhum efeito sobra sem carta**
+  — o smoke test tranca as duas coisas desde que quatro cartas cobravam energia
+  sem fazer nada e seis efeitos não tinham dono.
 - **[PLANEJADO]** Cartas de Ladino e Bardo. Enquanto não existirem, a **taverna
   não oferece as duas classes** — o recruta entrava com um baralho de emergência
   de oito cópias de um "ataque básico" criado em memória, pelo salário cheio.
@@ -229,7 +259,7 @@ são provisórios**: descritivos, para dizer o que a carta faz.
 > **Regra de manutenção:** valor novo de enum entra **só no fim**. Os assets
 > guardam o número, e inserir no meio troca o efeito de toda carta configurada.
 
-## 10. Preparação da expedição **[IMPLEMENTADO]** (`QuestSelectionUI`)
+## 10. Preparação da expedição **[IMPLEMENTADO]**
 
 1. **Destino — o mapa de regiões.** Substituiu a lista de contratos. As sete
    regiões aparecem no lugar delas, pintadas pela própria corrupção; onde há
@@ -245,20 +275,21 @@ são provisórios**: descritivos, para dizer o que a carta faz.
    Forja fortalecer só as cartas daquele herói. Base de 10 rações e 8 tochas, mais
    o que veio do Mercado.
 
-## 11. A jornada **[IMPLEMENTADO]** (`JourneyManager`)
+O nome do contrato diz o lugar e concorda com ele — "Vila Antiga", não "Vila
+Antigo" —, e não repete a região, que já aparece ao lado em toda tela que o mostra.
+
+## 11. A jornada **[IMPLEMENTADO]**
 
 **A rota** é um mapa ramificado no formato do *Slay the Spire*: cada camada
 oferece dois ou três caminhos e todos desembocam no nó do chefe. O gerador garante
 que todo nó tenha saída e todo nó tenha pai — nenhum caminho morre, nenhum nó fica
 inalcançável. A escolha é do jogador desde a entrada.
 
-**A estrada [IMPLEMENTADO]** (`TrailStage`, `TrailRoadUI`): o grupo aparece **de
-corpo inteiro, em fila, na ordem da formação**, andando entre um nó e outro, com
-vida e estresse em barras sobre a cabeça. Os bonecos ficam parados em quadro e o
-cenário é que se move. Tecnicamente é um palco filmado: os corpos são objetos de
-mundo, e uma `RenderTexture` os põe entre duas camadas da interface — acima da
-arte do bioma, abaixo do texto e da mão. Enquanto o grupo anda o mapa fica limpo;
-a caixa do evento só aparece quando ele pára.
+**A estrada [IMPLEMENTADO]:** o grupo aparece **de corpo inteiro, em fila, na
+ordem da formação**, andando entre um nó e outro, com vida e estresse em barras
+sobre a cabeça. Os bonecos ficam parados em quadro e o cenário é que se move, à
+frente da arte do bioma e atrás do texto e da mão. Enquanto o grupo anda o mapa
+fica limpo; a caixa do evento só aparece quando ele pára.
 
 | Recurso | Início | Regra |
 |---|---|---|
@@ -266,12 +297,21 @@ a caixa do evento só aparece quando ele pára.
 | Tochas | 8 + compras | −1 por trecho; sem tocha, estresse |
 | Energia · mão | 5 · 5 cartas | Custo das cartas jogadas na estrada; compra ao encerrar o turno |
 
+**A tocha é a luz da tela [IMPLEMENTADO].** Era um contador e uma punição ao
+chegar a zero; entre o cinco e o zero nada acontecia. Agora a escuridão avança
+sobre a imagem conforme as tochas caem — acima de quatro a tela está limpa, sem
+nenhuma a sombra fecha e puxa para o centro. A punição continua onde estava; o
+aperto é que se vê antes dela.
+
 ### 11.1 Eventos e a carta da estrada **[IMPLEMENTADO]**
 
-**25 eventos** (20 comuns e 5 de chefe), filtrados por região, corrupção mínima e
-dia mínimo, com memória dos 3 últimos para não repetir. Cada um tem três opções, e
-o desfecho mexe em ouro, reputação, vida, ferimento, moral, dias e corrupção do
-mundo — passando pelas mesmas regras de Beira da Morte e estresse do combate.
+**25 eventos** — 20 comuns, dos quais 6 levam a combate, e 5 de chefe —, filtrados
+por região, corrupção mínima e dia mínimo, com memória dos 3 últimos para não
+repetir. São paradas curtas com nome e ilustração próprios (*Ponte Quebrada*,
+*Acampamento Noturno*, *O Que Restou da Expedição*, *Névoa Pútrida*), cada uma com
+três opções; o desfecho mexe em ouro, reputação, vida, ferimento, moral, dias e
+corrupção do mundo — passando pelas mesmas regras de Beira da Morte e estresse do
+combate.
 
 As duas regras que fazem a carta valer o que custa, decididas em 21/08:
 
@@ -284,10 +324,10 @@ As duas regras que fazem a carta valer o que custa, decididas em 21/08:
 
 A opção travada **aparece e não some** — "precisa de uma carta capaz de purificar"
 —, porque o jogador precisa ver o que perdeu por não ter trazido a carta. Todo
-evento mantém ao menos uma saída sem exigir carta, e todo requisito é satisfazível
-por alguma carta existente: as duas coisas são verificadas pelo smoke test.
+evento mantém uma saída sem carta, e todo requisito é satisfazível por alguma
+carta existente: as duas coisas são verificadas pelo smoke test.
 
-### 11.2 A volta **[IMPLEMENTADO]** (`JourneyResultUI`)
+### 11.2 A volta **[IMPLEMENTADO]**
 
 Uma tela de balanço: uma linha por herói com vida, estado, XP com barra e
 promoções; o ouro discriminado; e uma **escolha de despojo** ao vencer (ouro
@@ -301,32 +341,35 @@ travada até escolher.
 | Luto | Quem viu companheiro cair perde moral e ganha estresse |
 | Quem fica | Descansa a cada jornada dos outros; é a válvula que impede a guilda de travar |
 
-## 12. Combate **[IMPLEMENTADO]** (`CombatManager`)
+## 12. Combate **[IMPLEMENTADO]**
 
-**O campo de batalha** (`BattleStage`, `BattleFieldUI`) é frente a frente, como o
-do *Darkest Dungeon*: **party à esquerda, com a posição 1 encostada nos
-inimigos**; **criaturas à direita, com a intenção acima da cabeça**; **barra de
-ordem do round no alto**. Numa fila normal o herói mais exposto ficaria no canto
-mais distante do perigo — daí a fila do grupo ser desenhada invertida.
+**O campo de batalha** é frente a frente, como o do *Darkest Dungeon*: **party à
+esquerda, com a posição 1 encostada nos inimigos**; **criaturas à direita, com a
+intenção acima da cabeça**; **barra de ordem do round no alto**. Numa fila normal
+o herói mais exposto ficaria no canto mais distante do perigo — daí a fila do
+grupo ser desenhada invertida.
 
-Os corpos são animados: as criaturas trocam de quadro para Idle, Ataque, Apanhou e
-Morte, e os **11 inimigos** têm os quatro estados preenchidos. Quem não tiver
-quadros volta ao retrato parado — arte que falta não pode impedir a luta. Quem
-manda no lugar de cada figura é a interface: o palco recebe, por corpo, o
-retângulo em que ela deve caber, o mesmo que recebe o arrasto da carta e mostra a
-barra de vida. Assim não há duas verdades sobre onde o inimigo está.
+Os **11 inimigos** são bichos e gente do lugar onde aparecem — Lobo Esfomeado e
+Aranha da Copa na Floresta, Salteador da Serra na Montanha, Sanguessuga Gigante no
+Pântano, Estátua Desperta nas Ruínas —, e os cinco chefes fecham a região que
+governam. Todos têm corpo animado, com quadros de Idle, Ataque, Apanhou e Morte;
+quem não tiver quadros volta ao retrato parado, porque arte que falta não pode
+impedir a luta.
 
 - **Energia 5, mão de 6 cartas.** O grupo age junto e depois os inimigos
   respondem; a barra de ordem do round é informativa, o turno não é por
   personagem.
 - **Bloqueio dos dois lados**, e intenções telegrafadas: Atacar, Atacar todos,
   Defender ou Estressar, por pesos próprios de cada inimigo.
+- **O alvo sai junto com a intenção**, não no instante do golpe: um 🎯 marca quem
+  está na mira. Sem isso não dá para decidir se vale gastar o bloqueio, nem em
+  quem — que é a decisão inteira do turno num jogo de formação.
 - **A formação importa:** o ataque cai na linha de frente em ~74% das vezes, e a
   carta rende menos se o dono estiver fora da posição dela.
 - **O dano nos heróis passa pelas regras da jornada**, então Beira da Morte,
   estresse e morte permanente valem igual dentro e fora do combate.
-- **Recuar** custa moral e estresse e não rende recompensa. Perder para o chefe
-  encerra a jornada; perder um encontro comum só cobra caro.
+- **Recuar** custa moral e estresse e não rende nada. Perder para o chefe encerra
+  a jornada; perder um encontro comum só cobra caro.
 - **Espólio:** chefe larga relíquia; luta comum larga poção em uma a cada três.
 
 ## 13. Números de referência
@@ -343,71 +386,83 @@ barra de vida. Assim não há duas verdades sobre onde o inimigo está.
 | Energia / mão de combate | 5 / 6 |
 
 **Letalidade alvo** (decisão do autor): 0,33 a 0,67 mortes por jornada com grupo
-de 4. Medido em 21/08, com o simulador rodando o código real:
+de 4. Medido em 29/08, com o simulador rodando o código real em 1000 jornadas:
 
 | Medida | Valor |
 |---|---|
-| Mortes por jornada | **0,45** — chefe 0,15 · encontro do caminho 0,02 · estrada 0,28 |
-| Sobrevivência em 200 jornadas | 88,9% |
-| Duração média · combates por jornada | 7,1 dias · 2,65 |
-| Cartas jogadas na estrada | 2,51 por jornada |
-| Mortes por combate contra chefe (grupo desgastado) | 0,03 (teto 0,40) |
+| Mortes por jornada | **0,54** — chefe 0,22 · encontro do caminho 0,04 · estrada 0,28 |
+| Sobrevivência | 86,4% |
+| Duração média · combates por jornada | 7,0 dias · 2,56 |
+| Cartas jogadas na estrada | 2,62 por jornada |
+| Mortes por combate contra chefe (grupo desgastado) | 0,02 (teto 0,40) |
 
 O KPI do combate é **mortes por combate**, não taxa de vitória: com o grupo
 descansado a party vence quase sempre, e o que se mede é o que a luta cobra em
-gente. Os números do desgaste da estrada são campos serializados — mudar o valor
-no script não altera a instância salva na cena.
+gente. O número oscilava entre execuções por causa do *n* efetivo, não das
+jornadas: com 100 grupos sorteados a dispersão fica em ±0,03.
+
+### 13.1 O que a auditoria acusa **[PLANEJADO]**
+
+A auditoria roda a mesma simulação com uma coisa mudada de cada vez, e diz quanto
+cada sistema vale em mortes por jornada. Três decisões em aberto:
+
+- **A economia satura.** Entram ~395 de ouro por jornada e tudo o que as salas
+  vendem soma ~2.660: por volta do 7º ciclo o jogador tem mais ouro do que o jogo
+  tem o que vender, e ainda faltam 8 ciclos. O salário de um recruta nível 3 é 50.
+- **A armadura vale quase o dobro da arma** (−0,38 contra −0,22 no nível 3) pelo
+  mesmo lugar na Forja, e o primeiro nível já entrega a maior parte do ganho.
+- **A poção é a compra mais fraca** (−0,11) e a relíquia, a mais forte (−0,22) —
+  os preços não dizem isso.
 
 ## 14. Apresentação
 
 - **Interface [IMPLEMENTADO]:** painéis com fade e escala, popups de mensagem,
-  confirmação e resultado. A cena é montada por código (`Tools ▸ Guild of Legends
-  ▸ Montar Cena`), e é ali que se muda layout — não à mão no Inspector. Kit visual
-  com molduras 9-slice e fonte medieval.
-- **Arte [PARCIAL]:** as 40 cartas, os 11 inimigos e os 25 eventos têm arte, os
-  retratos de herói vêm de um catálogo, e os corpos da estrada e do combate são
-  bonecos com animação pronta. A cena do evento é desenhada atrás do texto da
-  caixa, em opacidade baixa — a tela é de leitura. Falta a arte de bioma de
-  Deserto e Vulcão; 3 dos 11 inimigos usam desenho que não os representa; boa
-  parte da UI ainda usa emoji como ícone, e o projeto mistura pixel art com arte
-  pintada.
+  confirmação e resultado. A cena é montada por código, e é ali que se muda layout
+  — não à mão no Inspector. Kit visual com molduras 9-slice, que chegam a toda
+  caixa pelo fundo que ela usa, e não pela cor: as salas refeitas escolhem a cor
+  delas, e o critério antigo deixava metade das telas com retângulo chapado.
+- **Tipografia [IMPLEMENTADO]:** títulos em MedievalSharp e corpo numa serifada
+  gerada a partir da Crimson-Bold com o Latin-1 inteiro — a versão que vinha no
+  pacote não tinha um único acento, e teria escrito "miss o" sem erro no console.
+- **O véu da tela [IMPLEMENTADO]:** vinheta nas bordas e grão sobre tudo, acima
+  até dos popups. É a mesma vinheta que a tocha escurece na estrada (§11).
+- **Arte [PARCIAL]:** as 40 cartas, os 11 inimigos e os 25 eventos têm arte, as
+  sete portas da guilda mostram interiores de pedra pintados, os retratos vêm de
+  um catálogo, e os corpos da estrada e do combate são bonecos animados. A cena do
+  evento fica atrás do texto, em opacidade baixa — a tela é de leitura. Falta a
+  arte de bioma de Deserto e Vulcão; 3 dos 11 inimigos usam desenho que não os
+  representa; boa parte da UI ainda usa emoji como ícone, e o projeto mistura
+  pixel art com arte pintada.
 - **Áudio [IMPLEMENTADO]:** música por contexto com fade e 8 efeitos, num catálogo
-  em `Resources`. Nasce sozinho, sem depender de objeto na cena.
+  carregado sozinho, sem depender de objeto na cena.
 
 ## 15. Como se verifica
 
 | Ferramenta | O que prova | Custo |
 |---|---|---|
 | Compilar por fora (Roslyn do Unity) | erro de sintaxe sem abrir o Editor | segundos |
-| `RunSmokeTest.trigger` → `SmokeTestReport.txt` | 41 verificações, 200 jornadas e 800 combates; letalidade | ~1 min |
-| `RunPlayModeTest.trigger` → `PlayModeReport.txt` | telas alcançáveis por clique real, jornada inteira, console limpo | ~2 min |
+| `RunSmokeTest.trigger` → `SmokeTestReport.txt` | 45 verificações, 1000 jornadas e 800 combates; letalidade | ~1 min |
+| `RunPlayModeTest.trigger` → `PlayModeReport.txt` | telas alcançáveis por clique real, jornada inteira, console limpo, custo em cliques | ~2 min |
+| `RunGameplayAudit.trigger` → `GameplayReport.txt` | quanto cada sistema vale em mortes por jornada, economia, ritmo da partida | ~1 min |
 
-Uma run de Play Mode é n=1 e não serve para balancear. Balanceamento se mede no
-simulador, que segue as regras reais do combate.
+Uma run de Play Mode é n=1 e não serve para balancear — isso se mede no simulador,
+que segue as regras reais do combate. E antes de ler qualquer número, confira se o
+simulador executa aquele sistema: o instrumento já errou sobre o jogo seis vezes.
 
 ## 16. Apêndice — enums e mapa do código
 
-**HeroClass:** `Warrior, Mage, Healer, Rogue, Bard, Hunter`
-**Personality:** `Brave, Coward, Ambitious, Loyal, Stubborn, Selfish`
-**Trait:** `None, Drunkard, Lucky, Scarred, FastHealer, Cursed`
-**MentalState:** `Normal` · aflições `Paranoid, Fearful, Hopeless, Irrational, Abusive` · virtudes `Courageous, Focused, Vigorous, Stalwart`
-**CardRarity:** `Common, Rare, Epic, Legendary`
-**BiomeType:** `Any, Forest, Mountain, Swamp, Desert, Tundra, Volcano, Ruins`
-**QuestRisk:** `Low, Medium, High`
-**JourneyEventType:** `Normal, Combat, Treasure, Trap, Rest, Shop, Story`
-**JourneyEffectType:** `None, RemoveObstacle, HealInjury, GainFood, GainGold, RevealNextEvent, SkipDay, Intimidate, Purify, Teleport, ProtectFromWeather, RestoreMorale, ExtraRations`
-**CombatEffectType:** `None, Damage, DamageAll, Block, BlockAll, Heal, HealAll, Debuff, Buff, DrawCards, GainEnergy, Poison, ShieldBreak, BuffNextCard, Evade, Cleanse`
-**EnemyIntent:** `Attack, AttackAll, Defend, Stress`
-**RelicEffect:** `DanoDeCarta, BloqueioInicial, ResistenciaAEstresse, CuraPosCombate, Retaliacao, PrimeiraCartaBarata`
-**PotionEffect:** `Cura, Bloqueio, ForcaNaProximaCarta, Calma`
-**RunState / RunEndReason:** `Running, Won, Lost` / `GuildWiped, NoReputation, WorldConsumed, BossDefeated`
+**O vocabulário que os assets guardam** — 6 classes (4 com cartas), 6
+personalidades, 6 traços, 9 estados mentais (5 aflições e 4 virtudes), 4
+raridades, 4 papéis de carta, 8 biomas, 13 efeitos de jornada, 16 de combate, 4
+intenções de inimigo, 6 relíquias e 4 poções. Todos são enums, e todos seguem a
+regra de manutenção do §9: valor novo entra só no fim.
 
 **Onde mora cada coisa:**
 
 - *Partida e save:* `RunManager`, `RunFlow`, `MetaProgression`, `RegionMap`, `SaveSystem`, `GameStateIO`, `PlayerProfile`, `SceneFlow`
-- *Guilda:* `GuildManager`, `TavernManager`, `LibraryManager`, `MarketManager`, `ForgeManager`, `CemeteryManager`, `MapRoomManager`, `DeckManager`, `HeroFactory`, `DeckGenerator`
+- *Guilda:* `GuildManager`, `TavernManager`, `LibraryManager`, `MarketManager`, `ForgeManager`, `CemeteryManager`, `MapRoomManager`, `DeckManager`, `CycleStock`, `HeroFactory`, `DeckGenerator`, e as telas em `Core/Rooms/`
 - *Missão e jornada:* `QuestManager`, `QuestGenerator`, `JourneyManager`, `JourneyMap`, `EventPool`, `EventResolver`, `PartyFormation`, `CardOwnership`, `TrailStage`, `TrailCast`
-- *Combate:* `CombatManager`, `EnemyPool`, `BattleStage`, `EnemyBody`, `TurnOrderBar`
+- *Combate:* `CombatManager`, `EnemyPool`, `BattleStage`, `EnemyBody`, `TurnOrderBar`, `CombatFeedback`
 - *Dados:* `CardData`, `HeroData`, `QuestData`, `EventData`, `EnemyData`, `ItemData`
-- *UI:* `UIManager`, `QuestSelectionUI`, `RegionMapUI`, `JourneyMapUI`, `TrailRoadUI`, `BattleFieldUI`, `HeroGearUI`, `PotionBeltUI`, `GuildGuide`, `JourneyResultUI`, `RunEndUI`, `MainMenuUI`, `PauseMenuUI`, `OptionsUI`, `SaveSlotsUI`, `RelicShrineUI`
-- *Editor, fora do build:* `GuildSceneSetup`, `MenuSceneSetup`, `GuildSmokeTest`, `PlayModeProbe`, `EventBalance`, `EnemyArt`, `CardArt`
+- *UI:* `UIManager`, `QuestSelectionUI`, `RegionMapUI`, `JourneyMapUI`, `TrailRoadUI`, `BattleFieldUI`, `HeroGearUI`, `PotionBeltUI`, `GuildGuide`, `AfflictionMoment`, `JourneyLight`, `JourneyResultUI`, `RunEndUI`, e as telas de menu
+- *Editor, fora do build:* `GuildSceneSetup`, `MenuSceneSetup`, `ScreenVeil`, `BodyFont`, `GuildSmokeTest`, `PlayModeProbe`, `GameplayAudit`, `EventBalance`, `EnemyArt`, `CardArt`
