@@ -82,6 +82,34 @@ novo seria design a fazer, não meta-progressão a ligar. **[PLANEJADO]** Destra
 cartas do acervo da Biblioteca e as classes Ladino e Bardo — as duas dependem de
 conteúdo que ainda não existe (§9).
 
+### 3.2 O fim, decidido em 09/09 **[PLANEJADO]**
+
+Hoje a vitória é derrotar o Chefe Supremo, que entra no quadro por corrupção. O
+desenho fechado pelo autor é este:
+
+- **Mapear destrava.** Cada expedição traz pedaços do mapa da região percorrida;
+  região mapeada mostra o seu chefe, e derrubá-lo **sela** a região — a corrupção
+  de lá para de subir. Com três selos, a Sala de Mapas desenha a jornada final.
+- **Voltar cobra.** A corrupção que a travessia soma à região (+4, §5) ganha
+  consequência declarada: a visita seguinte traz inimigos mais fortes e os eventos
+  do fundo da escala. Mapear obriga a voltar, e voltar piora o lugar.
+- **Os escritos contêm.** Páginas de civilizações consumidas caem em ruínas,
+  espólios e eventos; a Biblioteca traduz uma por ciclo. Cada uma atrasa a
+  corrupção — a do herói, a de uma região, ou o que os eventos somam. Nenhuma
+  reverte. Lidas em ordem, apontam a causa.
+- **Alguém fica.** A passagem se fecha por dentro. O herói escolhido define as
+  duas metades da luta final: **quanto ela dura** (o que ele aguenta) e **contra o
+  que se luta** — ele volta como **Campeão Corrompido**, com a classe, o baralho e
+  o equipamento que tinha. A classe define os poderes: Guerreiro quebra a
+  formação, Mago drena a energia da mão, Curandeiro devolve cura como dano,
+  Caçador ignora a linha de frente, Ladino leva cartas do baralho, Bardo vira o
+  estresse do grupo.
+- **Vencer destrava o Campeão** como herói jogável na guilda seguinte, com
+  corrupção que sobe sozinha enquanto ele está em campo.
+- **Perder deixa ruína.** A guilda caída vira lugar no mapa da partida seguinte;
+  uma expedição recupera parte — relíquias, páginas traduzidas, os nomes dos
+  mortos —, não tudo, e o que volta pode voltar com preço.
+
 ## 4. Sessão: menus, pausa e save **[IMPLEMENTADO]**
 
 - **Tela de título** em cena própria: continuar, nova guilda, slots, opções e
