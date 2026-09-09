@@ -21,58 +21,63 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <body>
 
 <h1>Guilda da Corrupção</h1>
-<div class="sub">Documento de design (GDD) — título provisório · projeto Unity · 19/06/2026</div>
+<div class="sub">Documento de design (GDD) — título provisório · projeto Unity · 08/09/2026</div>
 
 <h2>Do que se trata</h2>
-<p>É um jogo de PC feito em Unity que mistura <b>gestão de guilda</b>, <b>roguelike</b> e <b>cartas (deckbuilder)</b>. Você é o mestre de uma guilda de aventureiros num mundo de fantasia sombria que está sendo consumido por uma praga chamada <b>Corrupção</b>. Você não controla os heróis na luta — você decide quem contratar, como montar os baralhos deles e em quais missões mandá-los.</p>
-<p>A ideia central: <b>cada escolha pesa</b>. Heróis morrem de verdade e não voltam. Cada partida é uma tentativa de levar a guilda o mais longe possível antes de ela cair — e cada queda deixa você um pouco mais forte para a próxima.</p>
+<p>É um jogo de PC feito em Unity que mistura <b>gestão de guilda</b>, <b>roguelike</b> e <b>cartas (deckbuilder)</b>. Você é o mestre de uma guilda de aventureiros num mundo de fantasia sombria que está sendo consumido por uma praga chamada <b>Corrupção</b>. Você não controla os heróis na luta — decide quem contratar, como montar os baralhos deles, quem parte, para onde e com quantas provisões. Em campo, quem age é o herói; o que está na sua mão é a preparação e as decisões do caminho.</p>
+<p>A ideia central: <b>cada escolha pesa</b>. Heróis morrem de verdade, não voltam e levam com eles o que carregavam. Cada partida é a tentativa de alcançar o Chefe Supremo antes que a Corrupção tome o mundo — e cada queda deixa uma <b>memória</b>, que é o que torna a próxima guilda um pouco mais forte.</p>
 
 <h2>Como se joga</h2>
-<p>O jogo gira em torno de um ciclo simples:</p>
+<p>O jogo gira em torno de um ciclo, e cada volta do ciclo faz a Corrupção subir:</p>
 <ul>
-<li><b>Na guilda (hub):</b> você contrata heróis na Taverna, compra cartas na Biblioteca e monta os baralhos.</li>
-<li><b>Escolhe uma missão:</b> seleciona a quest, monta a equipe e define qual herói leva o baralho.</li>
-<li><b>Parte em jornada:</b> a missão é uma sequência de dias. Cada dia traz um evento que você resolve fazendo uma escolha, jogando uma carta ou entrando em combate. No último dia, encara o chefe.</li>
-<li><b>Volta pra guilda:</b> recebe o ouro, os sobreviventes descansam, os mortos ficam pelo caminho, e surgem novas missões. O ciclo recomeça.</li>
+<li><b>Na guilda:</b> sete salas. Você contrata na Taverna, compra cartas na Biblioteca, forja arma e armadura, abastece a mochila no Mercado, homenageia os mortos no Cemitério, paga batedores na Sala de Mapas e ajusta os baralhos em Baralhos.</li>
+<li><b>Prepara a expedição:</b> escolhe o destino no mapa do mundo, marca quem vai e <b>em que ordem</b> — a ordem é a formação, e os dois primeiros levam a pancada —, e decide quantas rações e tochas cabem no orçamento.</li>
+<li><b>Parte em jornada:</b> a rota é ramificada, no espírito do <i>Slay the Spire</i>. O grupo atravessa a pé, em fila, e a cada parada vem um evento com três escolhas ou um combate. No fim da estrada está o chefe da região.</li>
+<li><b>Volta para a guilda:</b> uma tela de balanço mostra quem voltou, quanto cada um subiu e o que a jornada rendeu. Os feridos precisam de cuidado, os mortos vão para o Cemitério, o mundo apodrece mais um pouco e o ciclo recomeça.</li>
 </ul>
 
 <h2>O mundo e o clima</h2>
-<p>Fantasia sombria, tom pesado mas com aquele humor de taverna. As missões acontecem em sete biomas (Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas), cada um com seu nível de corrupção: quanto mais corrompido, mais perigoso e mais lucrativo. Os heróis têm nome, personalidade e defeitos — a ideia é que você se importe com eles e sinta quando perde um.</p>
+<p>Fantasia sombria, tom pesado. A guilda fica no centro do mapa e sete regiões a cercam — Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas. Cada uma tem a <b>sua</b> corrupção, o seu ritmo de apodrecer, eventos que só acontecem nela e um chefe que a fecha: A Coisa da Mata na Floresta, O Gigante de Pedra na Montanha, O Afogado no Pântano, O Bibliotecário Cego nas Ruínas.</p>
+<p>Isso é informação que se aprende a ler no mapa: o Pântano nasce pior que a Floresta e piora mais rápido. Região corrompida cobra mais — exige classes específicas, libera os eventos piores — e paga mais, em ouro e experiência. E atravessar suja o lugar: cada expedição deixa a região um pouco mais corrompida do que a encontrou.</p>
+<p class="tag">Os nomes de regiões, chefes e eventos são de trabalho: descrevem a função e esperam o world building.</p>
 
 <h2>Heróis</h2>
-<p>Cada herói tem uma classe, nível, vida, salário, personalidade e um traço especial. São seis classes no total — Guerreiro, Mago, Curandeiro e Caçador já têm cartas; Ladino e Bardo ainda não. Heróis sobem de nível, ganham baralhos melhores, mas também se cansam, se ferem e podem ser corrompidos com o tempo.</p>
+<p>Cada herói tem nome, retrato, classe, nível, personalidade e um traço. São seis classes — Guerreiro, Mago, Curandeiro e Caçador já têm cartas; Ladino e Bardo ainda não, e por isso a Taverna não os oferece. Eles sobem de nível, ganham direito a baralhos maiores e a cartas mais raras, e recebem arma, armadura, relíquias e frascos que passam a ser <b>deles</b>.</p>
+<p>Também se cansam. O <b>estresse</b> sobe ao apanhar, ao ver um companheiro cair e ao andar no escuro; acima de um certo ponto o herói se recusa a partir. Quando estoura, a estrada para: a tela escurece, o rosto de quem quebrou ocupa o meio dela e a aflição é dita pelo nome. Golpe letal não mata de primeira — o herói fica na <b>Beira da Morte</b>, e é o golpe seguinte que decide. Quem morre sai do elenco para sempre, com o que levava no bolso, e vira uma linha no Cemitério.</p>
 
 <h2>Cartas</h2>
-<p>Cada carta tem dois usos: um <b>efeito de jornada</b> (resolver obstáculos, curar, ganhar ouro, pular dias) e um <b>efeito de combate</b> (dano, bloqueio, cura). Vêm em quatro raridades (Comum, Rara, Épica, Lendária) e custam energia pra usar. O baralho de cada herói é montado automaticamente quando ele entra, e você pode ajustar à mão depois.</p>
+<p>São 40 cartas, dez por classe jogável, em quatro raridades. Cada uma tem <b>dois usos</b>: um efeito de jornada (remover um obstáculo, purificar, curar ferimento, conseguir ouro ou comida) e um efeito de combate (dano, bloqueio, cura, veneno). O contexto escolhe qual vale — é o mesmo baralho servindo às duas metades do jogo, e é por isso que gastar uma carta na estrada custa.</p>
+<p>A contrapartida está escrita nos eventos: <b>a carta certa destrava a melhor saída</b> e é a única que não cobra nada. Quem não trouxe vê a opção travada na tela, com o motivo — e escolhe entre as outras, que sempre cobram alguma coisa.</p>
+
+<h2>A estrada e o combate</h2>
+<p>Na travessia, o grupo aparece de corpo inteiro, em fila, na ordem da formação, com vida e estresse sobre a cabeça. Rações e tochas caem a cada trecho: sem comida o grupo passa fome, e conforme as tochas acabam a escuridão avança sobre a tela — o aperto se vê antes de a punição chegar.</p>
+<p>O combate é frente a frente, como o do <i>Darkest Dungeon</i>: a party à esquerda, com a primeira posição encostada no perigo, as criaturas à direita e a intenção de cada uma acima da cabeça. São onze inimigos, cada um do lugar onde vive — Lobo Esfomeado e Aranha da Copa na Floresta, Salteador da Serra na Montanha, Sanguessuga Gigante no Pântano, Estátua Desperta nas Ruínas. O inimigo anuncia <b>o quanto vai bater e em quem</b>, e é essa informação que faz o bloqueio ser uma decisão. A formação importa: o golpe cai na linha de frente na maioria das vezes, e cada carta rende menos fora da posição do dono.</p>
+
+<h2>Entre uma guilda e outra</h2>
+<p>A partida acaba quando a Corrupção enche o mundo, quando a reputação zera, quando não sobra ninguém nem ouro para recrutar — ou quando você derruba o Chefe Supremo, que aparece no quadro depois que o mundo já está bem estragado. Do que passou fica a <b>memória</b>, moeda que se gasta no Santuário da tela de título: cofre maior, renome antigo, mais vagas no alojamento, mais contatos na estrada. Vale para a próxima guilda que você fundar.</p>
 
 <h2>O que já está pronto</h2>
 <ul>
-<li>Hub da guilda com navegação entre telas.</li>
-<li>Taverna (recrutamento), Biblioteca (loja de cartas) e Gerenciador de baralho.</li>
-<li>Geração de missões e seleção em 3 passos.</li>
-<li>Sistema de jornada por dias, com recursos (rações, tochas, energia).</li>
-<li>Cartas e geração automática de baralhos (16 cartas no total).</li>
+<li>A partida inteira, de ponta a ponta: guilda, preparação, jornada, combate, volta, fim de partida e meta-progressão.</li>
+<li>As sete salas da guilda, cada uma como um lugar — com o efeito da compra acontecendo na tela, e não só um número mudando.</li>
+<li>Mapa do mundo com as sete regiões, rota ramificada, travessia a pé e 25 eventos ilustrados.</li>
+<li>Combate por cartas com formação, intenções e alvo anunciados, corpos animados e 11 inimigos.</li>
+<li>40 cartas, 6 relíquias e 4 poções; heróis com estresse, aflições, ferimento e morte permanente.</li>
+<li>Menus, opções, save em JSON com autosave e três slots, e áudio por contexto.</li>
 </ul>
 
 <h2>O que ainda falta</h2>
 <ul>
-<li><b>Combate tático</b> por turnos com cartas (os dados já existem, falta a tela).</li>
-<li><b>Eventos com escolhas</b> de verdade na jornada (hoje tudo é por carta).</li>
-<li><b>Estrutura de partidas (runs)</b> com começo, fim e progressão entre elas.</li>
-<li>Mais eventos por bioma, cartas de Ladino e Bardo, e os locais ainda vazios (Mercado, Forja, Cemitério, Sala de Mapas).</li>
-<li>Dar uso real à reputação e aos traços/personalidades dos heróis.</li>
-</ul>
-
-<h2>Próximos passos sugeridos</h2>
-<ul>
-<li><b>1.</b> Ligar os eventos de escolha na jornada e criar mais eventos por bioma.</li>
-<li><b>2.</b> Construir a tela de combate tático e plugar o chefe final.</li>
-<li><b>3.</b> Fechar a estrutura de run (permadeath da guilda + progressão entre partidas).</li>
-<li><b>4.</b> Conteúdo e polimento: novas cartas, locais do hub, arte e som.</li>
+<li><b>Cartas de Ladino e Bardo</b> — enquanto não existirem, as duas classes ficam fora da Taverna.</li>
+<li><b>Chefes e eventos próprios</b> para Deserto, Tundra e Vulcão, que hoje repetem os genéricos.</li>
+<li><b>Dar efeito ao que só acumula:</b> a exposição à corrupção, os traços e personalidades que ainda são só rótulo, e os estados mentais sem regra.</li>
+<li><b>Equilibrar a economia:</b> por volta do sétimo ciclo o jogador tem mais ouro do que a guilda tem o que vender.</li>
+<li><b>Arte:</b> falta o cenário de duas regiões, três inimigos usam desenho que não os representa, e o projeto ainda mistura pixel art com pintura digital.</li>
+<li><b>World building:</b> nomes definitivos de regiões, chefes, cartas e elenco.</li>
 </ul>
 
 <hr>
-<p class="foot">Decisões de design: fantasia sombria com Corrupção · jornada híbrida (cartas + escolhas) · combate tático por cartas · roguelike por partidas. Documento feito a partir da análise do código em 19/06/2026.</p>
+<p class="foot">Decisões de design: fantasia sombria com a Corrupção como relógio · preparação acima da execução · morte permanente · baralho híbrido, que serve à estrada e ao combate. Documento escrito a partir do código em 29/08/2026, conferido contra os relatórios automáticos de teste e de balanceamento do projeto. A versão técnica e detalhada está em GDD.md.</p>
 
 </body>
 </html>
