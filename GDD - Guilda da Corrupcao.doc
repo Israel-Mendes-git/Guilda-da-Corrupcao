@@ -76,7 +76,7 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <h2>Mapear é o que a partida constrói</h2>
 <p>Contrato paga em ouro. Expedição paga em mapa. Cada jornada traz pedaços da região percorrida — trilhas, ruínas, os pontos de onde a Corrupção brota — e a Sala de Mapas junta tudo. Região mapeada mostra o chefe dela, e derrubar o chefe <b>sela</b> a região: a corrupção de lá para de subir.</p>
 <p>Voltar cobra. Cada expedição deixa a região pior do que a encontrou, e a segunda visita traz criaturas mais fortes, eventos do fundo da escala e exigências de classe que o seu elenco talvez não cubra. Espalhar as expedições mantém o mundo estável e não fecha nada. Insistir numa região fecha um selo e deixa um lugar arruinado.</p>
-<p>Três selos abrem a jornada final, e importa quais três. Cada região sela do seu jeito, e entrega uma verdade sobre a causa, uma regra que vale na luta final e um destino no epílogo. Selar Vulcão, Pântano e Ruínas termina diferente de selar Floresta, Montanha e Tundra. Sete regiões e três selos dão trinta e cinco fechos, montados de peças.</p>
+<p>Três selos abrem a jornada final, e o terceiro decide onde ela acontece. Cada região sela do seu jeito e entrega uma verdade sobre a causa, uma regra que vale na luta final e um destino no epílogo. A última que você fechar é a que abre a passagem, então a ordem das expedições também é uma escolha.</p>
 
 <h2>Escolher fecha portas</h2>
 <p>O quadro nem sempre oferece coisas independentes. Duas ofertas podem se excluir: socorrer um lugar deixa o outro sem socorro, e o abandonado não volta ao quadro. A região colapsa e leva junto o que guardava — o pedaço de mapa que faltava, o escrito, o chefe que você ainda podia selar.</p>
@@ -97,7 +97,7 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 </ul>
 
 <h2>O Campeão</h2>
-<p>O herói que ficou segurando a passagem é consumido e volta contra você. Ele é o chefe final da maioria das partidas — algumas combinações de selos levam a outro desfecho, mas a regra é a passagem devolver o seu próprio herói.</p>
+<p>O herói que ficou segurando a passagem é consumido e volta contra você. Ele está em todas as partidas: a passagem devolve o seu próprio herói. O que muda com a região selada por último é o campo da luta e o que conta como vencer.</p>
 <p>O que muda de uma partida para outra é o leque dele, porque o Campeão é montado com o que o herói era:</p>
 <ul>
 <li><b>A classe</b> dá o repertório. O Guerreiro quebra a formação. O Mago drena a energia da mão. O Curandeiro devolve as suas curas como dano. O Caçador ignora a linha de frente. O Ladino leva cartas do seu baralho. O Bardo vira o estresse do grupo contra ele.</li>
@@ -108,15 +108,17 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <p>Por cima disso vem o que a Corrupção deu, e que nenhum herói tem: ele contamina as cartas na sua mão, que passam a cobrar vida para serem jogadas; apaga a luz, e o combate ganha a escuridão da estrada; chama os mortos da sua guilda, que voltam pelo nome que está no Cemitério; e recupera a cada turno o que a contenção segurava.</p>
 <p>Derrubá-lo fecha a fonte, e custa um dos seus — o melhor deles é justamente o que segura por mais tempo, e também o que volta pior.</p>
 
-<h2>Os outros desfechos</h2>
-<p>Os selos não valem só como chave. Cada região carrega uma leitura da causa, e as sete se dividem em três: <b>o que vive</b> (Floresta, Pântano, Vulcão), <b>o que foi feito</b> (Montanha, Ruínas) e <b>o que já acabou</b> (Deserto, Tundra). A trinca que você fechar diz qual leitura a sua guilda levou até o fim, e o que espera na passagem muda junto. Muda até o que conta como vencer.</p>
-<p>Três selos de três leituras diferentes não decidem nada. É aí que a passagem devolve o seu herói: o Campeão é o desfecho de quem espalhou as expedições.</p>
+<h2>Os sete fins</h2>
+<p>Quem fica na porta sempre volta como o Campeão. O que muda é onde a última luta acontece, e quem decide isso é o <b>terceiro selo</b>: a região que você fechou por último é a que abre a passagem. Cada uma tem o seu fim, então são sete, e a ordem em que você sela vira escolha — dá para deixar por último a região cujo fim você quer.</p>
+<p>O cenário não é a única coisa que muda. Muda o que conta como vencer:</p>
 <ul>
-<li><b>Maioria do que vive.</b> A Corrupção é um organismo e não morre. A luta é de resistência: você não derruba nada, aguenta até a contenção fechar. Ganha quem ainda está de pé no último turno.</li>
-<li><b>Maioria do que foi feito.</b> Alguém abriu isto, e a obra continua lá. Não há o que golpear. A passagem se fecha com o que você trouxe — cartas de contenção, relíquias, páginas —, e cada turno cobra a sua parte. Perde quem ficar sem nada antes de a passagem fechar.</li>
-<li><b>Maioria do que já acabou.</b> O mundo passou por isso antes, e o que restou não se enfrenta. Você sela e sai: a vitória é atravessar a volta com o grupo antes que a passagem feche. Quem ficar para trás fica.</li>
+<li><b>Derrubar.</b> O Campeão é o obstáculo, e a luta acaba quando ele cai.</li>
+<li><b>Aguentar.</b> O que a região guardava não morre. Você segura até a contenção fechar, e ganha quem estiver de pé no último turno.</li>
+<li><b>Gastar.</b> Não há o que golpear. A passagem se fecha com o que você trouxe — cartas de contenção, relíquias, páginas — e cada turno cobra a sua parte. Perde quem ficar sem nada antes da hora.</li>
+<li><b>Sair.</b> Você sela e corre. A vitória é atravessar a volta com o grupo antes que a passagem feche, e quem ficar para trás fica.</li>
 </ul>
-<p><b>Três selos da mesma leitura</b> mudam a última escolha. Você entendeu a causa inteira, e a passagem aceita a guilda no lugar de um herói: todos ficam. Ninguém volta e a guilda se encerra ali, mas o que o grupo levava vai junto para a próxima — relíquias, escritos traduzidos, o que a Forja fez. É a queda mais cara do jogo e o começo mais forte.</p>
+<p>Fechar o Pântano por último dá uma luta de aguentar, com a água subindo pela fila. A Montanha dá uma de gastar, porque a passagem foi aberta por uma mina e é a mina que precisa ser fechada. O Vulcão dá uma de sair, com o Campeão vindo atrás. A Floresta e as Ruínas dão as de derrubar, e nas Ruínas ele usa contra você os escritos que você traduziu.</p>
+<p><b>Se você tiver traduzido os escritos até a última página</b>, aparece a escolha de não deixar ninguém sozinho: a passagem aceita a guilda inteira. Todos ficam e a partida se encerra ali, mas o que o grupo levava vai junto para a guilda seguinte — relíquias, escritos, o que a Forja fez. É a queda mais cara do jogo e o começo mais forte.</p>
 <p>Perder na passagem custa mais do que a partida. O que venceu fica onde a sua guilda caiu: ela vira ruína, e ele fica dentro. Na guilda seguinte, quem quiser de volta as relíquias, as páginas e os nomes que ficaram lá vai ter de entrar e enfrentá-lo de novo — ainda com o equipamento do seu antigo herói.</p>
 
 <h2>Modos</h2>
