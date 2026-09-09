@@ -2,26 +2,27 @@
 <head>
 <meta charset='utf-8'>
 <meta name='ProgId' content='Word.Document'>
-<title>GDD - Guilda da Corrupcao</title>
+<title>Incorruption</title>
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
 <style>
 @page { size: 21cm 29.7cm; margin: 2.5cm; }
 body { font-family: 'Calibri','Segoe UI',sans-serif; font-size: 11.5pt; color: #222; line-height: 1.55; }
-h1 { font-size: 24pt; margin: 0 0 2px 0; }
-.sub { color: #666; font-style: italic; margin-bottom: 20px; }
+h1 { font-size: 24pt; margin: 0 0 18px 0; }
 h2 { font-size: 15pt; color: #1a1a1a; border-bottom: 1px solid #bbb; padding-bottom: 3px; margin-top: 24px; }
 p { margin: 8px 0; }
 ul { margin: 6px 0; padding-left: 22px; }
 li { margin: 4px 0; }
 .tag { color: #888; font-size: 10pt; font-style: italic; }
+.ref { margin: 14px 0 2px 0; }
+img { width: 15.5cm; height: auto; }
+.cap { color: #777; font-size: 9.5pt; font-style: italic; margin: 0 0 14px 0; }
 hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 .foot { color: #999; font-size: 9.5pt; margin-top: 24px; }
 </style>
 </head>
 <body>
 
-<h1>Guilda da Corrupção</h1>
-<div class="sub">Documento de design (GDD) — título provisório · projeto Unity · 08/09/2026</div>
+<h1>Incorruption</h1>
 
 <h2>Do que se trata</h2>
 <p>É um jogo de PC feito em Unity que mistura <b>gestão de guilda</b>, <b>roguelike</b> e <b>cartas (deckbuilder)</b>. Você é o mestre de uma guilda de aventureiros num mundo de fantasia sombria que está sendo consumido por uma praga chamada <b>Corrupção</b>. Você não controla os heróis na luta — decide quem contratar, como montar os baralhos deles, quem parte, para onde e com quantas provisões. Em campo, quem age é o herói; o que está na sua mão é a preparação e as decisões do caminho.</p>
@@ -32,52 +33,55 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <ul>
 <li><b>Na guilda:</b> sete salas. Você contrata na Taverna, compra cartas na Biblioteca, forja arma e armadura, abastece a mochila no Mercado, homenageia os mortos no Cemitério, paga batedores na Sala de Mapas e ajusta os baralhos em Baralhos.</li>
 <li><b>Prepara a expedição:</b> escolhe o destino no mapa do mundo, marca quem vai e <b>em que ordem</b> — a ordem é a formação, e os dois primeiros levam a pancada —, e decide quantas rações e tochas cabem no orçamento.</li>
-<li><b>Parte em jornada:</b> a rota é ramificada, no espírito do <i>Slay the Spire</i>. O grupo atravessa a pé, em fila, e a cada parada vem um evento com três escolhas ou um combate. No fim da estrada está o chefe da região.</li>
+<li><b>Parte em jornada:</b> a rota é ramificada, no espírito do <i>Slay the Spire</i>. O grupo atravessa a pé, e a cada parada vem um evento com três escolhas ou um combate. No fim da estrada está o chefe da região.</li>
 <li><b>Volta para a guilda:</b> uma tela de balanço mostra quem voltou, quanto cada um subiu e o que a jornada rendeu. Os feridos precisam de cuidado, os mortos vão para o Cemitério, o mundo apodrece mais um pouco e o ciclo recomeça.</li>
 </ul>
 
-<h2>O mundo e o clima</h2>
-<p>Fantasia sombria, tom pesado. A guilda fica no centro do mapa e sete regiões a cercam — Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas. Cada uma tem a <b>sua</b> corrupção, o seu ritmo de apodrecer, eventos que só acontecem nela e um chefe que a fecha: A Coisa da Mata na Floresta, O Gigante de Pedra na Montanha, O Afogado no Pântano, O Bibliotecário Cego nas Ruínas.</p>
-<p>Isso é informação que se aprende a ler no mapa: o Pântano nasce pior que a Floresta e piora mais rápido. Região corrompida cobra mais — exige classes específicas, libera os eventos piores — e paga mais, em ouro e experiência. E atravessar suja o lugar: cada expedição deixa a região um pouco mais corrompida do que a encontrou.</p>
-<p class="tag">Os nomes de regiões, chefes e eventos são de trabalho: descrevem a função e esperam o world building.</p>
+<h2>O mundo</h2>
+<p>Fantasia sombria, tom pesado. A guilda fica no centro do mapa e sete regiões a cercam — Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas. Cada uma tem a <b>sua</b> corrupção, o seu ritmo de apodrecer, criaturas e eventos que só acontecem nela, e um chefe que a fecha: A Coisa da Mata na Floresta, O Gigante de Pedra na Montanha, O Afogado no Pântano, O Bibliotecário Cego nas Ruínas.</p>
+<p>Isso é informação que se aprende a ler no mapa: o Pântano nasce pior que a Floresta e piora mais rápido. Região corrompida cobra mais — exige classes específicas, libera os eventos piores — e paga mais, em ouro e experiência. E atravessar suja o lugar: cada expedição deixa a região um pouco mais corrompida do que a encontrou. O mundo inteiro está indo pelo mesmo caminho; o que você escolhe é a ordem em que visita o que ainda dá para salvar.</p>
 
 <h2>Heróis</h2>
-<p>Cada herói tem nome, retrato, classe, nível, personalidade e um traço. São seis classes — Guerreiro, Mago, Curandeiro e Caçador já têm cartas; Ladino e Bardo ainda não, e por isso a Taverna não os oferece. Eles sobem de nível, ganham direito a baralhos maiores e a cartas mais raras, e recebem arma, armadura, relíquias e frascos que passam a ser <b>deles</b>.</p>
-<p>Também se cansam. O <b>estresse</b> sobe ao apanhar, ao ver um companheiro cair e ao andar no escuro; acima de um certo ponto o herói se recusa a partir. Quando estoura, a estrada para: a tela escurece, o rosto de quem quebrou ocupa o meio dela e a aflição é dita pelo nome. Golpe letal não mata de primeira — o herói fica na <b>Beira da Morte</b>, e é o golpe seguinte que decide. Quem morre sai do elenco para sempre, com o que levava no bolso, e vira uma linha no Cemitério.</p>
+<p>Cada herói tem nome, retrato, classe, nível, personalidade e um traço. São seis classes — Guerreiro, Mago, Curandeiro, Caçador, Ladino e Bardo —, cada uma com o seu baralho e o seu papel na fila. Eles sobem de nível, ganham direito a baralhos maiores e a cartas mais raras, e recebem arma, armadura, relíquias e frascos que passam a ser <b>deles</b>: quem morre leva tudo junto.</p>
+<p>Também se cansam. O <b>estresse</b> sobe ao apanhar, ao ver um companheiro cair e ao andar no escuro; acima de um certo ponto o herói se recusa a partir, e você fica com um veterano caro parado em casa. Quando estoura, a estrada para: a tela escurece, o rosto de quem quebrou ocupa o meio dela e a aflição é dita pelo nome. Golpe letal não mata de primeira — o herói fica na <b>Beira da Morte</b>, e é o golpe seguinte que decide. Quem morre sai do elenco para sempre, com o que levava no bolso, e vira uma linha no Cemitério.</p>
 
 <h2>Cartas</h2>
-<p>São 40 cartas, dez por classe jogável, em quatro raridades. Cada uma tem <b>dois usos</b>: um efeito de jornada (remover um obstáculo, purificar, curar ferimento, conseguir ouro ou comida) e um efeito de combate (dano, bloqueio, cura, veneno). O contexto escolhe qual vale — é o mesmo baralho servindo às duas metades do jogo, e é por isso que gastar uma carta na estrada custa.</p>
-<p>A contrapartida está escrita nos eventos: <b>a carta certa destrava a melhor saída</b> e é a única que não cobra nada. Quem não trouxe vê a opção travada na tela, com o motivo — e escolhe entre as outras, que sempre cobram alguma coisa.</p>
+<p>Cada classe tem o seu acervo, em quatro raridades, e cada carta tem <b>dois usos</b>: um efeito de jornada — remover um obstáculo, purificar, curar um ferimento, conseguir ouro ou comida — e um efeito de combate — dano, bloqueio, cura, veneno. O contexto escolhe qual vale. É o mesmo baralho servindo às duas metades do jogo, e é por isso que gastar uma carta na estrada custa: ela não vai estar na mão quando o chefe aparecer.</p>
+<p>A contrapartida está escrita nos eventos: <b>a carta certa destrava a melhor saída</b>, e é a única que não cobra nada. Quem não trouxe vê a opção travada na tela, com o motivo escrito — e escolhe entre as outras, que sempre cobram alguma coisa.</p>
 
-<h2>A estrada e o combate</h2>
-<p>Na travessia, o grupo aparece de corpo inteiro, em fila, na ordem da formação, com vida e estresse sobre a cabeça. Rações e tochas caem a cada trecho: sem comida o grupo passa fome, e conforme as tochas acabam a escuridão avança sobre a tela — o aperto se vê antes de a punição chegar.</p>
-<p>O combate é frente a frente, como o do <i>Darkest Dungeon</i>: a party à esquerda, com a primeira posição encostada no perigo, as criaturas à direita e a intenção de cada uma acima da cabeça. São onze inimigos, cada um do lugar onde vive — Lobo Esfomeado e Aranha da Copa na Floresta, Salteador da Serra na Montanha, Sanguessuga Gigante no Pântano, Estátua Desperta nas Ruínas. O inimigo anuncia <b>o quanto vai bater e em quem</b>, e é essa informação que faz o bloqueio ser uma decisão. A formação importa: o golpe cai na linha de frente na maioria das vezes, e cada carta rende menos fora da posição do dono.</p>
+<p class="ref"><img src="Referencias/slay-the-spire-combate.jpg" style="width:15.5cm" width="586"></p>
+<p class="cap">Referência — <i>Slay the Spire</i> (Mega Crit): a mão, a energia do turno e o custo de cada carta. É essa gramática que o combate usa, com uma diferença: aqui a mão serve a um grupo inteiro, e as mesmas cartas resolvem os eventos da estrada.</p>
+
+<h2>A estrada</h2>
+<p>Entre uma parada e outra o grupo atravessa a pé, de corpo inteiro e em fila, na ordem em que você o montou, com vida e estresse em barras sobre a cabeça. A viagem cobra por trecho: some uma ração e some uma tocha. Sem comida, o grupo passa fome. E conforme as tochas se apagam a escuridão fecha sobre a tela e empurra a sombra para o centro — o aperto aparece antes da punição, e é ele que faz você pesar um dia a mais de caminho contra a próxima compra no Mercado.</p>
+<p>A cada parada, um evento: uma ilustração, o que aconteceu em três linhas, e três saídas. As que estão sempre abertas cobram algo — ouro, dias, ânimo, sangue. A que exige a carta certa não cobra nada, e você a vê na tela mesmo quando não pode escolhê-la.</p>
+
+<p class="ref"><img src="Referencias/slay-the-spire-evento.jpg" style="width:15.5cm" width="586"></p>
+<p class="cap">Referência — <i>Slay the Spire</i> (Mega Crit): a parada de estrada como imagem, texto curto e escolhas de consequência declarada.</p>
+
+<h2>O combate</h2>
+<p>O combate é frente a frente, como o do <i>Darkest Dungeon</i>: a sua party à esquerda, com a primeira posição encostada no perigo, as criaturas à direita, e a intenção de cada uma escrita acima da cabeça. Cada inimigo pertence ao lugar onde vive — Lobo Esfomeado e Aranha da Copa na Floresta, Salteador da Serra na Montanha, Sanguessuga Gigante no Pântano, Estátua Desperta nas Ruínas.</p>
+<p>O que transforma o turno numa decisão é o inimigo anunciar duas coisas: <b>quanto vai bater e em quem</b>. Com isso na tela, gastar energia em bloqueio deixa de ser palpite e vira escolha — proteger quem está na mira ou aceitar o golpe e derrubar a criatura antes que ela ataque. A posição pesa dos dois lados: o golpe cai na linha de frente na maioria das vezes, e cada carta rende menos longe do lugar do dono.</p>
+
+<p class="ref"><img src="Referencias/darkest-dungeon-combate.jpg" style="width:15.5cm" width="586"></p>
+<p class="cap">Referência — <i>Darkest Dungeon</i> (Red Hook Studios): a fila, a formação e a luz da tocha como medidor de tensão. O grupo é desenhado de costas para a segurança, e a ordem em que você o montou decide quem apanha.</p>
 
 <h2>Entre uma guilda e outra</h2>
-<p>A partida acaba quando a Corrupção enche o mundo, quando a reputação zera, quando não sobra ninguém nem ouro para recrutar — ou quando você derruba o Chefe Supremo, que aparece no quadro depois que o mundo já está bem estragado. Do que passou fica a <b>memória</b>, moeda que se gasta no Santuário da tela de título: cofre maior, renome antigo, mais vagas no alojamento, mais contatos na estrada. Vale para a próxima guilda que você fundar.</p>
+<p>Nenhuma guilda dura para sempre. A partida se fecha quando a Corrupção toma o mundo, quando a reputação acaba, quando não sobra ninguém para mandar nem ouro para contratar — ou quando você derruba o Chefe Supremo, que só entra no quadro depois que o mundo já está bem estragado.</p>
+<p>O que fica é a <b>memória</b>. Ela não pertence à partida, e sim a você: sobrevive à guilda inteira e se gasta no Santuário da tela de título — um cofre maior para começar, o renome que abre portas, mais camas no alojamento, mais contatos na estrada. Cada guilda que cai deixa a próxima começar um passo à frente, e é isso que faz a segunda tentativa ser diferente da primeira em vez de ser a mesma com mais sorte.</p>
 
-<h2>O que já está pronto</h2>
+<h2>O que vem a seguir</h2>
 <ul>
-<li>A partida inteira, de ponta a ponta: guilda, preparação, jornada, combate, volta, fim de partida e meta-progressão.</li>
-<li>As sete salas da guilda, cada uma como um lugar — com o efeito da compra acontecendo na tela, e não só um número mudando.</li>
-<li>Mapa do mundo com as sete regiões, rota ramificada, travessia a pé e 25 eventos ilustrados.</li>
-<li>Combate por cartas com formação, intenções e alvo anunciados, corpos animados e 11 inimigos.</li>
-<li>40 cartas, 6 relíquias e 4 poções; heróis com estresse, aflições, ferimento e morte permanente.</li>
-<li>Menus, opções, save em JSON com autosave e três slots, e áudio por contexto.</li>
-</ul>
-
-<h2>O que ainda falta</h2>
-<ul>
-<li><b>Cartas de Ladino e Bardo</b> — enquanto não existirem, as duas classes ficam fora da Taverna.</li>
-<li><b>Chefes e eventos próprios</b> para Deserto, Tundra e Vulcão, que hoje repetem os genéricos.</li>
-<li><b>Dar efeito ao que só acumula:</b> a exposição à corrupção, os traços e personalidades que ainda são só rótulo, e os estados mentais sem regra.</li>
-<li><b>Equilibrar a economia:</b> por volta do sétimo ciclo o jogador tem mais ouro do que a guilda tem o que vender.</li>
-<li><b>Arte:</b> falta o cenário de duas regiões, três inimigos usam desenho que não os representa, e o projeto ainda mistura pixel art com pintura digital.</li>
-<li><b>World building:</b> nomes definitivos de regiões, chefes, cartas e elenco.</li>
+<li><b>As regiões do sul ganham voz própria:</b> Deserto, Tundra e Vulcão com os seus chefes e os seus eventos, para que a escolha do destino mude o que se vê, e não só o quanto se apanha.</li>
+<li><b>A corrupção marca o herói:</b> quem se expõe demais volta diferente — um traço novo, uma cicatriz de comportamento, e o risco de um dia não voltar como seu.</li>
+<li><b>Traços e personalidades com efeito na estrada,</b> além da conta do estresse: o beberrão que gasta o ouro da volta, o teimoso que não aceita mudar de posição na fila.</li>
+<li><b>Mais cartas por classe,</b> para que dois heróis da mesma classe não levem o mesmo baralho.</li>
+<li><b>Som e música por região,</b> e a trilha da guilda mudando conforme o mundo apodrece.</li>
 </ul>
 
 <hr>
-<p class="foot">Decisões de design: fantasia sombria com a Corrupção como relógio · preparação acima da execução · morte permanente · baralho híbrido, que serve à estrada e ao combate. Documento escrito a partir do código em 29/08/2026, conferido contra os relatórios automáticos de teste e de balanceamento do projeto. A versão técnica e detalhada está em GDD.md.</p>
+<p class="foot">Decisões de design: fantasia sombria com a Corrupção como relógio · preparação acima da execução · morte permanente · baralho híbrido, que serve à estrada e ao combate. Unity · PC · um jogador. A versão técnica e detalhada deste documento está em GDD.md.</p>
+<p class="foot">Imagens de referência: <i>Darkest Dungeon</i> © Red Hook Studios e <i>Slay the Spire</i> © Mega Crit, usadas aqui apenas como referência de design.</p>
 
 </body>
 </html>
