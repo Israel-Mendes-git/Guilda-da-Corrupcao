@@ -114,12 +114,20 @@ desenho fechado pelo autor é este:
 - **A jornada final não reabastece.** O que saiu da guilda é o que se tem; o resto
   é o que o caminho largar.
 - **Alguém fica.** A passagem se fecha por dentro. O herói escolhido define as
-  duas metades da luta final: **quanto ela dura** (o que ele aguenta) e **contra o
-  que se luta** — ele volta como **Campeão Corrompido**, com a classe, o baralho e
-  o equipamento que tinha. A classe define os poderes: Guerreiro quebra a
-  formação, Mago drena a energia da mão, Curandeiro devolve cura como dano,
-  Caçador ignora a linha de frente, Ladino leva cartas do baralho, Bardo vira o
-  estresse do grupo.
+  duas metades da luta final: **quanto ela dura** (a contenção segura o que ele
+  aguenta) e **contra o que se luta**, porque ele volta como **o Campeão** — o
+  chefe final da maioria das partidas, já que algumas combinações de selos levam a
+  outro desfecho.
+- **O Campeão é montado com o que o herói era.** A classe dá o repertório
+  (Guerreiro quebra a formação, Mago drena a energia da mão, Curandeiro devolve
+  cura como dano, Caçador ignora a linha de frente, Ladino leva cartas do baralho,
+  Bardo vira o estresse do grupo); o nível dá vida e dano; traço e personalidade
+  viram comportamento (o covarde vai no mais fraco, o teimoso persegue um alvo, o
+  sortudo escapa do que devia acertar); arma, armadura, relíquias e o baralho
+  continuam com ele, e as cartas que você escolheu para aquele herói são os golpes
+  do chefe. Por cima entram poderes que nenhum herói tem: contaminar as cartas da
+  mão, apagar a luz dentro do combate, chamar os mortos do Cemitério pelo nome, e
+  recuperar a cada turno o que a contenção segurava.
 - **Vencer destrava o Campeão** como herói jogável na guilda seguinte, com
   corrupção que sobe sozinha enquanto ele está em campo.
 - **Perder deixa ruína.** A guilda caída vira lugar no mapa da partida seguinte;

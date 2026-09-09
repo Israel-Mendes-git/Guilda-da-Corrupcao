@@ -25,87 +25,97 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <h1>Incorruption</h1>
 
 <h2>Do que se trata</h2>
-<p>É um jogo de PC feito em Unity que mistura <b>gestão de guilda</b>, <b>roguelike</b> e <b>cartas (deckbuilder)</b>. Você é o mestre de uma guilda de aventureiros num mundo de fantasia sombria que está sendo consumido por uma praga chamada <b>Corrupção</b>. Você não controla os heróis na luta — decide quem contratar, como montar os baralhos deles, quem parte, para onde e com quantas provisões. Em campo, quem age é o herói; o que está na sua mão é a preparação e as decisões do caminho.</p>
-<p>A ideia central: <b>cada escolha pesa</b>. Heróis morrem de verdade, não voltam e levam com eles o que carregavam. Cada partida é a tentativa de descobrir de onde a Corrupção vem e fechá-la antes que ela feche o mundo — e cada queda deixa uma <b>memória</b>, que é o que torna a próxima guilda um pouco mais forte.</p>
+<p>Jogo de PC feito em Unity, com três partes: <b>gestão de guilda</b>, <b>roguelike</b> e <b>cartas</b>. Você é o mestre de uma guilda de aventureiros num mundo de fantasia sombria que uma praga chamada <b>Corrupção</b> vai comendo. Na luta você não controla ninguém. Você contrata, monta os baralhos, escolhe quem parte, para onde, e com quanta comida.</p>
+<p>Cada escolha pesa. Heróis morrem de verdade, não voltam, e levam junto o que carregavam. Uma partida é a tentativa de achar a origem da Corrupção e fechá-la antes que o mundo acabe. Quando a guilda cai, sobra a <b>memória</b>, e é com ela que você funda a próxima.</p>
 
 <h2>Como se joga</h2>
-<p>O jogo gira em torno de um ciclo, e cada volta do ciclo faz a Corrupção subir:</p>
+<p>O jogo anda em ciclo, e cada volta do ciclo sobe a Corrupção.</p>
 <ul>
-<li><b>Na guilda:</b> sete salas. Você contrata na Taverna, compra cartas e manda traduzir escritos na Biblioteca, forja arma e armadura, abastece a mochila no Mercado, homenageia os mortos no Cemitério, junta o que os batedores trouxeram na Sala de Mapas, e ajusta os baralhos em Baralhos.</li>
-<li><b>Prepara a expedição:</b> escolhe o destino no mapa do mundo, marca quem vai e <b>em que ordem</b> — a ordem é a formação, e os dois primeiros levam a pancada —, e decide quantas rações e tochas cabem no orçamento.</li>
-<li><b>Parte em jornada:</b> a rota é ramificada, no espírito do <i>Slay the Spire</i>. O grupo atravessa a pé, e a cada parada vem um evento com três escolhas ou um combate. No fim da estrada está o chefe da região.</li>
-<li><b>Volta para a guilda:</b> uma tela de balanço mostra quem voltou, quanto cada um subiu e o que a jornada rendeu — em ouro, em mapa e em páginas. Os feridos precisam de cuidado, os mortos vão para o Cemitério, o mundo apodrece mais um pouco e o ciclo recomeça.</li>
+<li><b>Na guilda:</b> sete salas. Taverna para contratar, Biblioteca para comprar cartas e traduzir escritos, Forja para arma e armadura, Mercado para as provisões, Cemitério para os mortos, Sala de Mapas para juntar o que os batedores acharam, Baralhos para arrumar a mão de cada herói.</li>
+<li><b>Preparar:</b> escolher o destino no mapa do mundo, marcar quem vai e em que ordem. A ordem é a formação, e os dois primeiros apanham. Depois, quantas rações e tochas cabem no orçamento.</li>
+<li><b>Jornada:</b> rota ramificada, como a do <i>Slay the Spire</i>. O grupo atravessa a pé. Cada parada traz um evento de três escolhas ou um combate. No fim da estrada está o chefe da região.</li>
+<li><b>Volta:</b> a tela de balanço mostra quem voltou, quanto cada um subiu e o que a jornada rendeu em ouro, mapa e páginas. Ferido precisa de cuidado, morto vai para o Cemitério, e o mundo apodrece mais um pouco.</li>
 </ul>
 
 <h2>O mundo</h2>
-<p>Fantasia sombria, tom pesado. A guilda fica no centro do mapa e sete regiões a cercam — Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas. Cada uma tem a <b>sua</b> corrupção, o seu ritmo de apodrecer, a sua paleta e a sua trilha, criaturas e eventos que só acontecem nela, e um chefe que a fecha: A Coisa da Mata na Floresta, O Gigante de Pedra na Montanha, O Afogado no Pântano, O Bibliotecário Cego nas Ruínas.</p>
-<p>Isso é informação que se aprende a ler no mapa: o Pântano nasce pior que a Floresta e piora mais rápido. Região corrompida cobra mais — exige classes específicas, libera os eventos piores — e paga mais, em ouro e experiência. O mundo inteiro está indo pelo mesmo caminho; o que você escolhe é a ordem em que visita o que ainda dá para salvar.</p>
+<p>Sete regiões cercam a guilda: Floresta, Montanha, Pântano, Deserto, Tundra, Vulcão e Ruínas. Cada uma tem a sua corrupção e o seu ritmo de apodrecer, mais bichos, eventos, paleta e trilha próprios. E um chefe — A Coisa da Mata na Floresta, O Gigante de Pedra na Montanha, O Afogado no Pântano, O Bibliotecário Cego nas Ruínas.</p>
+<p>O mapa se lê. O Pântano começa pior que a Floresta e piora mais rápido. Região corrompida exige classes específicas, solta os eventos mais duros e paga melhor em ouro e experiência. Todas caminham para o mesmo lugar. Você escolhe a ordem em que visita o que ainda dá para salvar.</p>
 
 <h2>Heróis</h2>
-<p>Cada herói tem nome, retrato, classe, nível, personalidade e um traço. São seis classes — Guerreiro, Mago, Curandeiro, Caçador, Ladino e Bardo —, cada uma com o seu acervo de cartas e o seu papel na fila. Eles sobem de nível, ganham direito a baralhos maiores e a cartas mais raras, e recebem arma, armadura, relíquias e frascos que passam a ser <b>deles</b>: quem morre leva tudo junto.</p>
-<p>O traço e a personalidade não são etiqueta. O beberrão gasta parte do ouro na volta, o teimoso não aceita mudar de posição na fila, o covarde sofre mais com o que vê. E há o que a estrada deixa: a <b>exposição à Corrupção</b>, que se acumula em silêncio e volta como um traço novo — quem se expõe demais deixa de ser o herói que saiu.</p>
-<p>Também se cansam. O <b>estresse</b> sobe ao apanhar, ao ver um companheiro cair e ao andar no escuro; acima de um certo ponto o herói se recusa a partir, e você fica com um veterano caro parado em casa. Quando estoura, a estrada para: a tela escurece, o rosto de quem quebrou ocupa o meio dela e a aflição é dita pelo nome. Golpe letal não mata de primeira — o herói fica na <b>Beira da Morte</b>, e é o golpe seguinte que decide. Quem morre sai do elenco para sempre e vira uma linha no Cemitério.</p>
+<p>Um herói tem nome, retrato, classe, nível, personalidade e um traço. As classes são seis — Guerreiro, Mago, Curandeiro, Caçador, Ladino e Bardo —, cada uma com acervo de cartas e lugar na fila. Eles sobem de nível, ganham baralho maior e acesso a cartas raras, e recebem arma, armadura, relíquias e frascos. O que é do herói morre com ele.</p>
+<p>Traço e personalidade fazem alguma coisa. O beberrão gasta parte do ouro na volta. O teimoso recusa mudar de posição na fila. O covarde sofre mais com o que vê. E a estrada deixa marca: a exposição à Corrupção sobe em silêncio e volta como um traço novo.</p>
+<p>O estresse sobe ao apanhar, ao ver um companheiro cair e ao andar no escuro. Passado certo ponto o herói se recusa a viajar, e você fica com um veterano caro parado em casa. Quando o estresse estoura, a estrada para: a tela escurece, o rosto de quem quebrou ocupa o meio dela e a aflição vem escrita. Golpe letal não mata na hora — o herói fica na <b>Beira da Morte</b>, e o próximo golpe decide.</p>
 
 <h2>Cartas</h2>
-<p>Cada classe tem o seu acervo, em quatro raridades, e cada carta tem <b>dois usos</b>: um efeito de jornada — remover um obstáculo, purificar, curar um ferimento, conseguir ouro ou comida — e um efeito de combate — dano, bloqueio, cura, veneno. O contexto escolhe qual vale. É o mesmo baralho servindo às duas metades do jogo, e é por isso que gastar uma carta na estrada custa: ela não vai estar na mão quando o chefe aparecer.</p>
-<p>A contrapartida está escrita nos eventos: <b>a carta certa destrava a melhor saída</b>, e é a única que não cobra nada. Quem não trouxe vê a opção travada na tela, com o motivo escrito — e escolhe entre as outras, que sempre cobram alguma coisa. Como o acervo de cada classe é maior do que cabe num baralho, dois heróis da mesma classe nunca levam a mesma mão.</p>
-<p>Fora da estrada, o baralho continua valendo, e de três maneiras:</p>
+<p>Cada classe tem o seu acervo, em quatro raridades. Toda carta serve para duas coisas: um efeito de jornada (remover obstáculo, purificar, curar ferimento, achar ouro ou comida) e um de combate (dano, bloqueio, cura, veneno). O contexto decide qual vale. Como o baralho é um só, gastar carta na estrada tem preço: ela não vai estar na mão quando o chefe aparecer.</p>
+<p>Nos eventos, a carta certa abre a melhor saída, e é a única que sai de graça. Quem não trouxe vê a opção travada com o motivo escrito e escolhe entre as outras, que sempre cobram. O acervo de cada classe é maior do que cabe num baralho, então dois heróis da mesma classe não levam a mesma mão.</p>
+<p>O baralho também vale dentro da guilda:</p>
 <ul>
-<li><b>As salas aceitam carta no lugar de ouro</b> — adiantar uma tradução, convencer um recruta que hesita, pagar a Forja. O baralho passa a competir com o cofre, e a carta que ninguém joga tem para onde ir.</li>
-<li><b>Os escritos traduzidos entram no baralho</b> como cartas de contenção: purificar um trecho, fechar uma brecha, segurar a corrupção de um herói por uma jornada. São as únicas cartas que agem sobre o mundo, e são o que você leva para a luta final.</li>
-<li><b>Selar uma região cobra cartas.</b> O ritual queima parte do baralho, e cada região pede sempre o mesmo tipo — a mata cobra o que cura, o vulcão cobra o que fere —, sabido desde o começo da partida: dá para montar o baralho pensando no selo que se pretende fechar, e essa preparação disputa espaço com a do próximo combate. O que queima não volta: fechar o mundo enfraquece a mão que o fechou.</li>
+<li>As salas aceitam carta em vez de ouro — adiantar uma tradução, convencer um recruta, pagar a Forja.</li>
+<li>Escrito traduzido vira carta de contenção: purificar um trecho, fechar uma brecha, segurar a corrupção de um herói por uma jornada. São as únicas cartas que mexem no mundo.</li>
+<li>Selar uma região queima cartas. Cada região cobra sempre o mesmo tipo, e isso se sabe desde o começo: a mata pede cura, o vulcão pede dano. Dá para preparar o baralho para o selo que você pretende fechar. O que queima não volta.</li>
 </ul>
 
 <p class="ref"><img src="Referencias/slay-the-spire-combate.jpg" style="width:15.5cm" width="586"></p>
-<p class="cap">Referência — <i>Slay the Spire</i> (Mega Crit): a mão, a energia do turno e o custo de cada carta. É essa gramática que o combate usa, com uma diferença: aqui a mão serve a um grupo inteiro, e as mesmas cartas resolvem os eventos da estrada.</p>
+<p class="cap">Referência — <i>Slay the Spire</i> (Mega Crit): a mão, a energia do turno e o custo de cada carta. É essa gramática que o combate usa. A diferença é que aqui a mão serve a um grupo inteiro, e as mesmas cartas resolvem os eventos da estrada.</p>
 
 <h2>A estrada</h2>
-<p>Entre uma parada e outra o grupo atravessa a pé, de corpo inteiro e em fila, na ordem em que você o montou, com vida e estresse em barras sobre a cabeça. A viagem cobra por trecho: some uma ração e some uma tocha. Sem comida, o grupo passa fome. E conforme as tochas se apagam a escuridão fecha sobre a tela e empurra a sombra para o centro — o aperto aparece antes da punição, e é ele que faz você pesar um dia a mais de caminho contra a próxima compra no Mercado.</p>
-<p>A cada parada, um evento: uma ilustração, o que aconteceu em três linhas, e três saídas. As que estão sempre abertas cobram algo — ouro, dias, ânimo, sangue. A que exige a carta certa não cobra nada, e você a vê na tela mesmo quando não pode escolhê-la.</p>
+<p>Entre uma parada e outra o grupo caminha em fila, de corpo inteiro, na ordem em que você o montou, com vida e estresse acima da cabeça. Cada trecho consome uma ração e uma tocha. Sem comida, o grupo passa fome. Conforme as tochas acabam, a escuridão avança sobre a tela e fecha em volta do grupo. A punição chega depois; o aperto chega antes.</p>
+<p>Na parada vem o evento: uma ilustração, três linhas sobre o que aconteceu, três saídas. As que estão sempre abertas cobram ouro, dias, ânimo ou sangue. A que pede carta não cobra nada, e aparece na tela mesmo quando você não pode escolhê-la.</p>
 
 <p class="ref"><img src="Referencias/slay-the-spire-evento.jpg" style="width:15.5cm" width="586"></p>
 <p class="cap">Referência — <i>Slay the Spire</i> (Mega Crit): a parada de estrada como imagem, texto curto e escolhas de consequência declarada.</p>
 
 <h2>O combate</h2>
-<p>O combate é frente a frente, como o do <i>Darkest Dungeon</i>: a sua party à esquerda, com a primeira posição encostada no perigo, as criaturas à direita, e a intenção de cada uma escrita acima da cabeça. Cada inimigo pertence ao lugar onde vive — Lobo Esfomeado e Aranha da Copa na Floresta, Salteador da Serra na Montanha, Sanguessuga Gigante no Pântano, Estátua Desperta nas Ruínas.</p>
-<p>O que transforma o turno numa decisão é o inimigo anunciar duas coisas: <b>quanto vai bater e em quem</b>. Com isso na tela, gastar energia em bloqueio deixa de ser palpite e vira escolha — proteger quem está na mira ou aceitar o golpe e derrubar a criatura antes que ela ataque. A posição pesa dos dois lados: o golpe cai na linha de frente na maioria das vezes, e cada carta rende menos longe do lugar do dono.</p>
+<p>Frente a frente, como no <i>Darkest Dungeon</i>: a sua party à esquerda, com a primeira posição encostada no perigo; as criaturas à direita, com a intenção escrita acima da cabeça. Os inimigos são do lugar onde vivem — Lobo Esfomeado e Aranha da Copa na Floresta, Salteador da Serra na Montanha, Sanguessuga Gigante no Pântano, Estátua Desperta nas Ruínas.</p>
+<p>O inimigo anuncia quanto vai bater e em quem. Com as duas coisas na tela, bloquear vira decisão: proteger quem está na mira, ou aceitar o golpe e derrubar a criatura antes que ela ataque. A posição pesa dos dois lados. O golpe cai na linha de frente quase sempre, e a carta rende menos longe do lugar do dono.</p>
 
 <p class="ref"><img src="Referencias/darkest-dungeon-combate.jpg" style="width:15.5cm" width="586"></p>
 <p class="cap">Referência — <i>Darkest Dungeon</i> (Red Hook Studios): a fila, a formação e a luz da tocha como medidor de tensão. O grupo é desenhado de costas para a segurança, e a ordem em que você o montou decide quem apanha.</p>
 
 <h2>Mapear é o que a partida constrói</h2>
-<p>Um contrato paga em ouro; uma expedição paga em <b>mapa</b>. Cada jornada traz de volta pedaços da região percorrida — trilhas, ruínas, os lugares de onde a Corrupção brota — e a Sala de Mapas os junta. Região mapeada é região que mostra o seu chefe; derrubá-lo <b>sela</b> aquele canto do mundo, e a corrupção de lá para de subir.</p>
-<p>Só que o mundo repara em quem volta. Cada expedição deixa a região mais corrompida do que a encontrou, e a segunda visita é sempre pior que a primeira: criaturas mais fortes, eventos que só existem no fundo da escala, exigências de classe que o seu elenco talvez não cubra. Mapear obriga a voltar, e voltar cobra — é essa a tensão que ocupa o meio da partida. Espalhar as expedições mantém o mundo estável e não fecha nada; insistir numa região fecha um selo e deixa um lugar arruinado atrás de você.</p>
-<p><b>Três selos abrem a jornada final — e o que importa não é o número, é quais três.</b> Cada região sela de um jeito e entrega três coisas: uma verdade sobre a causa, uma regra que entra na luta final e o destino daquele lugar no epílogo. Selar o Vulcão, o Pântano e as Ruínas não dá o mesmo fim que selar a Floresta, a Montanha e a Tundra: muda o que você sabe ao chegar, muda o que o Campeão traz consigo e muda o mundo que sobra depois. Sete regiões, três selos — trinta e cinco fechos possíveis, montados de peças em vez de escritos um a um.</p>
+<p>Contrato paga em ouro. Expedição paga em mapa. Cada jornada traz pedaços da região percorrida — trilhas, ruínas, os pontos de onde a Corrupção brota — e a Sala de Mapas junta tudo. Região mapeada mostra o chefe dela, e derrubar o chefe <b>sela</b> a região: a corrupção de lá para de subir.</p>
+<p>Voltar cobra. Cada expedição deixa a região pior do que a encontrou, e a segunda visita traz criaturas mais fortes, eventos do fundo da escala e exigências de classe que o seu elenco talvez não cubra. Espalhar as expedições mantém o mundo estável e não fecha nada. Insistir numa região fecha um selo e deixa um lugar arruinado.</p>
+<p>Três selos abrem a jornada final, e importa quais três. Cada região sela do seu jeito, e entrega uma verdade sobre a causa, uma regra que vale na luta final e um destino no epílogo. Selar Vulcão, Pântano e Ruínas termina diferente de selar Floresta, Montanha e Tundra. Sete regiões e três selos dão trinta e cinco fechos, montados de peças.</p>
 
 <h2>Escolher fecha portas</h2>
-<p>O quadro nem sempre oferece coisas independentes. Duas ofertas podem se excluir: socorrer um lugar deixa o outro sem socorro, e o que fica sem socorro não volta ao quadro. A região colapsa, e com ela some o que ela guardava — o pedaço de mapa que faltava, o escrito que estava lá, o chefe que você ainda podia selar.</p>
-<p>E o preço vem dito antes. Ao lado de cada oferta está escrito o que cai se você atender a outra: qual região colapsa, que pedaço de mapa vai junto, que página se perde. Escolha só é escolha com o custo na tela na hora de escolher — descobrir depois seria sorteio contado como decisão.</p>
-<p>A mesma regra vale nas escalas menores e maiores: na estrada, entrar num ramo apaga o outro; no fim, os três selos que você tem são os três que não dá mais para trocar. Duas partidas nas mesmas sete regiões terminam com mundos diferentes, e a diferença está menos no que você fez do que no que deixou cair.</p>
+<p>O quadro nem sempre oferece coisas independentes. Duas ofertas podem se excluir: socorrer um lugar deixa o outro sem socorro, e o abandonado não volta ao quadro. A região colapsa e leva junto o que guardava — o pedaço de mapa que faltava, o escrito, o chefe que você ainda podia selar.</p>
+<p>O preço vem escrito ao lado da oferta, antes da escolha: qual região cai, que mapa vai junto, que página se perde.</p>
+<p>A mesma regra vale nas outras escalas. Na estrada, entrar num ramo apaga o outro. No fim, os três selos que você tem são os três que sobraram.</p>
 
 <h2>Conter a Corrupção</h2>
-<p>Você não é o primeiro a tentar. Nas ruínas, nos espólios e no meio dos eventos aparecem <b>escritos</b> de gente que enfrentou a mesma coisa e foi consumida — o que sobrou delas são páginas soltas, em línguas que ninguém mais fala. Os batedores trazem essas páginas junto com os pedaços de mapa: o mapa vai para a Sala de Mapas, e a página vai para a <b>Biblioteca</b>, a única sala que ainda sabe ler o que ninguém mais fala. Ela traduz uma por ciclo. Enquanto a tradução acontece, o mundo continua apodrecendo.</p>
-<p>Cada escrito é uma forma de conter. Uns protegem o herói da exposição; outros fazem uma região apodrecer mais devagar; outros cortam o que a Corrupção ganha quando um evento a alimenta. Nenhum reverte nada — contenção é sempre atraso, e foi assim que essas civilizações caíram: contendo bem, até não conter mais.</p>
-<p>Lidos em ordem, os escritos são a história de quem os escreveu, e é ela que aponta a causa: o mapa mostra <i>onde</i>, e as páginas dizem <i>o quê</i>. A última delas diz o preço que nenhuma das tentativas anteriores pagou até o fim.</p>
+<p>Outros tentaram antes. Nas ruínas, nos espólios e no meio dos eventos aparecem <b>escritos</b> de gente que enfrentou a mesma coisa e foi consumida: páginas soltas, em línguas que ninguém mais fala. Os batedores as trazem junto com o mapa. A Biblioteca traduz uma por ciclo, e enquanto traduz o mundo segue apodrecendo.</p>
+<p>Cada escrito é uma forma de conter. Uns protegem o herói da exposição, outros fazem a região apodrecer devagar, outros cortam o que a Corrupção ganha nos eventos. Nenhum reverte nada. Contenção é atraso, e foi assim que aquelas civilizações acabaram.</p>
+<p>Lidos em ordem, os escritos contam o que aconteceu com quem os escreveu, e apontam a causa. O mapa mostra onde. As páginas dizem o quê.</p>
 
 <h2>O fim: quem fica</h2>
-<p>A jornada final não tem volta programada, e o Mercado ficou para trás: <b>o que você levou é o que tem</b>. O que aparecer no caminho é tudo o que ainda vai receber — um espólio, um frasco largado por quem tentou antes, uma página nunca traduzida.</p>
-<p>No coração da Corrupção não se fecha a fonte de fora: a passagem se fecha por dentro, e alguém do grupo precisa ficar segurando. Você escolhe quem — e a escolha decide as duas metades da última luta:</p>
+<p>A jornada final não tem volta programada, e o Mercado ficou para trás: o que você levou é o que tem. O caminho ainda larga alguma coisa — um espólio, um frasco de quem tentou antes, uma página nunca traduzida.</p>
+<p>No coração da Corrupção a fonte não se fecha de fora. A passagem fecha por dentro, e alguém do grupo precisa ficar segurando. Você escolhe quem, e a escolha decide as duas metades da última luta:</p>
 <ul>
-<li><b>Quanto tempo você tem.</b> A contenção dura o que o herói aguenta. Um veterano segura o suficiente para você lutar com margem; um recruta cede cedo, e a luta começa com a Corrupção já vazando.</li>
-<li><b>Contra o que você luta.</b> Quem fica volta como o <b>Campeão Corrompido</b>, com a classe, o baralho e o equipamento que tinha. O Guerreiro quebra a formação; o Mago drena a energia da mão; o Curandeiro devolve as suas curas como dano; o Caçador ignora a linha de frente; o Ladino leva cartas do seu baralho; o Bardo vira o estresse do grupo contra ele.</li>
+<li><b>Quanto tempo você tem.</b> A contenção dura o que o herói aguenta. Um veterano segura o bastante para você lutar com margem; um recruta cede cedo, e a luta começa com a Corrupção já vazando.</li>
+<li><b>Contra o que você luta.</b> Quem fica não morre na porta: volta, e é o chefe.</li>
 </ul>
-<p>Os três selos entram aqui: cada um é uma regra a seu favor na luta e uma linha a mais no que se descobre. É por isso que não existe um final, e sim o final daquela partida — o que você selou, o que deixou cair, e quem você deixou na porta.</p>
-<p>Derrubá-lo fecha a fonte, e é a única vitória do jogo. Ela custa um dos seus — e o melhor deles é justamente o que segura por mais tempo, de modo que a decisão final é a mesma que a partida inteira treinou: quem você está disposto a gastar.</p>
+
+<h2>O Campeão</h2>
+<p>O herói que ficou segurando a passagem é consumido e volta contra você. Ele é o chefe final da maioria das partidas — algumas combinações de selos levam a outro desfecho, mas a regra é a passagem devolver o seu próprio herói.</p>
+<p>O que muda de uma partida para outra é o leque dele, porque o Campeão é montado com o que o herói era:</p>
+<ul>
+<li><b>A classe</b> dá o repertório. O Guerreiro quebra a formação. O Mago drena a energia da mão. O Curandeiro devolve as suas curas como dano. O Caçador ignora a linha de frente. O Ladino leva cartas do seu baralho. O Bardo vira o estresse do grupo contra ele.</li>
+<li><b>O nível</b> dá o tamanho: vida, dano e quanto tempo ele segurou antes de ceder.</li>
+<li><b>Traço e personalidade</b> viram comportamento. O covarde ataca quem está mais fraco; o teimoso persegue um alvo até derrubá-lo; o sortudo escapa do que deveria acertá-lo.</li>
+<li><b>Arma, armadura, relíquias e baralho</b> continuam com ele. Tudo o que você comprou para aquele herói está agora do outro lado do campo, e as cartas que você escolheu para ele são os golpes que ele usa.</li>
+</ul>
+<p>Por cima disso vem o que a Corrupção deu, e que nenhum herói tem: ele contamina as cartas na sua mão, que passam a cobrar vida para serem jogadas; apaga a luz, e o combate ganha a escuridão da estrada; chama os mortos da sua guilda, que voltam pelo nome que está no Cemitério; e recupera a cada turno o que a contenção segurava.</p>
+<p>Derrubá-lo fecha a fonte. É a única vitória do jogo, e ela custa um dos seus — o melhor deles é justamente o que segura por mais tempo, e também o que volta pior.</p>
 
 <h2>Modos</h2>
-<p><b>Campanha.</b> A primeira leitura. Você não sabe de onde a Corrupção vem: descobre traduzindo, e o que descobre muda o que faz — é por isso que uma página vale uma expedição inteira. A história do jogo não é contada antes de começar; ela é o que sobra das civilizações que tentaram, e você a lê em pedaços, na ordem em que conseguir.</p>
-<p><b>A segunda leitura.</b> Destravada ao vencer: joga-se com o <b>Campeão Corrompido</b> — o herói que ficou na porta —, e os escritos já traduzidos vêm lidos desde o início. A pergunta deixa de ser o que está acontecendo e passa a ser o que fazer sabendo, com um herói que nasce forte e cuja corrupção sobe sozinha enquanto ele está em campo.</p>
+<p><b>Campanha.</b> A primeira leitura. Você não sabe de onde a Corrupção vem e descobre traduzindo, e por isso uma página pode valer uma expedição inteira. A história não é contada antes de começar: ela está no que sobrou das civilizações que tentaram, e você lê na ordem em que conseguir.</p>
+<p><b>A segunda leitura.</b> Destravada ao vencer. Joga-se com o Campeão que ficou na porta, e os escritos já traduzidos vêm lidos desde o início. Ele nasce forte, e a corrupção dele sobe sozinha enquanto está em campo.</p>
 
 <h2>Entre uma guilda e outra</h2>
-<p>Nenhuma guilda dura para sempre. A partida se fecha quando a Corrupção toma o mundo, quando a reputação acaba, quando não sobra ninguém para mandar nem ouro para contratar — ou na passagem, com o Campeão derrubado.</p>
-<p>O que fica é a <b>memória</b>. Ela não pertence à partida, e sim a você: sobrevive à guilda inteira e se gasta no Santuário da tela de título — um cofre maior para começar, o renome que abre portas, mais camas no alojamento, mais contatos na estrada. Cada guilda que cai deixa a próxima começar um passo à frente, e é isso que faz a segunda tentativa ser diferente da primeira em vez de ser a mesma com mais sorte.</p>
-<p>E a guilda perdida não some do mundo: ela vira <b>ruína</b> no mapa da guilda seguinte, no lugar onde ficava. Uma expedição até lá recupera parte do que se perdeu — relíquias, páginas já traduzidas, os nomes dos que morreram. Parte, não tudo: o resto foi consumido, e o que volta pode voltar com preço.</p>
+<p>Nenhuma guilda dura para sempre. A partida acaba quando a Corrupção toma o mundo, quando a reputação zera, quando não sobra ninguém para mandar nem ouro para contratar, ou na passagem, com o Campeão derrubado.</p>
+<p>Fica a <b>memória</b>. Ela é sua, não da partida: sobrevive à guilda inteira e se gasta no Santuário da tela de título — cofre maior para começar, renome que abre portas, mais camas no alojamento, mais contatos na estrada.</p>
+<p>A guilda perdida também não some. Vira <b>ruína</b> no mapa da guilda seguinte, no lugar onde ficava. Uma expedição até lá recupera parte do que se perdeu: relíquias, páginas traduzidas, os nomes dos mortos. Parte, não tudo — o resto foi consumido, e o que volta pode voltar com preço.</p>
 
 <hr>
 <p class="foot">Decisões de design: fantasia sombria com a Corrupção como relógio · preparação acima da execução · morte permanente · baralho híbrido, que serve à estrada, ao combate e à guilda · escolher fecha portas · a vitória cobra um herói. Unity · PC · um jogador. A versão técnica e detalhada deste documento está em GDD.md.</p>
