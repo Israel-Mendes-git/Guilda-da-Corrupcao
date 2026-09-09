@@ -96,19 +96,21 @@ desenho fechado pelo autor é este:
 - **Voltar cobra.** A corrupção que a travessia soma à região (+4, §5) ganha
   consequência declarada: a visita seguinte traz inimigos mais fortes e os eventos
   do fundo da escala. Mapear obriga a voltar, e voltar piora o lugar.
-- **Escolher fecha portas.** Ofertas do quadro podem se excluir: socorrer um lugar
-  deixa o outro sem socorro, e o que fica sem socorro colapsa — some do quadro, e
-  com ele o mapa, o escrito e o chefe que estavam lá. Vale também na rota (entrar
+- **Escolher fecha portas, e o preço é anunciado.** Ofertas do quadro podem se
+  excluir: socorrer um lugar deixa o outro sem socorro, e o que fica sem socorro
+  colapsa — some do quadro, e com ele o mapa, o escrito e o chefe que estavam lá.
+  A oferta diz o que cai antes de o jogador escolher. Vale também na rota (entrar
   num ramo apaga o outro) e no fim (os selos que você tem não se trocam).
 - **Os escritos contêm.** Páginas de civilizações consumidas caem em ruínas,
-  espólios e eventos; os batedores as trazem junto com o mapa, e a **Sala de
-  Mapas** traduz uma por ciclo — mapa e texto na mesma sala, porque um diz onde e
-  o outro diz o quê. Cada uma atrasa a corrupção (a do herói, a de uma região, ou
-  o que os eventos somam) e nenhuma reverte. Lidas em ordem, apontam a causa.
+  espólios e eventos; os batedores as trazem junto com o mapa, e a **Biblioteca**
+  traduz uma por ciclo. Cada uma atrasa a corrupção (a do herói, a de uma região,
+  ou o que os eventos somam) e nenhuma reverte. Lidas em ordem, apontam a causa —
+  o mapa diz onde, a página diz o quê.
 - **O baralho vale fora da estrada**, de três maneiras: as salas aceitam carta no
   lugar de ouro; o escrito traduzido **entra no baralho** como carta de contenção,
-  a única que age sobre o mundo; e **selar cobra cartas**, queimadas por tipo, que
-  não voltam.
+  a única que age sobre o mundo; e **selar cobra cartas**, queimadas sem volta, do
+  tipo que aquela região sempre pede — fixo e sabido desde o começo, para que dê
+  para preparar o baralho para o selo.
 - **A jornada final não reabastece.** O que saiu da guilda é o que se tem; o resto
   é o que o caminho largar.
 - **Alguém fica.** A passagem se fecha por dentro. O herói escolhido define as

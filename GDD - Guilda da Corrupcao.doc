@@ -31,7 +31,7 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <h2>Como se joga</h2>
 <p>O jogo gira em torno de um ciclo, e cada volta do ciclo faz a Corrupção subir:</p>
 <ul>
-<li><b>Na guilda:</b> sete salas. Você contrata na Taverna, compra cartas na Biblioteca, forja arma e armadura, abastece a mochila no Mercado, homenageia os mortos no Cemitério, junta o mapa e traduz os escritos na Sala de Mapas, e ajusta os baralhos em Baralhos.</li>
+<li><b>Na guilda:</b> sete salas. Você contrata na Taverna, compra cartas e manda traduzir escritos na Biblioteca, forja arma e armadura, abastece a mochila no Mercado, homenageia os mortos no Cemitério, junta o que os batedores trouxeram na Sala de Mapas, e ajusta os baralhos em Baralhos.</li>
 <li><b>Prepara a expedição:</b> escolhe o destino no mapa do mundo, marca quem vai e <b>em que ordem</b> — a ordem é a formação, e os dois primeiros levam a pancada —, e decide quantas rações e tochas cabem no orçamento.</li>
 <li><b>Parte em jornada:</b> a rota é ramificada, no espírito do <i>Slay the Spire</i>. O grupo atravessa a pé, e a cada parada vem um evento com três escolhas ou um combate. No fim da estrada está o chefe da região.</li>
 <li><b>Volta para a guilda:</b> uma tela de balanço mostra quem voltou, quanto cada um subiu e o que a jornada rendeu — em ouro, em mapa e em páginas. Os feridos precisam de cuidado, os mortos vão para o Cemitério, o mundo apodrece mais um pouco e o ciclo recomeça.</li>
@@ -53,7 +53,7 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <ul>
 <li><b>As salas aceitam carta no lugar de ouro</b> — adiantar uma tradução, convencer um recruta que hesita, pagar a Forja. O baralho passa a competir com o cofre, e a carta que ninguém joga tem para onde ir.</li>
 <li><b>Os escritos traduzidos entram no baralho</b> como cartas de contenção: purificar um trecho, fechar uma brecha, segurar a corrupção de um herói por uma jornada. São as únicas cartas que agem sobre o mundo, e são o que você leva para a luta final.</li>
-<li><b>Selar uma região cobra cartas.</b> O ritual queima parte do baralho, e cada selo pede o seu tipo — o que cura, o que fere, o que protege. O que queima não volta: fechar o mundo enfraquece a sua mão, e você chega ao fim mais pobre do que estava no meio.</li>
+<li><b>Selar uma região cobra cartas.</b> O ritual queima parte do baralho, e cada região pede sempre o mesmo tipo — a mata cobra o que cura, o vulcão cobra o que fere —, sabido desde o começo da partida: dá para montar o baralho pensando no selo que se pretende fechar, e essa preparação disputa espaço com a do próximo combate. O que queima não volta: fechar o mundo enfraquece a mão que o fechou.</li>
 </ul>
 
 <p class="ref"><img src="Referencias/slay-the-spire-combate.jpg" style="width:15.5cm" width="586"></p>
@@ -80,10 +80,11 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 
 <h2>Escolher fecha portas</h2>
 <p>O quadro nem sempre oferece coisas independentes. Duas ofertas podem se excluir: socorrer um lugar deixa o outro sem socorro, e o que fica sem socorro não volta ao quadro. A região colapsa, e com ela some o que ela guardava — o pedaço de mapa que faltava, o escrito que estava lá, o chefe que você ainda podia selar.</p>
+<p>E o preço vem dito antes. Ao lado de cada oferta está escrito o que cai se você atender a outra: qual região colapsa, que pedaço de mapa vai junto, que página se perde. Escolha só é escolha com o custo na tela na hora de escolher — descobrir depois seria sorteio contado como decisão.</p>
 <p>A mesma regra vale nas escalas menores e maiores: na estrada, entrar num ramo apaga o outro; no fim, os três selos que você tem são os três que não dá mais para trocar. Duas partidas nas mesmas sete regiões terminam com mundos diferentes, e a diferença está menos no que você fez do que no que deixou cair.</p>
 
 <h2>Conter a Corrupção</h2>
-<p>Você não é o primeiro a tentar. Nas ruínas, nos espólios e no meio dos eventos aparecem <b>escritos</b> de gente que enfrentou a mesma coisa e foi consumida — o que sobrou delas são páginas soltas, em línguas que ninguém mais fala. Os batedores trazem essas páginas junto com os pedaços de mapa, e é na <b>Sala de Mapas</b> que as duas coisas se encontram: ali se monta o mapa e se traduz, uma página por ciclo. Enquanto a tradução acontece, o mundo continua apodrecendo.</p>
+<p>Você não é o primeiro a tentar. Nas ruínas, nos espólios e no meio dos eventos aparecem <b>escritos</b> de gente que enfrentou a mesma coisa e foi consumida — o que sobrou delas são páginas soltas, em línguas que ninguém mais fala. Os batedores trazem essas páginas junto com os pedaços de mapa: o mapa vai para a Sala de Mapas, e a página vai para a <b>Biblioteca</b>, a única sala que ainda sabe ler o que ninguém mais fala. Ela traduz uma por ciclo. Enquanto a tradução acontece, o mundo continua apodrecendo.</p>
 <p>Cada escrito é uma forma de conter. Uns protegem o herói da exposição; outros fazem uma região apodrecer mais devagar; outros cortam o que a Corrupção ganha quando um evento a alimenta. Nenhum reverte nada — contenção é sempre atraso, e foi assim que essas civilizações caíram: contendo bem, até não conter mais.</p>
 <p>Lidos em ordem, os escritos são a história de quem os escreveu, e é ela que aponta a causa: o mapa mostra <i>onde</i>, e as páginas dizem <i>o quê</i>. A última delas diz o preço que nenhuma das tentativas anteriores pagou até o fim.</p>
 
