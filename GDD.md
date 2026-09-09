@@ -128,11 +128,24 @@ desenho fechado pelo autor é este:
   do chefe. Por cima entram poderes que nenhum herói tem: contaminar as cartas da
   mão, apagar a luz dentro do combate, chamar os mortos do Cemitério pelo nome, e
   recuperar a cada turno o que a contenção segurava.
+- **Os desfechos saem da família dos selos.** As sete regiões se dividem em três
+  leituras da causa: *o que vive* (Floresta, Pântano, Vulcão), *o que foi feito*
+  (Montanha, Ruínas) e *o que já acabou* (Deserto, Tundra). Três selos de três
+  leituras diferentes devolvem o Campeão. Maioria de uma leitura troca a **condição
+  de vitória**: no vivo, aguentar até a contenção fechar (não há o que derrubar);
+  no feito, gastar o que se trouxe — cartas de contenção, relíquias, páginas — até
+  a passagem fechar, e perder é ficar sem nada antes disso; no acabado, selar e
+  sair, com quem ficar para trás ficando.
+- **Trinca da mesma leitura abre o final em que todos ficam.** A guilda inteira
+  sela: ninguém volta e a partida se encerra, mas o que o grupo levava (relíquias,
+  escritos traduzidos, o que a Forja fez) passa para a guilda seguinte — o começo
+  mais forte do jogo.
 - **Vencer destrava o Campeão** como herói jogável na guilda seguinte, com
   corrupção que sobe sozinha enquanto ele está em campo.
-- **Perder deixa ruína.** A guilda caída vira lugar no mapa da partida seguinte;
-  uma expedição recupera parte — relíquias, páginas traduzidas, os nomes dos
-  mortos —, não tudo, e o que volta pode voltar com preço.
+- **Perder na passagem deixa o vencedor na ruína.** A guilda caída vira lugar no
+  mapa da partida seguinte, e o que a derrubou fica lá dentro: recuperar as
+  relíquias, as páginas e os nomes exige enfrentá-lo de novo, ainda com o
+  equipamento do antigo herói.
 
 ## 4. Sessão: menus, pausa e save **[IMPLEMENTADO]**
 
