@@ -106,19 +106,30 @@ hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
 <li><b>Arma, armadura, relíquias e baralho</b> continuam com ele. Tudo o que você comprou para aquele herói está agora do outro lado do campo, e as cartas que você escolheu para ele são os golpes que ele usa.</li>
 </ul>
 <p>Por cima disso vem o que a Corrupção deu, e que nenhum herói tem: ele contamina as cartas na sua mão, que passam a cobrar vida para serem jogadas; apaga a luz, e o combate ganha a escuridão da estrada; chama os mortos da sua guilda, que voltam pelo nome que está no Cemitério; e recupera a cada turno o que a contenção segurava.</p>
-<p>Derrubá-lo fecha a fonte. É a única vitória do jogo, e ela custa um dos seus — o melhor deles é justamente o que segura por mais tempo, e também o que volta pior.</p>
+<p>Derrubá-lo fecha a fonte, e custa um dos seus — o melhor deles é justamente o que segura por mais tempo, e também o que volta pior.</p>
+
+<h2>Os outros desfechos</h2>
+<p>Os selos não valem só como chave. Cada região carrega uma leitura da causa, e as sete se dividem em três: <b>o que vive</b> (Floresta, Pântano, Vulcão), <b>o que foi feito</b> (Montanha, Ruínas) e <b>o que já acabou</b> (Deserto, Tundra). A trinca que você fechar diz qual leitura a sua guilda levou até o fim, e o que espera na passagem muda junto. Muda até o que conta como vencer.</p>
+<p>Três selos de três leituras diferentes não decidem nada. É aí que a passagem devolve o seu herói: o Campeão é o desfecho de quem espalhou as expedições.</p>
+<ul>
+<li><b>Maioria do que vive.</b> A Corrupção é um organismo e não morre. A luta é de resistência: você não derruba nada, aguenta até a contenção fechar. Ganha quem ainda está de pé no último turno.</li>
+<li><b>Maioria do que foi feito.</b> Alguém abriu isto, e a obra continua lá. Não há o que golpear. A passagem se fecha com o que você trouxe — cartas de contenção, relíquias, páginas —, e cada turno cobra a sua parte. Perde quem ficar sem nada antes de a passagem fechar.</li>
+<li><b>Maioria do que já acabou.</b> O mundo passou por isso antes, e o que restou não se enfrenta. Você sela e sai: a vitória é atravessar a volta com o grupo antes que a passagem feche. Quem ficar para trás fica.</li>
+</ul>
+<p><b>Três selos da mesma leitura</b> mudam a última escolha. Você entendeu a causa inteira, e a passagem aceita a guilda no lugar de um herói: todos ficam. Ninguém volta e a guilda se encerra ali, mas o que o grupo levava vai junto para a próxima — relíquias, escritos traduzidos, o que a Forja fez. É a queda mais cara do jogo e o começo mais forte.</p>
+<p>Perder na passagem custa mais do que a partida. O que venceu fica onde a sua guilda caiu: ela vira ruína, e ele fica dentro. Na guilda seguinte, quem quiser de volta as relíquias, as páginas e os nomes que ficaram lá vai ter de entrar e enfrentá-lo de novo — ainda com o equipamento do seu antigo herói.</p>
 
 <h2>Modos</h2>
 <p><b>Campanha.</b> A primeira leitura. Você não sabe de onde a Corrupção vem e descobre traduzindo, e por isso uma página pode valer uma expedição inteira. A história não é contada antes de começar: ela está no que sobrou das civilizações que tentaram, e você lê na ordem em que conseguir.</p>
 <p><b>A segunda leitura.</b> Destravada ao vencer. Joga-se com o Campeão que ficou na porta, e os escritos já traduzidos vêm lidos desde o início. Ele nasce forte, e a corrupção dele sobe sozinha enquanto está em campo.</p>
 
 <h2>Entre uma guilda e outra</h2>
-<p>Nenhuma guilda dura para sempre. A partida acaba quando a Corrupção toma o mundo, quando a reputação zera, quando não sobra ninguém para mandar nem ouro para contratar, ou na passagem, com o Campeão derrubado.</p>
+<p>Nenhuma guilda dura para sempre. A partida acaba quando a Corrupção toma o mundo, quando a reputação zera, quando não sobra ninguém para mandar nem ouro para contratar, ou na passagem, quando a fonte se fecha.</p>
 <p>Fica a <b>memória</b>. Ela é sua, não da partida: sobrevive à guilda inteira e se gasta no Santuário da tela de título — cofre maior para começar, renome que abre portas, mais camas no alojamento, mais contatos na estrada.</p>
 <p>A guilda perdida também não some. Vira <b>ruína</b> no mapa da guilda seguinte, no lugar onde ficava. Uma expedição até lá recupera parte do que se perdeu: relíquias, páginas traduzidas, os nomes dos mortos. Parte, não tudo — o resto foi consumido, e o que volta pode voltar com preço.</p>
 
 <hr>
-<p class="foot">Decisões de design: fantasia sombria com a Corrupção como relógio · preparação acima da execução · morte permanente · baralho híbrido, que serve à estrada, ao combate e à guilda · escolher fecha portas · a vitória cobra um herói. Unity · PC · um jogador. A versão técnica e detalhada deste documento está em GDD.md.</p>
+<p class="foot">Decisões de design: fantasia sombria com a Corrupção como relógio · preparação acima da execução · morte permanente · baralho híbrido, que serve à estrada, ao combate e à guilda · escolher fecha portas · toda vitória cobra alguém. Unity · PC · um jogador. A versão técnica e detalhada deste documento está em GDD.md.</p>
 <p class="foot">Imagens de referência: <i>Darkest Dungeon</i> © Red Hook Studios e <i>Slay the Spire</i> © Mega Crit, usadas aqui apenas como referência de design.</p>
 
 </body>
