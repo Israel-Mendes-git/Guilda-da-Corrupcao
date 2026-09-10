@@ -737,6 +737,42 @@ public class PlayModeProbe : MonoBehaviour
             if (final != null && final.biomeType != ultimo)
                 Line("FALHA: a jornada final não abriu na região do último selo.");
 
+            // --- Os escritos: a página chega, é lida uma por ciclo, e atrasa ---
+            var doEscrito = BiomeUtil.Playable[1];
+            bool nova = Escritos.Encontrar(doEscrito);
+            bool repetida = Escritos.Encontrar(doEscrito);
+
+            Line($"página de {BiomeUtil.GetDisplayName(doEscrito)}: nova={nova} repetida={repetida}"
+               + $" | na estante: {Escritos.TotalNaEstante}");
+
+            if (!nova) Line("FALHA: mapear a região não trouxe a página dela.");
+            if (repetida) Line("FALHA: a mesma região entregou a página duas vezes.");
+
+            float fatorAntes = Escritos.FatorDeAvanco;
+            bool traduziu = Escritos.Traduzir(doEscrito);
+            bool duasNoCiclo = Escritos.Traduzir(doEscrito);
+
+            Line($"tradução: primeira={traduziu} segunda no mesmo ciclo={duasNoCiclo}"
+               + $" | avanço {fatorAntes:P0} → {Escritos.FatorDeAvanco:P0}"
+               + $" | lidos {Escritos.TotalLidos}");
+
+            if (!traduziu) Line("FALHA: a Biblioteca não traduziu a página que estava na estante.");
+            if (duasNoCiclo) Line("FALHA: a Biblioteca traduziu duas vezes no mesmo ciclo.");
+            if (Escritos.FatorDeAvanco >= fatorAntes)
+                Line("FALHA: o escrito traduzido não atrasou a corrupção.");
+
+            // O atraso vale no relógio, e não só na conta: um ciclo com escrito
+            // lido precisa somar menos do que a constante do RunManager.
+            float corrupcaoAntes = run.Corruption;
+            run.AdvanceCycle();
+            float somou = run.Corruption - corrupcaoAntes;
+
+            Line($"ciclo com 1 escrito lido: corrupção +{somou:F1}"
+               + $" (sem escrito seria +{RunManager.CorruptionPerCycle:F1})");
+
+            if (somou >= RunManager.CorruptionPerCycle)
+                Line("FALHA: o ciclo somou como se não houvesse escrito traduzido.");
+
             // A corrupção das missões acompanha o medidor global?
             var comuns = quests.Where(q => q != null && !q.isFinalBoss && !q.isRegionBoss).ToList();
             if (comuns.Count > 0)

@@ -54,7 +54,10 @@ public static class GameStateIO
                 fallen = run.Fallen,
                 regionCorruption = RegionMap.Serializar(),
                 regionMapping = RegionMap.SerializarMapeamento(),
-                regionSealed = RegionMap.SerializarSelos()
+                regionSealed = RegionMap.SerializarSelos(),
+                writingsOnShelf = Escritos.SerializarEstante(),
+                writingsTranslated = Escritos.SerializarLidos(),
+                lastTranslationCycle = Escritos.CicloDaUltimaTraducao
             };
         }
 
@@ -175,6 +178,9 @@ public static class GameStateIO
                           dados.run.fallen);
 
             RegionMap.Restaurar(dados.run.regionCorruption, dados.run.regionMapping, dados.run.regionSealed);
+
+            Escritos.Restaurar(dados.run.writingsOnShelf, dados.run.writingsTranslated,
+                               dados.run.lastTranslationCycle);
         }
 
         var quests = QuestManager.Instance;

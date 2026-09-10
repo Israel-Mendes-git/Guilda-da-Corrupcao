@@ -131,12 +131,19 @@ public class RunManager : MonoBehaviour
 
         Cycle++;
         Fallen += Mathf.Max(0, fallenThisJourney);
-        AddCorruption(CorruptionPerCycle);
+
+        // O que os escritos traduzidos seguram. É o único efeito que eles têm, e
+        // é sempre atraso: o passo do relógio encolhe, nunca inverte, e o teto
+        // do <see cref="Escritos.AtrasoMaximo"/> garante que a estante inteira
+        // não pare o mundo.
+        float passo = CorruptionPerCycle * Escritos.FatorDeAvanco;
+
+        AddCorruption(passo);
 
         // O mundo apodrece junto com o relógio, cada região no seu ritmo. Sem
         // isto o mapa mostraria sete regiões paradas enquanto o medidor global
         // sobe, que é o oposto do que o mapa existe para contar.
-        RegionMap.Avancar(CorruptionPerCycle);
+        RegionMap.Avancar(passo);
 
         onCycleAdvanced?.Invoke();
         CheckEndConditions();
@@ -213,6 +220,7 @@ public class RunManager : MonoBehaviour
         EndReason = RunEndReason.None;
 
         RegionMap.Reiniciar();
+        Escritos.Reiniciar();
     }
 
     /// <summary>

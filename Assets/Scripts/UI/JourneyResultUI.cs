@@ -208,7 +208,10 @@ public class JourneyResultUI : MonoBehaviour
                  + $"({RegionMap.Selos} de {RegionMap.SelosParaOFim} selos)</color>";
 
         if (report.mapaCompletado)
-            return $"<color=#D9B85A>{lugar} inteira no mapa — o que a guarda apareceu no quadro</color>";
+            return $"<color=#D9B85A>{lugar} inteira no mapa — o que a guarda apareceu no quadro</color>"
+                 + (report.escritoEncontrado
+                        ? "\n<color=#D9B85A>📜 Uma página veio junto. A Biblioteca a traduz.</color>"
+                        : "");
 
         return $"{lugar} — {Mathf.RoundToInt(report.mapeamento * 100f)}% mapeada";
     }
@@ -375,6 +378,9 @@ public class JourneyReport
 
     /// <summary>O chefe caiu e a região parou de apodrecer.</summary>
     public bool regiaoSelada;
+
+    /// <summary>Fechar o mapa trouxe a página que estava naquela região.</summary>
+    public bool escritoEncontrado;
 
     /// <summary>
     /// Escolhas oferecidas ao voltar. Vazio quando a jornada fracassou: quem

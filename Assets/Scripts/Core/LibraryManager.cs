@@ -70,6 +70,11 @@ public class LibraryManager : MonoBehaviour
     public Button upgradeButton;
     public Button closeButton;
 
+    [Header("Escritos")]
+    public TMP_Text writingsTitleText;
+    public TMP_Text writingsText;
+    public Button translateButton;
+
     [Header("Preços")]
     public int upgradeBaseCost = 500;
     public int commonCardPrice = 100;
@@ -158,6 +163,7 @@ public class LibraryManager : MonoBehaviour
         BuildHeroes();
         AtualizarMesa();
         MontarEstante();
+        AtualizarEscritos();
     }
 
     static bool EstaNoRoster(HeroData hero)
@@ -288,6 +294,95 @@ public class LibraryManager : MonoBehaviour
     }
 
     /// <summary>Traz o herói para a mesa. É o único efeito do clique na fila.</summary>
+    #region Escritos
+
+    /// <summary>
+    /// A mesa de tradução: o que espera, o que já foi lido, e o quanto isso
+    /// segura o relógio.
+    ///
+    /// <b>Uma por ciclo.</b> Com três páginas na estante, qual se lê primeiro é
+    /// escolha — e é a única decisão desta sala que não custa ouro.
+    ///
+    /// O texto de cada escrito ainda não existe: o que a tela mostra é de onde a
+    /// página veio e o que ela segura. Quando o corpo for escrito, ele entra
+    /// aqui sem mudar mais nada.
+    /// </summary>
+    void AtualizarEscritos()
+    {
+        int naEstante = Escritos.TotalNaEstante;
+        int lidos = Escritos.TotalLidos;
+
+        if (writingsTitleText != null)
+            writingsTitleText.text = lidos == 0
+                ? "📜 Escritos"
+                : $"📜 Escritos — a corrupção avança {Mathf.RoundToInt(Escritos.Atraso * 100f)}% mais devagar";
+
+        if (writingsText != null)
+        {
+            if (naEstante == 0 && lidos == 0)
+            {
+                writingsText.text = "<color=#8A8278>Nada na mesa. Mapear uma região inteira "
+                                  + "desenterra o que ficou escrito nela.</color>";
+            }
+            else
+            {
+                var linhas = new List<string>();
+
+                foreach (var regiao in Escritos.NaEstante())
+                    linhas.Add($"<color=#D9B85A>◆ {Escritos.Titulo(regiao)}</color>  <size=15>por traduzir</size>");
+
+                foreach (var regiao in Escritos.Lidos())
+                    linhas.Add($"<color=#8A8278>◇ {Escritos.Titulo(regiao)}</color>"
+                             + $"  <size=15>lido · −{Mathf.RoundToInt(Escritos.AtrasoPorEscrito * 100f)}% no avanço</size>");
+
+                writingsText.text = string.Join("\n", linhas);
+            }
+        }
+
+        if (translateButton == null) return;
+
+        bool pode = Escritos.PodeTraduzirNesteCiclo;
+
+        translateButton.interactable = pode;
+
+        var rotulo = translateButton.GetComponentInChildren<TMP_Text>();
+        if (rotulo != null)
+            rotulo.text = naEstante == 0
+                ? "NADA A TRADUZIR"
+                : pode ? "TRADUZIR" : "JÁ TRADUZIU NESTE CICLO";
+
+        translateButton.onClick.RemoveAllListeners();
+        translateButton.onClick.AddListener(TraduzirProximo);
+    }
+
+    /// <summary>
+    /// Lê a página mais antiga da estante — a primeira que chegou.
+    ///
+    /// Sem escolher qual por enquanto: a ordem de leitura é a ordem em que as
+    /// páginas foram desenterradas, e escolher entre elas vira decisão quando o
+    /// texto de cada uma existir e disser coisas diferentes.
+    /// </summary>
+    void TraduzirProximo()
+    {
+        var estante = Escritos.NaEstante();
+        if (estante.Count == 0) return;
+
+        var regiao = estante[0];
+
+        if (!Escritos.Traduzir(regiao))
+        {
+            SetFeedback("A Biblioteca já traduziu neste ciclo.");
+            return;
+        }
+
+        SetFeedback($"{Escritos.Titulo(regiao)} traduzido. "
+                  + $"A corrupção passa a avançar {Mathf.RoundToInt(Escritos.Atraso * 100f)}% mais devagar.");
+
+        RefreshLibrary();
+    }
+
+    #endregion
+
     public void PorNaMesa(HeroData hero)
     {
         if (hero == null || hero.isDead) return;

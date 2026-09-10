@@ -110,6 +110,18 @@ public class RunSave
     /// A ordem é regra do jogo: o terceiro selo decide onde o fim acontece.
     /// </summary>
     public List<int> regionSealed = new List<int>();
+
+    /// <summary>
+    /// Os escritos, por índice de região: os que esperam na estante e os já
+    /// traduzidos, cada lista na sua ordem — a dos lidos é a ordem em que a
+    /// história foi montada. <c>lastTranslationCycle</c> guarda a regra de uma
+    /// tradução por ciclo, que sem ele voltaria a valer no carregamento.
+    /// </summary>
+    public List<int> writingsOnShelf = new List<int>();
+
+    public List<int> writingsTranslated = new List<int>();
+
+    public int lastTranslationCycle = -1;
 }
 
 /// <summary>
