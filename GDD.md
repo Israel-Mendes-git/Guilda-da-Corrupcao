@@ -1,11 +1,20 @@
 # Game Design Document — Guilda da Corrupção
 
-Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.1 — 08/09/2026 (substitui a 2.0, de 26/08)
+Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.2 — 10/09/2026 (substitui a 2.1, de 08/09)
 
-Descreve o jogo como ele está em 29/08/2026, conferido contra o `SmokeTestReport.txt`
+Descreve o jogo como ele está em 10/09/2026, conferido contra o `SmokeTestReport.txt`
 (45 verificações, 0 falhas), o `PlayModeReport.txt` (nenhum erro) e o
 `GameplayReport.txt` (auditoria de jogabilidade). Plano de trabalho em
-[`ROADMAP.md`](ROADMAP.md), inventário de arte em [`ASSETS.md`](ASSETS.md).
+[`ROADMAP.md`](ROADMAP.md), inventário de arte em [`ASSETS.md`](ASSETS.md) e
+[`ARTE.md`](ARTE.md).
+
+**O mundo mudou de rumo em 10/09.** [`MUNDO.md`](MUNDO.md), desenhado com o autor
+e ratificado por ele no mesmo dia, põe **sete áreas com regra própria** num plano
+navegável, e o relógio passa a contar dias em vez de ciclos. **Nada disso está
+construído**, e parte contraria o §5 e o §13 deste documento. Junto com os nove
+pontos que o autor levantou no mesmo dia (`ROADMAP.md`, "O debate que vem antes"),
+é o que precede a próxima fila de trabalho. Até lá, o que está escrito aqui é o
+jogo que existe.
 
 **[IMPLEMENTADO]** existe e funciona · **[PARCIAL]** existe pela metade, ou
 existe e ninguém usa · **[PLANEJADO]** decidido, não construído.
@@ -54,14 +63,22 @@ avançar.
 | Régua | Valor |
 |---|---|
 | Corrupção inicial · por ciclo · por evento marcado | 10 · +6 · +3 |
+| Escritos traduzidos atrasam o ciclo | −8% no avanço cada, teto −40% (§3.2, §6) |
 | Máximo | 100 |
-| Chefe Supremo entra no quadro | Corrupção ≥ 60 (por volta do 9º ciclo) |
+| Chefe Supremo entra no quadro | **Três selos na mesa** (§3.2) |
 | Partida inteira | ~15 jornadas até o mundo saturar |
 
 Fim da partida: **derrota** quando a Corrupção chega a 100, quando a reputação
 zera, ou quando não há herói vivo **e** falta ouro para recrutar (menos de 30);
 **vitória** ao derrotar o Chefe Supremo. Vem então uma tela de balanço com ciclos,
 mortos, corrupção final e o botão de nova guilda.
+
+**O que mudou em 10/09 [IMPLEMENTADO]:** o Chefe Supremo entrava no quadro só
+porque o mundo apodreceu — o fim acontecia *com* o jogador, não *por causa* dele.
+Agora quem abre a passagem são os três selos (§3.2). O limiar antigo,
+`BossThreshold = 60`, continua no código porque a auditoria mede em que ciclo o
+mundo o cruza, mas não destrava mais nada: medido no ciclo 8, com corrupção 64 —
+acima do antigo limiar —, o fim continuou fechado.
 
 ### 3.1 Meta-progressão **[IMPLEMENTADO]**
 
@@ -82,43 +99,47 @@ novo seria design a fazer, não meta-progressão a ligar. **[PLANEJADO]** Destra
 cartas do acervo da Biblioteca e as classes Ladino e Bardo — as duas dependem de
 conteúdo que ainda não existe (§9).
 
-### 3.2 O fim, decidido em 09/09 **[PLANEJADO]**
+### 3.2 O fim, decidido em 09/09 **[PARCIAL]**
 
-Hoje a vitória é derrotar o Chefe Supremo, que entra no quadro por corrupção. O
-desenho fechado pelo autor é este:
+O desenho fechado pelo autor é este: como a partida termina, e o que fica quando
+ela termina. **Como cada área se fecha e o que o último selo cobra na luta final
+está no §3.3**, que trata dos selos. Dos pontos abaixo, os escritos foram
+construídos em 10/09 (ROADMAP, fase 3.12); o resto segue planejado, e cada um diz
+em que estado está.
 
-- **Mapear destrava.** Cada expedição traz pedaços do mapa da região percorrida;
-  região mapeada mostra o seu chefe, e derrubá-lo **sela** a região — a corrupção
-  de lá para de subir. Com três selos, a Sala de Mapas desenha a jornada final.
-- **Cada selo é específico.** Não é um contador: é *quais* três. Cada região
-  entrega uma verdade sobre a causa, uma regra que entra na luta final e um
-  destino no epílogo — 35 combinações, montadas de peças e não escritas uma a uma.
-- **Voltar cobra.** A corrupção que a travessia soma à região (+4, §5) ganha
-  consequência declarada: a visita seguinte traz inimigos mais fortes e os eventos
-  do fundo da escala. Mapear obriga a voltar, e voltar piora o lugar.
-- **Escolher fecha portas, e o preço é anunciado.** Ofertas do quadro podem se
-  excluir: socorrer um lugar deixa o outro sem socorro, e o que fica sem socorro
+- **Escolher fecha portas, e o preço é anunciado** — **[PLANEJADO]**. Ofertas do
+  quadro podem se excluir: socorrer um lugar deixa o outro sem socorro, e o que
+  fica sem socorro
   colapsa — some do quadro, e com ele o mapa, o escrito e o chefe que estavam lá.
   A oferta diz o que cai antes de o jogador escolher. Vale também na rota (entrar
   num ramo apaga o outro) e no fim (os selos que você tem não se trocam).
-- **Os escritos contêm.** Páginas de civilizações consumidas caem em ruínas,
-  espólios e eventos; os batedores as trazem junto com o mapa, e a **Biblioteca**
-  traduz uma por ciclo. Cada uma atrasa a corrupção (a do herói, a de uma região,
-  ou o que os eventos somam) e nenhuma reverte. Lidas em ordem, apontam a causa —
-  o mapa diz onde, a página diz o quê.
-- **O baralho vale fora da estrada**, de três maneiras: as salas aceitam carta no
+- **Os escritos contêm** — **[IMPLEMENTADO]**. Um escrito por região, entregue
+  quando ela fica **inteira no mapa**: mapear é o que desenterra a página, e a ordem
+  em que aparecem é a ordem em que o jogador escolheu percorrer o mundo. A
+  **Biblioteca** traduz uma por ciclo, e cada página traduzida tira **8% do avanço
+  da corrupção, somando até 40%** — contenção é sempre atraso, nunca reversão, e o
+  teto existe para que a estante inteira não pare o relógio da partida. Medido: o
+  avanço cai de 100% para 92% com uma lida, e o ciclo seguinte soma +5,5 no lugar de
+  +6,0. **[PLANEJADO]** o texto das páginas e a leitura em ordem apontando a causa —
+  hoje a tela diz de onde a página veio e o que ela segura, e nada mais.
+- **O baralho vale fora da estrada** — **[PLANEJADO]**, e nenhuma das três maneiras
+  existe hoje (é o ponto D3 do debate de 10/09): as salas aceitam carta no
   lugar de ouro; o escrito traduzido **entra no baralho** como carta de contenção,
   a única que age sobre o mundo; e **selar cobra cartas**, queimadas sem volta, do
   tipo que aquela região sempre pede — fixo e sabido desde o começo, para que dê
   para preparar o baralho para o selo.
-- **A jornada final não reabastece.** O que saiu da guilda é o que se tem; o resto
-  é o que o caminho largar.
-- **Alguém fica.** A passagem se fecha por dentro. O herói escolhido define as
-  duas metades da luta final: **quanto ela dura** (a contenção segura o que ele
-  aguenta) e **contra o que se luta**, porque ele volta como **o Campeão** — o
+- **A jornada final não reabastece** — **[PLANEJADO]**. A jornada já existe no
+  quadro (10 a 15 dias, na região do último selo), mas ainda se prepara como
+  qualquer outra. O desenho é: o que saiu da guilda é o que se tem; o resto é o que
+  o caminho largar.
+- **Alguém fica** — **[PLANEJADO]**. A passagem se fecha por dentro. O herói
+  escolhido define as duas metades da luta final: **quanto ela dura** (a contenção
+  segura o que ele aguenta) e **contra o que se luta**, porque ele volta como **o
+  Campeão** — o
   chefe final da maioria das partidas, já que algumas combinações de selos levam a
   outro desfecho.
-- **O Campeão é montado com o que o herói era.** A classe dá o repertório
+- **O Campeão é montado com o que o herói era** — **[PLANEJADO]**. A classe dá o
+  repertório
   (Guerreiro quebra a formação, Mago drena a energia da mão, Curandeiro devolve
   cura como dano, Caçador ignora a linha de frente, Ladino leva cartas do baralho,
   Bardo vira o estresse do grupo); o nível dá vida e dano; traço e personalidade
@@ -128,27 +149,73 @@ desenho fechado pelo autor é este:
   do chefe. Por cima entram poderes que nenhum herói tem: contaminar as cartas da
   mão, apagar a luz dentro do combate, chamar os mortos do Cemitério pelo nome, e
   recuperar a cada turno o que a contenção segurava.
-- **O terceiro selo decide o fim.** A região fechada por último é a que abre a
-  passagem, e cada uma tem o seu: são sete, e a ordem de selar vira escolha. O
-  Campeão está em todos — o que muda é o campo e a **condição de vitória**.
-
-  | Região selada por último | Como se vence |
-  |---|---|
-  | Floresta · Ruínas | **Derrubar** o Campeão; nas Ruínas ele usa contra o grupo os escritos traduzidos |
-  | Pântano · Deserto | **Aguentar** até a contenção fechar; ganha quem estiver de pé |
-  | Montanha · Tundra | **Gastar** o que se trouxe (cartas de contenção, relíquias, páginas) até a passagem fechar |
-  | Vulcão | **Sair** antes que feche, com o Campeão atrás; quem ficar para trás fica |
-
-- **Traduzir tudo abre o final em que todos ficam.** Com os escritos lidos até a
+- **Traduzir tudo abre o final em que todos ficam** — **[PLANEJADO]**. Com os
+  escritos lidos até a
   última página, a passagem aceita a guilda inteira: ninguém volta e a partida se
   encerra, mas o que o grupo levava (relíquias, escritos, o que a Forja fez) passa
   para a guilda seguinte — o começo mais forte do jogo.
-- **Vencer destrava o Campeão** como herói jogável na guilda seguinte, com
+- **Vencer destrava o Campeão** — **[PLANEJADO]** — como herói jogável na guilda
+  seguinte, com
   corrupção que sobe sozinha enquanto ele está em campo.
-- **Perder na passagem deixa o vencedor na ruína.** A guilda caída vira lugar no
-  mapa da partida seguinte, e o que a derrubou fica lá dentro: recuperar as
-  relíquias, as páginas e os nomes exige enfrentá-lo de novo, ainda com o
-  equipamento do antigo herói.
+- **Perder na passagem deixa o vencedor na ruína** — **[PLANEJADO]**. A guilda
+  caída vira lugar no mapa da partida seguinte, e o que a derrubou fica lá dentro:
+  recuperar as relíquias, as páginas e os nomes exige enfrentá-lo de novo, ainda com
+  o equipamento do antigo herói.
+- **A dificuldade é da campanha; o pós-game é outra coisa** — **[PLANEJADO]**,
+  decidido pelo autor em 10/09. A dificuldade é uma escolha da **campanha
+  principal**, tomada **antes de começar** e uma vez só: **fácil, médio ou
+  difícil**. Não é modo de jogo, e não muda o que existe no mundo — muda o quanto
+  ele cobra. O **pós-game é separado disso**: destravado ao vencer, jogado com o
+  Campeão que ficou na porta e com os escritos já traduzidos lidos desde o início,
+  e vale pelo que o autor chamou de *"heróis mais fortes e apelões (tudo pela
+  diversão)"*. **Em aberto:** o que cada nível mexe — passo da corrupção,
+  letalidade, ouro — e se a dificuldade escolhida vale também no pós-game.
+
+### 3.3 Os selos **[PARCIAL]**
+
+Fechar uma área é o que a partida constrói, e é o que decide o fim (§3.2). Mapear
+e selar foram construídos em 10/09 (ROADMAP, fase 3.11); o que cada área cobra
+para se fechar segue planejado.
+
+- **Mapear destrava** — **[IMPLEMENTADO]**. Cada expedição traz pedaços do mapa da
+  região percorrida: **50 quando vence e 20 quando fracassa**, e 100 fecha o
+  desenho — o mapa é a única recompensa que sobrevive a uma jornada perdida, e duas
+  idas bem-sucedidas mapeiam. Região mapeada põe o seu chefe no quadro, **além** das
+  quatro ofertas, e derrubá-lo **sela** a região — a corrupção de lá para de subir.
+  Com três selos, a Sala de Mapas desenha a jornada final.
+- **Cada selo é específico** — **[PARCIAL]**. Não é um contador: é *quais* três, e
+  o `RegionMap` já guarda a **ordem** em que as regiões caíram, não um sim/não por
+  região — a ordem é regra do jogo, e o save grava por índice. **[PLANEJADO]** o que
+  cada região entrega: uma verdade sobre a causa, uma regra que entra na luta final
+  e um destino no epílogo — 35 combinações, montadas de peças e não escritas uma a
+  uma.
+- **Voltar cobra** — **[PARCIAL]**. A corrupção que a travessia soma à região (+4,
+  §5) já torna a visita seguinte pior, e a luta de selo **herda a corrupção da
+  própria região**: demorar a selar encarece o selo. Mapear obriga a voltar, e
+  voltar piora o lugar. **[PLANEJADO]** dizer isso ao jogador antes de ele
+  escolher.
+- **O último selo decide o fim** — **[PARCIAL]**. A área fechada por último já é a
+  que abre a passagem, e a jornada final nasce nela. **[PLANEJADO]** o que cada uma
+  cobra: são **sete áreas e sete fins**, e a ordem de selar vira escolha — dá para
+  deixar por último a área cujo fim se quer. O Campeão está em todos; o que muda é
+  o campo e a **condição de vitória**. Hoje a única vitória continua sendo derrubar
+  o Chefe Supremo.
+
+  **Cada fim sai da regra da própria área** (reamarrado em 10/09, quando as
+  regiões-bioma deram lugar às sete áreas):
+
+  | Área selada por último | Como se vence |
+  |---|---|
+  | **A Mata** | **Derrubar.** O mato fecha atrás do grupo e ninguém recua: a luta acaba quando o Campeão cai. É o fim que não precisa ser explicado |
+  | **A Cripta** | **Devolver.** Ele levanta os seus mortos pelo nome, um por turno. Vence-se consagrando cada um — e ele por último. Quem não pagou tributo em vida paga aqui |
+  | **A Aldeia** | **Poupar.** Ele manda na frente os que ainda têm consciência, e cada um que o grupo derruba encurta a contenção. Ganha quem fecha a passagem sem limpar o caminho |
+  | **O Covil** | **Sair.** Acordar o dragão de propósito e atravessar a volta antes do fogo, com o Campeão atrás. Quem ficar para trás fica |
+  | **A Torre** | **Quebrar.** O alvo é o altar, não ele: enquanto o altar estiver de pé, as cópias do seu próprio grupo voltam a cada turno |
+  | **A Forja** | **Gastar.** O fogo só se apaga com o ferro que você trouxe, peça por peça. Termina-se desarmado, ou não se termina |
+  | **O Oráculo** | **Responder.** Sem um golpe: ele pergunta, cada resposta custa uma carta do baralho de quem está lá, e perde quem fica sem baralho |
+
+  **Só a Mata se ganha lutando limpo, e o Oráculo se ganha sem desferir um golpe** —
+  é a resposta ao D7 do autor, que pediu finais que não passem por combate.
 
 ## 4. Sessão: menus, pausa e save **[IMPLEMENTADO]**
 
@@ -164,6 +231,12 @@ desenho fechado pelo autor é este:
   escrito. O ponto seguro é a guilda entre jornadas, onde o autosave já cai.
 
 ## 5. O mundo: sete regiões **[IMPLEMENTADO]**
+
+> **Decidido em 10/09: o lugar do jogo passa a ser a área.** O rumo é o mundo de
+> [`MUNDO.md`](MUNDO.md) — **sete áreas com regra própria** num plano navegável —,
+> e a lista de arte de [`ARTE.md`](ARTE.md) está orçada nele. O que o código chama
+> de bioma vira só o **aspecto do local no mapa**, e sai do vocabulário de design.
+> O que esta seção descreve é o que existe hoje.
 
 A guilda fica no centro do mapa e sete regiões a cercam. Cada uma tem **corrupção
 própria**, ritmo próprio de apodrecimento, eventos que só acontecem nela e um
@@ -183,11 +256,20 @@ Floresta" é informação estável, não sorteio por missão.
 - A corrupção de uma missão é a da região (±5). Corrupção alta significa
   requisitos de classe mais duros, eventos piores liberados, e mais XP e ouro.
 - **Atravessar suja o lugar:** +4 de corrupção na região que a expedição percorreu.
-- **[PARCIAL]** Deserto, Tundra e Vulcão caem no chefe curinga e têm um evento
-  próprio cada — uma jornada nelas repete os genéricos.
+- **Mapear e selar [IMPLEMENTADO]:** cada expedição volta com mapa da região que
+  percorreu — 50 vencendo, 20 fracassando, e 100 fecha o desenho. Região inteira no
+  mapa põe a luta de selo no quadro e entrega o escrito que estava nela (§3.2, §6);
+  vencer a luta **congela** a corrupção daquela região e tira a oferta do quadro no
+  mesmo ciclo. Três selos abrem a passagem, que nasce na região selada por último.
+- **[PARCIAL]** Deserto, Tundra e Vulcão **não têm criatura própria nenhuma**: o
+  único inimigo comum que pode sair nelas é o genérico, e o chefe é o mesmo
+  curinga nas três. Têm dois eventos próprios cada, contra três a quatro das
+  outras — uma jornada nelas é quase só o pool genérico. A decisão de 10/09 tira
+  isso da fila: não se produz bestiário para elas, porque o lugar passou a ser a
+  área.
 - **[PARCIAL]** O mapa é feito de círculos e linhas montados por código, pintados
-  pela corrupção; trocar por um mapa ilustrado é trocar o fundo e sete pares de
-  coordenadas.
+  pela corrupção. As coordenadas são placeholder geométrico, e nada depende delas —
+  o plano navegável de `MUNDO.md` entra no lugar disto.
 
 ## 6. A guilda **[IMPLEMENTADO]**
 
@@ -201,11 +283,11 @@ Floresta" é informação estável, não sorteio por missão.
 | Sala | O que faz |
 |---|---|
 | Taverna | 3 recrutas por vez; contratar custa o salário; renovar a lista custa 50 |
-| Biblioteca | Vende cartas por raridade e sobe de nível, liberando raridades melhores |
+| Biblioteca | Vende cartas por raridade e sobe de nível, liberando raridades melhores; traduz um escrito por ciclo |
 | Mercado | Rações e tochas; tratamento, bandagem e vinho de efeito imediato; frascos e a relíquia do ciclo |
 | Forja | Um herói na bigorna por vez: arma (+1 de dano nas cartas dele) e armadura (+4 de HP), até nível 3 |
 | Cemitério | Lista os caídos; monumento devolve reputação; vigília alivia estresse |
-| Sala de Mapas | Batedores revelam trechos da rota; desvios trocam um evento adiante |
+| Sala de Mapas | Batedores revelam trechos da rota; desvios trocam um evento adiante; conta os selos e diz onde a passagem abriu |
 | Baralhos | Monta o baralho de cada herói dentro do limite do nível dele |
 
 **As salas são lugares [IMPLEMENTADO].** A **Forja** estabeleceu o molde — fila à
@@ -221,6 +303,14 @@ coluna comparar era impossível.
 cartas que servem a alguém do roster, com um nicho por classe presente. Antes ela
 saía do acervo inteiro, e quase todo nicho era carta de classe que a guilda não
 tinha. O veredito de cada carta é dado contra o baralho de quem está na mesa.
+
+**E traduz um escrito por ciclo [IMPLEMENTADO]:** a mesa de tradução fica embaixo
+da fila de heróis, e é a única decisão daquela sala que não custa ouro. Cada página
+lida tira 8% do avanço da corrupção por ciclo, somando até 40% (§3.2). Com três
+páginas na estante, qual se lê primeiro passa a ser escolha, e a segunda tradução
+no mesmo ciclo é recusada. **[PLANEJADO]** o texto de cada página: a tela diz de
+onde ela veio e o que ela segura, e o que aquelas civilizações escreveram é decisão
+do autor.
 
 **O guia da guilda [IMPLEMENTADO]:** uma linha diz o que fazer agora e acende a
 porta que resolve, pela primeira condição que casa — da mais bloqueante à mais
@@ -452,6 +542,10 @@ impedir a luta.
 | Recompensa da missão | `base + duração×20 + sobreviventes×25` |
 | Dano de fome | 5 por herói a cada trecho sem ração |
 | Energia / mão de combate | 5 / 6 |
+| Mapa por expedição · para fechar a região | 50 vencendo · 20 fracassando · 100 |
+| Selos para abrir a passagem | 3 (de 7 regiões) |
+| Atraso por escrito traduzido · teto | −8% no avanço por ciclo · −40% |
+| Luta de selo · jornada final | 7–10 dias, `200 + nível×20` · 10–15 dias, `300 + nível×30` |
 
 **Letalidade alvo** (decisão do autor): 0,33 a 0,67 mortes por jornada com grupo
 de 4. Medido em 29/08, com o simulador rodando o código real em 1000 jornadas:
@@ -527,7 +621,7 @@ regra de manutenção do §9: valor novo entra só no fim.
 
 **Onde mora cada coisa:**
 
-- *Partida e save:* `RunManager`, `RunFlow`, `MetaProgression`, `RegionMap`, `SaveSystem`, `GameStateIO`, `PlayerProfile`, `SceneFlow`
+- *Partida e save:* `RunManager`, `RunFlow`, `MetaProgression`, `RegionMap`, `Escritos`, `SaveSystem`, `GameStateIO`, `PlayerProfile`, `SceneFlow`
 - *Guilda:* `GuildManager`, `TavernManager`, `LibraryManager`, `MarketManager`, `ForgeManager`, `CemeteryManager`, `MapRoomManager`, `DeckManager`, `CycleStock`, `HeroFactory`, `DeckGenerator`, e as telas em `Core/Rooms/`
 - *Missão e jornada:* `QuestManager`, `QuestGenerator`, `JourneyManager`, `JourneyMap`, `EventPool`, `EventResolver`, `PartyFormation`, `CardOwnership`, `TrailStage`, `TrailCast`
 - *Combate:* `CombatManager`, `EnemyPool`, `BattleStage`, `EnemyBody`, `TurnOrderBar`, `CombatFeedback`

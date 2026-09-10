@@ -2,6 +2,9 @@
 
 > Levantamento de 09/09/2026, **atualizado em 10/09** contra o mundo desenhado em
 > [`MUNDO.md`](MUNDO.md) e as decisões de interface do `ROADMAP.md` (Fase 3.12).
+> **O autor ratificou este mundo em 10/09:** as **sete áreas** são o rumo (a Abadia
+> saiu na mesma conversa), e o que o código chama de bioma vira só o aspecto do
+> local no mapa navegável — deixou de ser conceito de design.
 > **Nada da arte que está na tela fica.** Tudo é asset de loja, quase todo gratuito, usado como
 > placeholder. A lista abaixo é a arte do jogo inteiro, não um remendo do que ficou ruim.
 
@@ -21,19 +24,19 @@ Referência de tela: **1920×1080**, Canvas em `ScaleWithScreenSize`.
 |---|---|---|
 | Cartas | 45 | 40 ilustrações, 4 molduras de raridade, 1 verso |
 | Guilda | 14 | 1 fachada + 7 interiores + **6 portas que falam** |
-| Combate | 37–53 | 6 chefes + 8–16 comuns, × 2 poses · 8 fundos de área · 1 camada de corrupção |
+| Combate | 34–50 | 5 chefes + 8–16 comuns, × 2 poses · 7 fundos de área · 1 camada de corrupção |
 | Heróis | 48–54 | 12–18 **corpos inteiros** + 36 peças de equipamento |
-| Ícones | ~63 | 15 efeitos, 6 recursos, 6 classes, 12 traços, 10 itens, **8 regras de área**, 6 do fim |
+| Ícones | ~62 | 15 efeitos, 6 recursos, 6 classes, 12 traços, 10 itens, **7 regras de área**, 6 do fim |
 | Eventos | 25 + 1 | ilustração por evento, **a redistribuir pelas áreas novas** + a Encruzilhada |
-| Mapa | ~14 | **1 plano ilustrado navegável** + 8 áreas nele + lugares seguros + trilha |
-| VFX | 20 | 15 de combate + 5 dos selos |
+| Mapa | ~13 | **1 plano ilustrado navegável** + 7 áreas nele + lugares seguros + trilha |
+| VFX | 19 | 15 de combate + 4 dos selos |
 | UI | kit | molduras, botões, barras |
 | Corrupção | 4 | medidor, tela, camada de área, tratamento de item e de herói |
 | Estrada | 5 | Estalagem, Posto de pé, Posto tomado, Esconderijo, Encruzilhada |
 
-**Cerca de 290 peças contáveis** — eram 190 antes do mundo novo. O que cresceu: o mapa (de papel com
-ícones para plano ilustrado), os heróis (corpo inteiro em vez de retrato) e o combate (oito áreas em
-vez de sete biomas, com chefes próprios).
+**Cerca de 285 peças contáveis** — eram 190 antes do mundo novo. O que cresceu: o mapa (de papel com
+ícones para plano ilustrado), os heróis (corpo inteiro em vez de retrato) e o combate (sete áreas
+com regra e chefe próprios, no lugar de sete pacotes de cenário).
 
 A ordem dos blocos é por **tempo que a peça passa na tela**, não por dificuldade.
 
@@ -94,26 +97,26 @@ Se virarem, é um interior a menos.
 
 | Peça | Quantidade | Hoje |
 |---|---|---|
-| Chefes — 2 poses cada | **6** — um por área que se fecha lutando | 5 chefes, todos pixel art emprestada |
+| Chefes — 2 poses cada | **5** — um por área que se fecha lutando | 5 chefes, todos pixel art emprestada |
 | Inimigos comuns — 2 poses cada | **8–16** | 6 comuns, com quatro repetindo arte separada por cor e tamanho |
-| Fundo de área | **8** | 7 fundos de bioma, um pacote diferente para cada, sem paleta comum |
+| Fundo de área | **7** | há 7 fundos hoje, um pacote diferente para cada, sem paleta comum |
 | Camada de corrupção | **1** | não existe |
 
 São **duas poses por inimigo** — parada em 3/4 e o momento do golpe ou da magia —, não animação. O
 código troca sprite sem Animator, então duas imagens bastam. Dano e morte ficam fora.
 
 **Os chefes mudaram de lista com o mundo novo.** As áreas pedem: o que espalha na Mata, o
-**necromante** da Cripta, o que restou na Abadia, o **dragão** do Covil, o que mora na Forja
-Abandonada, e o que ainda comanda na Aldeia. Dois casos especiais e baratos: a **Torre** usa como
+**necromante** da Cripta, o **dragão** do Covil, o que mora na Forja Abandonada, e o que ainda
+comanda na Aldeia. Dois casos especiais e baratos: a **Torre** usa como
 inimigo **os próprios heróis do jogador** — a arte já existe, é a do bloco 4 —, e o **Oráculo** não
 tem chefe, porque se fecha com uma pergunta.
 
-Dos cinco chefes atuais, **A Coisa da Mata** sobrevive de casa. O Afogado e O Gigante de Pedra
-perdem o lugar com a saída do Pântano e da Montanha.
+Dos cinco chefes atuais, **A Coisa da Mata** sobrevive de casa; os outros quatro perdem o lugar
+junto com as regiões que os sediavam.
 
 **Quantos comuns por área** é decisão de escopo: dois exclusivos por área dão 16; um pool
 compartilhado com um exclusivo por área dá 8 mais 4. A camada de corrupção é uma só, reaproveitada
-sobre os oito fundos — repintar cada área em dois estados dobraria o bloco.
+sobre os sete fundos — repintar cada área em dois estados dobraria o bloco.
 
 ## 4. Heróis
 
@@ -163,8 +166,8 @@ estreitando, o Covil com a chama, a Cripta com as lápides abertas. Regra que n�
 **25 ilustrações**, uma por evento, todas com cena emprestada do mesmo pacote que veste a guilda —
 por isso evento e sala se parecem demais.
 
-**A redistribuir:** os eventos hoje são pareados por bioma, e Deserto e Tundra saem enquanto oito
-áreas novas entram. A conta de 25 continua valendo como volume; o que muda é a que área cada um
+**A redistribuir:** os eventos hoje são pareados pelas regiões antigas, e as sete áreas novas
+entram no lugar delas. A conta de 25 continua valendo como volume; o que muda é a que área cada um
 pertence.
 
 **+1 peça nova:** a **Encruzilhada**, que não é área e sim ramificação da estrada — vende o que
@@ -177,7 +180,7 @@ Este é o bloco que mais mudou. Era papel com ícones; virou **cenário**.
 | Peça | Quantidade | Hoje |
 |---|---|---|
 | O plano do mundo | **1** ilustração navegável, em camadas | pacote de cartografia lite, preto sobre transparente, sete pontos em roda |
-| As áreas no plano | **8** | 7 marcas de bioma, com Vulcão e Tundra emprestados |
+| As áreas no plano | **7** | há 7 marcas hoje, com Vulcão e Tundra emprestados |
 | Lugares seguros no plano | **3** — Estalagem, Posto, Esconderijo | não existem |
 | Ponto de rota | **7** — combate, tesouro, perigo, descanso, mercador, história, chefe | ícones do mesmo pacote |
 | Trilha ilustrada da jornada | a definir | diagrama de nós |
@@ -197,9 +200,8 @@ cura) e o **estado enquanto dura** (veneno ativo, buff ativo). Hoje são partíc
 pacotes convertidas para URP, mais três PNGs soltos. O combate acontece em Canvas, então **sprite
 sheet é o formato que funciona ali**.
 
-**+5 dos selos**, porque cinco deles não são combate e precisam de imagem própria: o fogo do dragão
-limpando o Covil, a Aldeia queimando, o sino da Abadia quebrando, a forja apagando, e a consagração
-da Cripta.
+**+4 dos selos**, porque quatro deles não são combate e precisam de imagem própria: o fogo do
+dragão limpando o Covil, a Aldeia queimando, a forja apagando, e a consagração da Cripta.
 
 ## 9. UI
 
@@ -243,5 +245,5 @@ virar inimigo, e é o ensaio do final do jogo.
   taverna.
 - **Quantos inimigos comuns por área** — 16 exclusivos, ou 8 compartilhados mais 4 exclusivos.
 - **Se a Sala de Mapas sobrevive** ao mapa navegável, ou se as duas telas viram uma.
-- **Cinco áreas por partida das oito** — se ficar de pé, a arte das oito continua necessária, mas o
+- **Cinco áreas por partida das sete** — se ficar de pé, a arte das sete continua necessária, mas o
   jogador vê cinco por run.

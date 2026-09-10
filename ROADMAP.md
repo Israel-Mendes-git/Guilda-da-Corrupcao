@@ -982,8 +982,8 @@ carta nenhuma.
 
 #### O debate que vem antes — levantado pelo autor em 10/09
 
-Nada aqui está decidido, e vários pontos contrariam o que já está construído. **A fila acima só
-continua depois desta conversa.**
+Vários pontos contrariam o que já está construído, e **a fila acima só continua depois desta
+conversa.** Dois já foram fechados — ver "O que a conversa já decidiu", abaixo da tabela.
 
 | # | O ponto, nas palavras dele | O que o projeto já mede sobre isso |
 |---|---|---|
@@ -995,7 +995,23 @@ continua depois desta conversa.**
 | **D6** | *"não acho que faça tanto sentido coletar 3 selos e descobrir do nada uma nova área"* | o que está implementado **não** cria área nova: a passagem abre na região selada por último. O que falta é o selo ser *marcante e próprio daquela área* |
 | **D7** | *"o herói corrompido era uma ideia de boss diferente… ser mais criativo usando as mecânicas apresentadas, semelhante a Inscryption"* — inclusive **finais que não envolvam combate** | o Campeão hoje está escrito como chefe montado com o que o herói era. Nenhum dos sete finais está construído |
 | **D8** | *"o mundo ainda está pobre; um mundo mais dinâmico e vivo, com situações reais e consequências reais"* | as 4 ofertas do quadro saem entre **239 e 254 de ouro** e **6 a 7 dias** — praticamente a mesma missão quatro vezes |
-| **D9** | **Modos:** os dois modos são **dificuldade**, e o pós-game continua — *"é só mais um jogo com heróis mais fortes e apelões (tudo pela diversão)"* | decidido; ajusta o §3.2 do GDD |
+| **D9** | **Dificuldade e pós-game são coisas separadas.** A dificuldade é da **campanha principal**, escolhida antes de começar e uma vez só: **fácil, médio ou difícil**. O pós-game é à parte, e continua — *"é só mais um jogo com heróis mais fortes e apelões (tudo pela diversão)"* | decidido; está no §3.2 do GDD. **Falta decidir** o que cada nível mexe |
+
+#### O que a conversa já decidiu — 10/09
+
+- **D9 · Dificuldade e pós-game.** Fechado como está na tabela. No GDD §3.2 e no documento de
+  apresentação. Falta decidir o que cada nível mexe.
+- **O mundo · o rumo é o de `MUNDO.md` e `ARTE.md`.** O lugar do jogo passa a ser a **área**, e
+  são **sete, cada uma com a sua regra**, num plano navegável. A Abadia saiu na mesma conversa. O
+  que o código chama de bioma vira só o aspecto do local no mapa e **sai do vocabulário de design**.
+  Isso fecha **D6** (o selo passa a ser um ato próprio da área, e quatro dos sete não são combate) e
+  ataca **D8** pela raiz, já que hoje a diferença entre regiões é paleta e número.
+- **O que a decisão cancela:** produzir bestiário e chefe para Deserto, Tundra e Vulcão. As três não
+  têm criatura própria nenhuma hoje, e não vão ter.
+- **Os sete finais foram reamarrados às sete áreas**, em 10/09: cada fim sai da regra da própria
+  área, e não mais de uma região-bioma. Estão na tabela do GDD §3.2 e no documento de apresentação.
+  **Só a Mata se ganha lutando limpo, e o Oráculo se ganha sem um golpe** — que é o que o **D7**
+  pedia. Seguem `[PLANEJADO]`: nenhum está construído.
 
 ---
 
