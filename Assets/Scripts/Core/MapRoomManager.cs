@@ -196,8 +196,11 @@ public class MapRoomManager : MonoBehaviour
             levelText.text = $"Sala nível {mapRoomLevel} — alcance de {MaxScouting} dias "
                            + $"e {MaxDetours} desvio{(MaxDetours == 1 ? "" : "s")}";
 
+        // A linha dos selos vem antes da explicação das compras: quando o fim
+        // está aberto, é a única coisa desta sala que importa.
         if (hintText != null)
-            hintText.text = "Batedor: abre mais um dia da rota antes da partida.   "
+            hintText.text = DescreverSelos() + "\n"
+                          + "Batedor: abre mais um dia da rota antes da partida.   "
                           + "Desvio: recusa um encontro no caminho, e custa um dia.   "
                           + "Vale para a próxima jornada, seja qual for o destino.";
 
@@ -374,8 +377,9 @@ public class MapRoomManager : MonoBehaviour
         label.text = $"{BiomeUtil.GetDisplayName(bioma)}\n"
                    + $"<size=13>{Mathf.RoundToInt(RegionMap.Corrupcao(bioma))}% corrompida   ·   "
                    + (contrato != null
-                        ? $"{contrato.minDuration}–{contrato.maxDuration} dias</size>"
-                        : "sem contrato</size>");
+                        ? $"{contrato.minDuration}–{contrato.maxDuration} dias"
+                        : "sem contrato")
+                   + $"\n{EstadoDoMapa(bioma)}</size>";
 
         var labelRect = labelGo.GetComponent<RectTransform>();
         labelRect.anchorMin = Vector2.zero;
@@ -385,6 +389,52 @@ public class MapRoomManager : MonoBehaviour
 
         BiomeType capturada = bioma;
         row.GetComponent<Button>().onClick.AddListener(() => PorNaMesa(capturada));
+    }
+
+    /// <summary>
+    /// Quantos selos, quais, e o que falta — a linha que dá à sala um assunto
+    /// além das duas compras.
+    ///
+    /// Com os três na mesa, diz onde a passagem se abriu: é a região selada por
+    /// último, e essa é a informação que o jogador precisa levar daqui para o
+    /// quadro de missões.
+    /// </summary>
+    static string DescreverSelos()
+    {
+        int selos = RegionMap.Selos;
+
+        if (RegionMap.OFimEstaAberto)
+            return $"<color=#D9B85A>🔒 {selos} selos. A passagem se abriu em "
+                 + $"{BiomeUtil.GetDisplayName(RegionMap.UltimoSelo)} — a jornada final está no quadro.</color>";
+
+        int faltam = RegionMap.SelosParaOFim - selos;
+        string quais = selos == 0
+            ? ""
+            : "  ·  " + string.Join(", ", RegionMap.RegioesSeladas().ConvertAll(BiomeUtil.GetDisplayName));
+
+        return $"<color=#D9B85A>🔒 {selos} de {RegionMap.SelosParaOFim} selos</color>"
+             + $"  ·  faltam {faltam} para abrir a passagem{quais}";
+    }
+
+    /// <summary>
+    /// Em que pé está o mapa daquela região, em uma linha.
+    ///
+    /// É a informação que faz esta sala valer a visita: a corrupção diz onde
+    /// está pior, e o mapa diz onde a guilda já pode fechar o assunto. Sem ela
+    /// o jogador mapeia sem saber que mapeou.
+    /// </summary>
+    static string EstadoDoMapa(BiomeType bioma)
+    {
+        if (RegionMap.EstaSelada(bioma))
+            return "<color=#D9B85A>🔒 selada</color>";
+
+        if (RegionMap.EstaMapeada(bioma))
+            return "<color=#D9B85A>🗺️ mapa completo — o chefe espera no quadro</color>";
+
+        int porcento = Mathf.RoundToInt(RegionMap.FracaoMapeada(bioma) * 100f);
+        return porcento == 0
+            ? "<color=#8A8278>🗺️ nunca percorrida</color>"
+            : $"<color=#8A8278>🗺️ {porcento}% mapeada</color>";
     }
 
     /// <summary>Traz a estrada daquela região para a mesa. É o único efeito do clique na fila.</summary>
@@ -436,12 +486,16 @@ public class MapRoomManager : MonoBehaviour
         if (dossierText == null) return;
 
         QuestData contrato = ContratoDe(naMesa);
+        string mapa = $"<size=16>{EstadoDoMapa(naMesa)}</size>\n";
+
         dossierText.text = contrato != null
             ? $"{Mathf.RoundToInt(RegionMap.Corrupcao(naMesa))}% corrompida\n"
+              + mapa
               + $"<size=17>{contrato.questName}</size>\n"
               + $"<size=16>{contrato.minDuration}–{contrato.maxDuration} dias  ·  "
               + $"{contrato.baseReward}+ ouro  ·  risco {Risco(contrato.risk)}</size>"
             : $"{Mathf.RoundToInt(RegionMap.Corrupcao(naMesa))}% corrompida\n"
+              + mapa
               + "<size=16>Nenhum contrato para esta região neste ciclo.</size>";
     }
 

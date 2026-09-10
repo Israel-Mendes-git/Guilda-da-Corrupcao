@@ -661,27 +661,84 @@ public class PlayModeProbe : MonoBehaviour
         if (Mathf.Approximately(run.Corruption, antes))
             Line("FALHA: a Corrupção não avançou com o ciclo.");
 
-        // --- O chefe entra no quadro no limiar? ---
+        // --- O relógio sozinho não abre mais o fim ---
+        //
+        // Até 09/09 bastava a corrupção cruzar o limiar e o Chefe Supremo
+        // entrava no quadro. Agora o fim é construído com três selos, e é isto
+        // que precisa ficar provado: passar do antigo limiar não abre nada.
         int guarda = 0;
-        while (!run.BossAvailable && guarda++ < 40) run.AdvanceCycle();
+        while (run.Corruption < RunManager.BossThreshold && guarda++ < 40) run.AdvanceCycle();
 
-        Line($"chefe disponível a partir do ciclo {run.Cycle} (corrupção {run.Corruption:F0},"
-           + $" limiar {RunManager.BossThreshold:F0})");
+        Line($"corrupção {run.Corruption:F0} no ciclo {run.Cycle}"
+           + $" (antigo limiar {RunManager.BossThreshold:F0}) | selos"
+           + $" {RegionMap.Selos}/{RegionMap.SelosParaOFim} | fim aberto={run.BossAvailable}");
+
+        if (run.BossAvailable)
+            Line("FALHA: a jornada final abriu sem selo nenhum.");
 
         var qm = QuestManager.Instance;
         if (qm != null)
         {
+            // --- Mapear a região põe a luta de selo no quadro ---
+            var regiao = BiomeUtil.Playable[0];
+            RegionMap.Mapear(regiao, RegionMap.MapeamentoCompleto);
+            qm.GarantirChefesDeRegiao();
+
+            var comMapa = qm.GetQuests();
+            int lutasDeSelo = comMapa.Count(q => q != null && q.isRegionBoss && q.biomeType == regiao);
+
+            Line($"{BiomeUtil.GetDisplayName(regiao)} mapeada"
+               + $" ({RegionMap.FracaoMapeada(regiao) * 100f:F0}%) | luta de selo no quadro: {lutasDeSelo}");
+
+            if (lutasDeSelo == 0) Line("FALHA: região mapeada e nenhuma luta de selo no quadro.");
+            if (lutasDeSelo > 1) Line("FALHA: mais de uma luta de selo para a mesma região.");
+
+            // --- Selar trava a corrupção daquela região ---
+            RegionMap.Selar(regiao);
+            float antesDoAvanco = RegionMap.Corrupcao(regiao);
+            run.AdvanceCycle();
+
+            Line($"selada: corrupção da região {antesDoAvanco:F0} → {RegionMap.Corrupcao(regiao):F0}"
+               + " (esperado: sem mudança)");
+
+            if (!Mathf.Approximately(antesDoAvanco, RegionMap.Corrupcao(regiao)))
+                Line("FALHA: região selada continuou apodrecendo.");
+
+            qm.GarantirChefesDeRegiao();
+            if (qm.GetQuests().Any(q => q != null && q.isRegionBoss && q.biomeType == regiao))
+                Line("FALHA: região selada e a luta de selo continua no quadro.");
+
+            // --- Três selos abrem a jornada final ---
+            foreach (var outra in BiomeUtil.Playable)
+            {
+                if (RegionMap.Selos >= RegionMap.SelosParaOFim) break;
+                RegionMap.Selar(outra);
+            }
+
             qm.GarantirChefeSupremo();
             var quests = qm.GetQuests();
             int chefes = quests.Count(q => q != null && q.isFinalBoss);
 
-            Line($"missões no quadro: {quests.Count} | Chefe Supremo: {chefes}");
+            Line($"selos {RegionMap.Selos}/{RegionMap.SelosParaOFim} | fim aberto={run.BossAvailable}"
+               + $" | missões no quadro: {quests.Count} | Chefe Supremo: {chefes}");
 
+            if (!run.BossAvailable) Line("FALHA: três selos na mesa e a jornada final não abriu.");
             if (chefes == 0) Line("FALHA: chefe disponível mas fora do quadro.");
             if (chefes > 1) Line("FALHA: mais de um Chefe Supremo no quadro.");
 
+            // --- A passagem abre onde o último selo caiu ---
+            var final = quests.FirstOrDefault(q => q != null && q.isFinalBoss);
+            var ultimo = RegionMap.UltimoSelo;
+
+            Line($"ordem dos selos: {string.Join(" → ", RegionMap.RegioesSeladas().Select(BiomeUtil.GetDisplayName))}"
+               + $" | passagem: {(final != null ? BiomeUtil.GetDisplayName(final.biomeType) : "—")}"
+               + $" (esperado {BiomeUtil.GetDisplayName(ultimo)})");
+
+            if (final != null && final.biomeType != ultimo)
+                Line("FALHA: a jornada final não abriu na região do último selo.");
+
             // A corrupção das missões acompanha o medidor global?
-            var comuns = quests.Where(q => q != null && !q.isFinalBoss).ToList();
+            var comuns = quests.Where(q => q != null && !q.isFinalBoss && !q.isRegionBoss).ToList();
             if (comuns.Count > 0)
                 Line($"corrupção das missões: {comuns.Min(q => q.corruptionLevel)}"
                    + $"–{comuns.Max(q => q.corruptionLevel)} (global {run.Corruption:F0})");

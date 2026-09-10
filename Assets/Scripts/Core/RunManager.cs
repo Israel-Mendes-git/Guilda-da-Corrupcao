@@ -96,8 +96,19 @@ public class RunManager : MonoBehaviour
     /// <summary>Fração de 0 a 1 — para a barra de Corrupção na tela.</summary>
     public float CorruptionRatio => Mathf.Clamp01(Corruption / CorruptionMax);
 
-    /// <summary>O Chefe Supremo já pode ser convocado?</summary>
-    public bool BossAvailable => !IsOver && Corruption >= BossThreshold;
+    /// <summary>
+    /// A jornada final já pode ser convocada?
+    ///
+    /// <b>Mudou em 09/09.</b> Era <c>Corruption >= BossThreshold</c>: bastava o
+    /// mundo apodrecer e o Chefe Supremo entrava no quadro sozinho, o que fazia
+    /// o fim da run acontecer <i>com</i> o jogador e não <i>por causa</i> dele.
+    /// Agora são três regiões seladas — o fim é construído, e quais três muda o
+    /// que espera lá.
+    ///
+    /// O <see cref="BossThreshold"/> continua existindo porque a auditoria mede
+    /// em que ciclo o mundo cruza aquele valor; ele deixou de abrir o quadro.
+    /// </summary>
+    public bool BossAvailable => !IsOver && RegionMap.OFimEstaAberto;
 
     void Awake()
     {

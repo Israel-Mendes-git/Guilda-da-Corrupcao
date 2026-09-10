@@ -118,18 +118,76 @@ public static class QuestGenerator
         return requirements;
     }
 
+    /// <summary>
+    /// A luta que sela uma região. Nasce da região, não de sorteio: o bioma vem
+    /// mapeado de fora, e o nome traz quem guarda o lugar, porque é isso que
+    /// mapear revelou.
+    ///
+    /// Duração e recompensa ficam acima do contrato comum e abaixo da jornada
+    /// final — é uma expedição a um lugar que a guilda já conhece inteiro.
+    /// </summary>
+    public static QuestData GenerateRegionBossQuest(BiomeType regiao, int playerLevel)
+    {
+        if (regiao == BiomeType.Any) return null;
+
+        QuestData quest = ScriptableObject.CreateInstance<QuestData>();
+        quest.biomeType = regiao;
+
+        string chefe = EnemyPool.NomeDoChefe(regiao);
+        string lugar = BiomeUtil.GetDisplayName(regiao);
+
+        quest.questName = string.IsNullOrEmpty(chefe)
+            ? $"🔒 Selar {lugar}"
+            : $"🔒 Selar {lugar} — {chefe}";
+        quest.objective = string.IsNullOrEmpty(chefe)
+            ? "Derrube o que guarda a região e sele o lugar"
+            : $"Derrube {chefe} e sele a região";
+
+        quest.minDuration = 7;
+        quest.maxDuration = 10;
+        quest.baseReward = 200 + (playerLevel * 20);
+        quest.recommendedLevel = playerLevel + 1;
+
+        // A corrupção da missão é a da própria região, e não um número fixo: o
+        // preço de demorar para selar é a luta ficar pior, que é a mesma regra
+        // que já vale para voltar ao mesmo lugar.
+        quest.corruptionLevel = Mathf.RoundToInt(RegionMap.Corrupcao(regiao));
+        quest.risk = QuestRisk.High;
+        quest.isRegionBoss = true;
+
+        quest.requirements = new List<ClassRequirement>
+        {
+            new ClassRequirement { requiredClass = HeroClass.Warrior, minAmount = 1, minLevel = playerLevel }
+        };
+
+        return quest;
+    }
+
+    /// <summary>
+    /// A jornada final.
+    ///
+    /// <b>O lugar não é sorteado desde 09/09:</b> a passagem se abre na região
+    /// que foi selada por último, e é para lá que o grupo marcha. Enquanto não
+    /// houver selo nenhum — caso que só acontece se alguém chamar isto fora de
+    /// hora — cai no sorteio antigo em vez de devolver missão sem lugar.
+    /// </summary>
     public static QuestData GenerateBossQuest(int playerLevel)
     {
+        BiomeType passagem = RegionMap.UltimoSelo;
+
         QuestData bossQuest = ScriptableObject.CreateInstance<QuestData>();
-        bossQuest.biomeType = BiomeUtil.GetRandom();
-        bossQuest.questName = "⚔️ CHEFE SUPREMO ⚔️";
+        bossQuest.biomeType = passagem != BiomeType.Any ? passagem : BiomeUtil.GetRandom();
+        bossQuest.questName = passagem != BiomeType.Any
+            ? $"⚔️ A PASSAGEM — {BiomeUtil.GetDisplayName(passagem)} ⚔️"
+            : "⚔️ CHEFE SUPREMO ⚔️";
         bossQuest.minDuration = 10;
         bossQuest.maxDuration = 15;
         bossQuest.baseReward = 300 + (playerLevel * 30);
         bossQuest.recommendedLevel = playerLevel + 2;
-        bossQuest.corruptionLevel = 90;
         bossQuest.risk = QuestRisk.High;
-        bossQuest.objective = "Derrote o Chefe Supremo";
+        bossQuest.objective = passagem != BiomeType.Any
+            ? $"O último selo abriu a passagem em {BiomeUtil.GetDisplayName(passagem)}. Vá até ela."
+            : "Derrote o Chefe Supremo";
         bossQuest.corruptionLevel = 90;
 
         // Requisitos mais difíceis

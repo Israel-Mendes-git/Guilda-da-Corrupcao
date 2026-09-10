@@ -189,7 +189,10 @@ public static class SaveSystem
             corruption = dados.run != null ? Mathf.RoundToInt(dados.run.corruption) : 0,
             gold = dados.guild != null ? dados.guild.gold : 0,
             heroesAlive = vivos,
-            bossAvailable = dados.run != null && dados.run.corruption >= RunManager.BossThreshold,
+            // Lido do save, e não do RegionMap: o cabeçalho descreve um arquivo
+            // que não foi carregado, e o mundo em memória é o de outra partida.
+            bossAvailable = dados.run != null && dados.run.regionSealed != null
+                            && dados.run.regionSealed.Count >= RegionMap.SelosParaOFim,
             savedAt = dados.SavedAt
         };
     }

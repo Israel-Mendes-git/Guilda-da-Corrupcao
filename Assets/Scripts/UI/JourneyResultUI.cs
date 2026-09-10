@@ -181,7 +181,36 @@ public class JourneyResultUI : MonoBehaviour
             ? "sem baixas"
             : report.mortos == 1 ? "1 herói não voltou" : $"{report.mortos} heróis não voltaram";
 
-        subtitleText.text = $"{missao} · {dias} de estrada · {baixas}";
+        subtitleText.text = $"{missao} · {dias} de estrada · {baixas}\n{DescreverMapa(report)}";
+    }
+
+    /// <summary>
+    /// O que a ida acrescentou ao mapa da região.
+    ///
+    /// Fica no subtítulo, e não numa tela nova, porque é informação de <i>volta
+    /// para casa</i>: o jogador já está lendo quem morreu e quanto ganhou, e o
+    /// pedaço de mapa é o que decide para onde ele vai no ciclo seguinte.
+    ///
+    /// Aparece na derrota também — mapear é a única coisa que uma jornada
+    /// perdida ainda rende.
+    /// </summary>
+    static string DescreverMapa(JourneyReport report)
+    {
+        if (report.regiao == BiomeType.Any) return "";
+
+        string lugar = BiomeUtil.GetDisplayName(report.regiao);
+
+        // Sem 🗺️ antes do nome: o GetDisplayName já traz o emoji do bioma, e os
+        // dois colados saíram como "🗺️ 🏜️ Deserto" na captura. O 🔒 fica porque
+        // é informação diferente do lugar — é o selo.
+        if (report.regiaoSelada)
+            return $"<color=#D9B85A>🔒 {lugar} selada — a corrupção dali parou de subir "
+                 + $"({RegionMap.Selos} de {RegionMap.SelosParaOFim} selos)</color>";
+
+        if (report.mapaCompletado)
+            return $"<color=#D9B85A>{lugar} inteira no mapa — o que a guarda apareceu no quadro</color>";
+
+        return $"{lugar} — {Mathf.RoundToInt(report.mapeamento * 100f)}% mapeada";
     }
 
     void PreencherHerois(JourneyReport report)
@@ -331,6 +360,21 @@ public class JourneyReport
     public int reputacao;
 
     public readonly List<HeroLine> herois = new List<HeroLine>();
+
+    /// <summary>
+    /// O que a expedição trouxe do mapa. É a única recompensa que sobrevive a
+    /// uma jornada perdida, e por isso aparece no balanço mesmo na derrota.
+    /// </summary>
+    public BiomeType regiao = BiomeType.Any;
+
+    /// <summary>Fração de 0 a 1 da região, depois do que esta ida acrescentou.</summary>
+    public float mapeamento;
+
+    /// <summary>Foi esta ida que fechou o mapa — e revelou quem guarda o lugar.</summary>
+    public bool mapaCompletado;
+
+    /// <summary>O chefe caiu e a região parou de apodrecer.</summary>
+    public bool regiaoSelada;
 
     /// <summary>
     /// Escolhas oferecidas ao voltar. Vazio quando a jornada fracassou: quem

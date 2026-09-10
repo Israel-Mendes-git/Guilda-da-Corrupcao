@@ -105,12 +105,16 @@ public class QuestManager : MonoBehaviour
     {
         if (currentQuests == null) return;
 
-        currentQuests.RemoveAll(q => q == null || !q.isFinalBoss);
+        // A jornada final e as lutas de selo sobrevivem à renovação: nenhuma das
+        // duas é oferta da semana. A região continua mapeada no ciclo seguinte,
+        // e o chefe que a guarda continua lá.
+        currentQuests.RemoveAll(q => q == null || (!q.isFinalBoss && !q.isRegionBoss));
 
         int faltando = TamanhoDoQuadro - currentQuests.Count;
         if (faltando > 0)
             currentQuests.AddRange(QuestGenerator.GenerateQuests(faltando, GetPlayerAverageLevel()));
 
+        GarantirChefesDeRegiao();
         GarantirChefeSupremo();
 
         hasQuests = currentQuests.Count > 0;
@@ -118,7 +122,36 @@ public class QuestManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Põe o Chefe Supremo no quadro quando o mundo está podre o bastante, e só
+    /// Uma luta de selo por região que já está inteira no mapa e ainda não foi
+    /// selada. Elas entram <b>além</b> das quatro ofertas comuns: mapear já
+    /// custou duas expedições, e fazer o prêmio disputar vaga com contrato de
+    /// escolta seria cobrar duas vezes pela mesma coisa.
+    ///
+    /// A missão é recriada a cada renovação apenas quando não existe: a
+    /// corrupção que ela carrega é a da região no momento em que foi oferecida,
+    /// e demorar para aceitar não deve baratear a luta.
+    /// </summary>
+    public void GarantirChefesDeRegiao()
+    {
+        var run = RunManager.Instance;
+        if (run != null && run.IsOver) return;
+
+        foreach (var regiao in BiomeUtil.Playable)
+        {
+            if (!RegionMap.EstaMapeada(regiao) || RegionMap.EstaSelada(regiao)) continue;
+            if (currentQuests.Exists(q => q != null && q.isRegionBoss && q.biomeType == regiao)) continue;
+
+            QuestData selo = QuestGenerator.GenerateRegionBossQuest(regiao, GetPlayerAverageLevel());
+            if (selo != null) currentQuests.Add(selo);
+        }
+
+        // Região selada não guarda mais nada: a oferta sai do quadro no mesmo
+        // ciclo, e não na renovação seguinte.
+        currentQuests.RemoveAll(q => q != null && q.isRegionBoss && RegionMap.EstaSelada(q.biomeType));
+    }
+
+    /// <summary>
+    /// Põe o Chefe Supremo no quadro quando os três selos estão na mesa, e só
     /// uma vez: duas missões finais ao mesmo tempo tirariam o peso da decisão.
     /// </summary>
     public void GarantirChefeSupremo()

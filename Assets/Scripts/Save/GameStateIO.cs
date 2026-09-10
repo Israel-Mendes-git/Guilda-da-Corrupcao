@@ -52,7 +52,9 @@ public static class GameStateIO
                 state = (int)run.State,
                 endReason = (int)run.EndReason,
                 fallen = run.Fallen,
-                regionCorruption = RegionMap.Serializar()
+                regionCorruption = RegionMap.Serializar(),
+                regionMapping = RegionMap.SerializarMapeamento(),
+                regionSealed = RegionMap.SerializarSelos()
             };
         }
 
@@ -112,6 +114,7 @@ public static class GameStateIO
         risk = (int)q.risk,
         objective = q.objective,
         isFinalBoss = q.isFinalBoss,
+        isRegionBoss = q.isRegionBoss,
         requirements = q.requirements ?? new List<ClassRequirement>()
     };
 
@@ -171,7 +174,7 @@ public static class GameStateIO
                           (RunState)dados.run.state, (RunEndReason)dados.run.endReason,
                           dados.run.fallen);
 
-            RegionMap.Restaurar(dados.run.regionCorruption);
+            RegionMap.Restaurar(dados.run.regionCorruption, dados.run.regionMapping, dados.run.regionSealed);
         }
 
         var quests = QuestManager.Instance;
@@ -245,6 +248,7 @@ public static class GameStateIO
         q.risk = (QuestRisk)s.risk;
         q.objective = s.objective;
         q.isFinalBoss = s.isFinalBoss;
+        q.isRegionBoss = s.isRegionBoss;
         q.requirements = s.requirements ?? new List<ClassRequirement>();
 
         q.name = string.IsNullOrEmpty(s.questName) ? "Missão" : s.questName;

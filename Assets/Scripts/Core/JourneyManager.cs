@@ -1639,11 +1639,32 @@ public class JourneyManager : MonoBehaviour
             else
                 run.AdvanceCycle(journeyCasualties.Count);
 
-            // A região atravessada fica pior do que estava. É o que faz o mapa
-            // responder ao que o jogador fez, e não só ao tempo passando: voltar
-            // sempre ao mesmo lugar seguro cobra um preço visível ali.
+            // O que a expedição traz de volta, na ordem em que importa.
+            //
+            // Selar antes de corromper não é detalhe: a região selada não
+            // apodrece mais, e a visita que a selou seria a última a sujá-la —
+            // o grupo cobraria o preço da travessia depois de ter fechado o
+            // lugar.
             if (currentQuest != null)
-                RegionMap.Corromper(currentQuest.biomeType, RegionMap.CorrupcaoPorVisita);
+            {
+                var regiao = currentQuest.biomeType;
+
+                if (success && currentQuest.isRegionBoss)
+                    report.regiaoSelada = RegionMap.Selar(regiao);
+
+                report.mapaCompletado = RegionMap.Mapear(
+                    regiao,
+                    success ? RegionMap.MapeamentoPorExpedicao : RegionMap.MapeamentoPorFracasso);
+
+                report.mapeamento = RegionMap.FracaoMapeada(regiao);
+                report.regiao = regiao;
+
+                // A região atravessada fica pior do que estava. É o que faz o
+                // mapa responder ao que o jogador fez, e não só ao tempo
+                // passando: voltar sempre ao mesmo lugar seguro cobra um preço
+                // visível ali.
+                RegionMap.Corromper(regiao, RegionMap.CorrupcaoPorVisita);
+            }
         }
 
         string resultMessage = success
