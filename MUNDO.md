@@ -1,8 +1,12 @@
 # O mundo — áreas, estrada e relógio
 
-> Desenhado com o autor em 10/09/2026. **Nada disto está construído**, e boa parte contraria o que
-> o código faz hoje: as sete regiões atuais são categorias de bioma, e o mapa é uma tela de escolher
-> missão. Nomes marcados como *(trabalho)* são descartáveis — o que vale é a função.
+> Desenhado com o autor em 10/09/2026, e **decidido no mesmo dia: este é o rumo.** O lugar do jogo
+> é a **área**, e são sete, cada uma com a sua regra. O que o código hoje chama de bioma é só o
+> aspecto do local no mapa — deixou de ser conceito de design, e não se fala mais dele aqui.
+>
+> **Nada disto está construído**, e boa parte contraria o que o código faz hoje: hoje as sete
+> regiões do código *são* a unidade de jogo, e o mapa é uma tela de escolher missão. Nomes marcados
+> como *(trabalho)* são descartáveis — o que vale é a função.
 
 ## A regra do mapa
 
@@ -12,7 +16,7 @@
   distância não significa nada.
 - **As áreas se tocam.** Chegar às distantes obriga a atravessar as próximas, e por isso a corrupção
   de uma área pesa mesmo quando não se vai a ela.
-- **O mundo é maior que a partida:** o mapa tem oito áreas e cada run monta o plano com cinco. O
+- **O mundo é maior que a partida:** o mapa tem sete áreas e cada run monta o plano com cinco. O
   jogador aprende cinco regras por partida, e as que sobram alimentam o pós-game. *(proposto,
   pendente de decisão)*
 
@@ -22,7 +26,7 @@ informação, que nenhuma outra dá.
 
 ---
 
-## As oito áreas
+## As sete áreas
 
 ### A Mata *(trabalho)* · perto · tempo
 - **Regra:** o mato fecha atrás do grupo. **Quanto mais fundo, mais caro o dia** — os últimos dias
@@ -41,14 +45,6 @@ informação, que nenhuma outra dá.
 - **Cobra:** estresse.
 - **Fecha-se:** consagrando de novo, e o ritual pede os **nomes dos seus próprios mortos**. Não é
   combate: é devolver.
-
-### A Abadia *(trabalho)* · longe · tempo
-- **Regra:** a fé virou. Cura funciona pela metade lá dentro.
-- **Dá:** o descanso que a guilda não dá — alívio de estresse fundo, que estende a vida útil do
-  grupo. É também o **único esconderijo confiável do mundo**.
-- **Cobra:** exposição à corrupção, que sobe rápido enquanto se está lá.
-- **Fecha-se:** quebrando o sino. A área para de dar descanso para sempre — selar aqui custa o
-  recurso que faz você voltar.
 
 ### A Aldeia *(trabalho)* · tempo
 - **O lugar:** parte dos moradores ainda é gente; parte são cidadãos corrompidos — **e têm
@@ -100,9 +96,11 @@ informação, que nenhuma outra dá.
 - **Dá:** o único recurso que o mapa não tem — saber antes.
 - **Fecha-se:** perguntando a ela o que ela é. A resposta cobra o preço de sempre.
 
-**Os oito selos são oito atos**, e cinco não são combate: vencer, devolver os mortos, quebrar o
-sino, escolher entre fogo e resgate, usar o dragão, quebrar o altar, apagar o fogo, e pagar a última
-pergunta.
+**Os sete selos são sete atos**, e só o da Mata é combate limpo: vencer, devolver os mortos,
+escolher entre fogo e resgate, usar o dragão, quebrar o altar, apagar o fogo, e pagar a última
+pergunta. *(Quantos desses ainda passam por uma luta antes do ato — a Torre pede subir, a Aldeia
+pede limpar — é decisão que não foi tomada. O número "cinco de oito" que este documento trazia antes
+não fechava com a lista, e saiu.)*
 
 ---
 
@@ -135,10 +133,9 @@ naquela área:**
 | **A Mata** | o mato fecha e você não acha de volta — procurar custa dias |
 | **A Torre** | uma cópia sua aparece guardando o seu próprio esconderijo |
 | **A Forja** | o que atraiu o martelo continua lá, em cima do que você deixou |
-| **A Abadia** | **intacto.** É o único depósito confiável do mundo |
 
-A última linha faz a Abadia valer mais do que a regra dela sugeria — e encarece o selo dela, que já
-custava o descanso.
+**Nenhuma área guarda com segurança.** A exceção era a Abadia, que saiu em 10/09: esconder passou a
+ser sempre uma aposta, e o Esconderijo ficou sem o lugar que o fazia valer a pena. Ver "Em aberto".
 
 ---
 
@@ -168,8 +165,12 @@ represada.
 
 ## Em aberto
 
-- **A posição das áreas no plano.** Só Mata e Cripta (perto) e Abadia (longe) estão fixadas.
-- **Cinco de oito por partida** — proposto para segurar a carga de regras, não decidido.
+- **A posição das áreas no plano.** Só Mata e Cripta (perto) estão fixadas.
+- **Cinco de sete por partida** — proposto para segurar a carga de regras, não decidido.
+- **O que a saída da Abadia deixou em aberto**, decidida em 10/09: ela era o descanso fundo fora da
+  guilda, o único esconderijo confiável e uma das três áreas de *tempo* (sobraram duas, contra
+  quatro de força). Se nada ocupar o lugar, a estrada fica sem alívio de estresse e sem depósito
+  seguro — a Estalagem, desenhada e não fechada, é a candidata natural.
 - **O que faz o Ermo do mapa**, se houver: nenhuma área hoje é só passagem.
 - **Um lugar seguro a mais:** a Estalagem foi desenhada e não foi fechada.
 - **Os finais.** A Muralha, descartada como área, deixou a forma que interessa: **selar por recusa**

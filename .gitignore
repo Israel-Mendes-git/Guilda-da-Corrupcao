@@ -118,6 +118,10 @@ SmokeTestReport*.txt
 [Aa]ssets/.mcp_auth_token
 # Ferramenta de desenvolvimento com repositorio proprio (MCP for Unity)
 [Aa]ssets/StreamingAssets/realvirtual-MCP/
+# Ponte MCP para agente de IA: ferramenta de desenvolvimento, nao parte do jogo.
+# Mesmo criterio da linha acima. Nada em Assets/ depende dela, e o pacote fica no
+# disco de quem o usa.
+Packages/io.realvirtual.mcp/
 # Demo do Fantasy Map Assets Pack: 92 MB de PSD que o jogo nao usa. O que entra
 # no mapa sao os PNGs de Assets/, ligados pelo MapArtCatalog. Binario grande nao
 # sai facil do historico depois.
@@ -126,3 +130,11 @@ Assets/DefaceGames/Fantasy Map Assets Pack Lite/PSD Files.meta
 
 # Relatorio da auditoria de jogabilidade, regenerado a cada execucao
 GameplayReport.txt
+
+# Imagens que o LibreOffice extrai do documento de apresentacao ao salvar. As
+# ilustracoes ficam embutidas no proprio .doc, e estes arquivos sao copia solta
+# que reaparece a cada gravacao.
+GDD - Guilda da Corrupcao_doc_*.jpg
+
+# Trava que o LibreOffice cria enquanto um documento esta aberto
+.~lock.*#
