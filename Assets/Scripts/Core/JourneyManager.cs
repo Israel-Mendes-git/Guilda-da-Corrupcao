@@ -1656,6 +1656,12 @@ public class JourneyManager : MonoBehaviour
                     regiao,
                     success ? RegionMap.MapeamentoPorExpedicao : RegionMap.MapeamentoPorFracasso);
 
+                // Fechar o mapa de uma região desenterra a página que estava lá.
+                // É o mesmo movimento: os batedores voltam com o desenho do
+                // lugar e com o que ficou escrito nele.
+                if (report.mapaCompletado)
+                    report.escritoEncontrado = Escritos.Encontrar(regiao);
+
                 report.mapeamento = RegionMap.FracaoMapeada(regiao);
                 report.regiao = regiao;
 

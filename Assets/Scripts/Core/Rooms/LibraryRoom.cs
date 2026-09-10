@@ -55,8 +55,11 @@ internal static class LibraryRoom
             new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -112), new Vector2(-20, -76));
 
         // ── A fila ────────────────────────────────────────────────────────────
+        // A fila para em 330 para abrir espaço à mesa de tradução. Ela é uma
+        // coluna com scroll, então encolher não esconde herói nenhum — e o
+        // roster de cinco a oito fichas continua cabendo sem rolar.
         GameObject list = GuildSceneSetup.EnsureScrollColumn(panel.transform, "List",
-            new Vector2(0, 0), new Vector2(0, 1), new Vector2(20, 110), new Vector2(360, -140), 8);
+            new Vector2(0, 0), new Vector2(0, 1), new Vector2(20, 330), new Vector2(360, -140), 8);
 
         AjustarColuna(list);
 
@@ -99,6 +102,29 @@ internal static class LibraryRoom
 
         GameObject shelf = GuildSceneSetup.EnsureFreeArea(panel.transform, "Shelf",
             new Vector2(0, 0), new Vector2(1, 1), new Vector2(1090, 110), new Vector2(-20, -200));
+
+        // ── A mesa de tradução ────────────────────────────────────────────────
+        //
+        // Embaixo da fila, e não na coluna da direita: os seis nichos da estante
+        // precisam de 698px de altura, e encolhê-la para abrir espaço fez as
+        // cartas de baixo vazarem por trás desta caixa — o botão COMPRAR da
+        // segunda fileira sumiu sob ela, e só a captura mostrou. Aqui o espaço
+        // estava ocioso: cinco fichas de herói usam menos da metade da coluna.
+        GameObject writings = GuildSceneSetup.EnsureFreeArea(panel.transform, "Writings",
+            new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 110), new Vector2(360, 320));
+        VestirCaixa(writings, new Color(0.16f, 0.14f, 0.11f, 0.92f));
+
+        var writingsTitle = GuildSceneSetup.EnsureText(writings.transform, "Txt_WritingsTitle",
+            "📜 Escritos", 19,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(12, -40), new Vector2(-12, -8));
+        writingsTitle.alignment = TextAlignmentOptions.Center;
+
+        var writingsBody = GuildSceneSetup.EnsureText(writings.transform, "Txt_WritingsBody", "", 15,
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(12, 58), new Vector2(-12, -44));
+        writingsBody.alignment = TextAlignmentOptions.TopLeft;
+
+        var translate = GuildSceneSetup.EnsureButton(writings.transform, "Btn_Translate", "TRADUZIR",
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(12, 12), new Vector2(-12, 50));
 
         // ── Rodapé ────────────────────────────────────────────────────────────
         var feedback = GuildSceneSetup.EnsureText(panel.transform, "Txt_Feedback", "", 18,
@@ -143,6 +169,9 @@ internal static class LibraryRoom
         library.cardPrefab = cardPrefab;
         library.upgradeButton = upgrade;
         library.closeButton = close;
+        library.writingsTitleText = writingsTitle;
+        library.writingsText = writingsBody;
+        library.translateButton = translate;
 
         // A moldura dos nichos vem do Editor porque os nichos nascem em tempo de
         // execução, onde o AssetDatabase não existe. Nula, o nicho vira uma caixa

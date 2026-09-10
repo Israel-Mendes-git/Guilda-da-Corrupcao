@@ -934,6 +934,54 @@ discutir": tipografia, vinheta, paleta sépia, o momento da quebra do herói, o 
 
 ---
 
+### Fase 3.11 — Mapear e selar ✅ *concluída em 10/09*
+
+A primeira peça do fim decidido em 09/09 (GDD §3.2). Até aqui o mundo tinha corrupção por região e
+mais nada: o mapa era leitura, não construção.
+
+| O que passou a existir | Regra |
+|---|---|
+| **Mapa por região** | a expedição volta com 50 quando vence e 20 quando fracassa — o mapa é a única recompensa que sobrevive a uma jornada perdida. Duas idas bem-sucedidas mapeiam |
+| **A luta de selo** | região inteira no mapa põe quem a guarda no quadro, **além** das quatro ofertas, com o nome do chefe |
+| **O selo** | vencer congela a corrupção daquela região, e a oferta sai do quadro no mesmo ciclo |
+| **A passagem** | três selos abrem a jornada final, que nasce na região **selada por último** |
+
+**A mudança de maior alcance:** `RunManager.BossAvailable` era `Corruption >= 60`. O Chefe Supremo
+entrava no quadro só porque o mundo apodreceu — o fim acontecia *com* o jogador, não *por causa*
+dele. O `BossThreshold` continua no código porque a auditoria mede em que ciclo o mundo o cruza,
+mas não abre mais nada.
+
+Por isso o `RegionMap` guarda a **ordem** em que as regiões caíram, e não um sim/não por região: a
+ordem é regra do jogo, e o save grava por índice.
+
+**Medido com o código novo:** smoke test em 45 verificações e 0 falhas, letalidade 0,56 (alvo
+0,33–0,67), Play Mode sem erro. No ciclo 8, com corrupção 64 — acima do antigo limiar —, o fim
+continuou fechado.
+
+**O que a implementação expôs, e segue em aberto:** hoje **toda** jornada termina em nó de chefe
+(`JourneyMap` fecha a rota com `isBoss = true`), então o jogador já derruba o chefe da região em
+qualquer contrato, e depois o derruba de novo na missão de selo.
+
+---
+
+### Fase 3.12 — O fim se constrói
+*O plano corrente, na ordem escolhida pelo autor em 10/09.*
+
+| # | Passo | Entrega | Prova |
+|---|---|---|---|
+| **1** | **Os escritos e a Biblioteca** | página cai na estrada, a Biblioteca traduz uma por ciclo, cada uma atrasa a corrupção e nenhuma reverte; o traduzido vira carta de contenção no baralho | Play Mode + relatório de telas |
+| **2** | **Selar cobra cartas** | a região pede um tipo fixo, sabido desde o ciclo 1, e queima as cartas sem volta ao aceitar | Play Mode: o preço aparece na Sala de Mapas desde o começo |
+| **3** | **O chefe sai das jornadas comuns** | jornada comum termina em encontro forte; o chefe fica para a luta de selo e para a final | Smoke test — o chefe responde por 0,24 das 0,56 mortes/jornada, e a faixa 0,33–0,67 precisa ser resegurada |
+| **4** | **A economia para de saturar** | recalibrar depois que os passos 1 e 2 criarem um custo que não é ouro | `GameplayReport.txt` |
+
+A Biblioteca vem primeiro porque é a sala mais quebrada do jogo — **10 botões desligados contra 7
+ativos** — e porque os escritos independem dos outros três passos.
+
+**Fora da fila, esperando decisão:** a arte (ver `ARTE.md`), e o Ladino e o Bardo, que seguem sem
+carta nenhuma.
+
+---
+
 ### Fase 4 — Dar peso ao que já está escrito
 *Barato, porque os dados já existem e só falta quem os leia.*
 
