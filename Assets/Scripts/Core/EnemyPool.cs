@@ -60,6 +60,31 @@ public static class EnemyPool
         return lineup;
     }
 
+    /// <summary>
+    /// Quem guarda aquela região, pelo nome. O quadro precisa disto para que a
+    /// missão de selo diga contra o que o grupo vai — mapear uma região é
+    /// justamente descobrir isso.
+    ///
+    /// Sem sorteio, ao contrário do <see cref="PickBoss"/>: o chefe da região é
+    /// sempre o mesmo, e o nome muda no quadro seria o jogador aprendendo errado.
+    /// Três regiões não têm chefe próprio e caem no curinga (<c>Any</c>) — é
+    /// dívida de conteúdo conhecida, não falha daqui.
+    /// </summary>
+    public static string NomeDoChefe(BiomeType biome)
+    {
+        Initialize();
+
+        var bosses = allEnemies.Where(e => e != null && e.isBoss).ToList();
+
+        var especifico = bosses.Where(e => e.biome == biome).ToList();
+        if (especifico.Count > 0) return especifico[0].enemyName;
+
+        var curinga = bosses.Where(e => e.biome == BiomeType.Any).ToList();
+        if (curinga.Count > 0) return curinga[0].enemyName;
+
+        return null;
+    }
+
     static EnemyData PickBoss(BiomeType biome)
     {
         var bosses = allEnemies.Where(e => e.isBoss && BiomeUtil.Matches(e.biome, biome)).ToList();

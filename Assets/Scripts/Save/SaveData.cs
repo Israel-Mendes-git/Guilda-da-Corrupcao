@@ -96,6 +96,20 @@ public class RunSave
     /// derrubar a partida.
     /// </summary>
     public List<float> regionCorruption = new List<float>();
+
+    /// <summary>
+    /// O quanto de cada região está mapeado, na ordem de
+    /// <see cref="BiomeUtil.Playable"/>. Campo no fim pelo mesmo motivo do
+    /// anterior: o save que não o tem abre com o mapa em branco.
+    /// </summary>
+    public List<float> regionMapping = new List<float>();
+
+    /// <summary>
+    /// As regiões seladas, por índice de <see cref="BiomeUtil.Playable"/> e
+    /// <b>na ordem em que caíram</b> — não uma lista de sim/não por região.
+    /// A ordem é regra do jogo: o terceiro selo decide onde o fim acontece.
+    /// </summary>
+    public List<int> regionSealed = new List<int>();
 }
 
 /// <summary>
@@ -171,6 +185,7 @@ public class QuestSave
     public int risk;
     public string objective;
     public bool isFinalBoss;
+    public bool isRegionBoss;
     public List<ClassRequirement> requirements = new List<ClassRequirement>();
 }
 

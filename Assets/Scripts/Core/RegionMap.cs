@@ -79,13 +79,45 @@ public static class RegionMap
     /// <summary>Corrupção extra na região que a expedição acabou de atravessar.</summary>
     public const float CorrupcaoPorVisita = 4f;
 
+    /// <summary>Mapa completo, e o que uma expedição traz dele.</summary>
+    ///
+    /// <b>Duas expedições bem-sucedidas mapeiam uma região.</b> O número saiu do
+    /// tamanho da run: são três selos para abrir o fim, e cada selo custa duas
+    /// idas mais a luta contra o chefe — nove ciclos dos quinze, deixando folga
+    /// para o jogador errar de lugar. Não é medida de balanceamento; é o passo
+    /// que faz mapear caber na partida, e mexer nele muda o ritmo do meio.
+    public const float MapeamentoCompleto = 100f;
+    public const float MapeamentoPorExpedicao = 50f;
+
+    /// <summary>
+    /// O que a expedição fracassada ainda traz. O grupo voltou com menos gente e
+    /// menos coisa, mas voltou — e o pedaço de mapa é a única recompensa que
+    /// sobrevive a uma jornada perdida.
+    /// </summary>
+    public const float MapeamentoPorFracasso = 20f;
+
+    /// <summary>Quantos selos abrem a jornada final.</summary>
+    public const int SelosParaOFim = 3;
+
     static Dictionary<BiomeType, float> corrupcao;
+    static Dictionary<BiomeType, float> mapeamento;
+
+    /// <summary>
+    /// As regiões seladas, <b>na ordem em que caíram</b>.
+    ///
+    /// Lista e não conjunto porque a ordem é regra: o terceiro selo é o que abre
+    /// a passagem, e é a região dele que decide onde o fim acontece. Guardar só
+    /// "quais" perderia exatamente a informação que o fim usa.
+    /// </summary>
+    static List<BiomeType> ordemDosSelos;
 
     static void GarantirEstado()
     {
-        if (corrupcao != null) return;
+        if (corrupcao != null && mapeamento != null && ordemDosSelos != null) return;
 
-        corrupcao = new Dictionary<BiomeType, float>();
+        if (corrupcao == null) corrupcao = new Dictionary<BiomeType, float>();
+        if (mapeamento == null) mapeamento = new Dictionary<BiomeType, float>();
+        if (ordemDosSelos == null) ordemDosSelos = new List<BiomeType>();
         Reiniciar();
     }
 
@@ -93,11 +125,16 @@ public static class RegionMap
     public static void Reiniciar()
     {
         if (corrupcao == null) corrupcao = new Dictionary<BiomeType, float>();
+        if (mapeamento == null) mapeamento = new Dictionary<BiomeType, float>();
+        if (ordemDosSelos == null) ordemDosSelos = new List<BiomeType>();
+
+        ordemDosSelos.Clear();
 
         foreach (var bioma in BiomeUtil.Playable)
         {
             float desvio = desvioInicial.ContainsKey(bioma) ? desvioInicial[bioma] : 0f;
             corrupcao[bioma] = Mathf.Clamp(RunManager.CorruptionStart + desvio, 0f, RunManager.CorruptionMax);
+            mapeamento[bioma] = 0f;
         }
     }
 
@@ -142,6 +179,10 @@ public static class RegionMap
 
         foreach (var bioma in BiomeUtil.Playable)
         {
+            // Região selada não apodrece mais: é o que o selo compra, e é a
+            // única coisa no jogo que faz o relógio andar mais devagar.
+            if (EstaSelada(bioma)) continue;
+
             float fator = ritmo.ContainsKey(bioma) ? ritmo[bioma] : 1f;
             corrupcao[bioma] = Mathf.Min(RunManager.CorruptionMax, corrupcao[bioma] + avancoGlobal * fator);
         }
@@ -153,8 +194,113 @@ public static class RegionMap
         GarantirEstado();
 
         if (bioma == BiomeType.Any || !corrupcao.ContainsKey(bioma) || quantidade <= 0f) return;
+        if (EstaSelada(bioma)) return;
+
         corrupcao[bioma] = Mathf.Min(RunManager.CorruptionMax, corrupcao[bioma] + quantidade);
     }
+
+    // ---------------------------------------------------------------- mapear
+
+    /// <summary>O quanto da região já está no mapa, de 0 a 100.</summary>
+    public static float Mapeamento(BiomeType bioma)
+    {
+        GarantirEstado();
+
+        if (bioma == BiomeType.Any) return 0f;
+        return mapeamento.ContainsKey(bioma) ? mapeamento[bioma] : 0f;
+    }
+
+    /// <summary>Fração de 0 a 1 — para a barra da Sala de Mapas.</summary>
+    public static float FracaoMapeada(BiomeType bioma)
+    {
+        return Mathf.Clamp01(Mapeamento(bioma) / MapeamentoCompleto);
+    }
+
+    /// <summary>
+    /// A região está inteira no mapa. É esta a condição que revela o chefe: o
+    /// quadro não oferece a luta de uma região que a guilda ainda não conhece.
+    /// </summary>
+    public static bool EstaMapeada(BiomeType bioma)
+    {
+        return Mapeamento(bioma) >= MapeamentoCompleto;
+    }
+
+    /// <summary>
+    /// A expedição voltou e trouxe pedaço de mapa. Devolve <c>true</c> quando
+    /// foi esta ida que completou a região — quem chama usa isso para anunciar,
+    /// porque completar o mapa é o instante em que o chefe aparece no quadro.
+    /// </summary>
+    public static bool Mapear(BiomeType bioma, float quantidade)
+    {
+        GarantirEstado();
+
+        if (bioma == BiomeType.Any || !mapeamento.ContainsKey(bioma) || quantidade <= 0f) return false;
+
+        bool faltava = !EstaMapeada(bioma);
+        mapeamento[bioma] = Mathf.Min(MapeamentoCompleto, mapeamento[bioma] + quantidade);
+        return faltava && EstaMapeada(bioma);
+    }
+
+    // ----------------------------------------------------------------- selar
+
+    /// <summary>O chefe daquela região caiu e a corrupção dela parou.</summary>
+    public static bool EstaSelada(BiomeType bioma)
+    {
+        GarantirEstado();
+
+        if (bioma == BiomeType.Any) return false;
+        return ordemDosSelos.Contains(bioma);
+    }
+
+    /// <summary>
+    /// Sela a região. Devolve <c>true</c> só na primeira vez: derrubar o mesmo
+    /// chefe duas vezes não conta dois selos.
+    /// </summary>
+    public static bool Selar(BiomeType bioma)
+    {
+        GarantirEstado();
+
+        if (bioma == BiomeType.Any || ordemDosSelos.Contains(bioma)) return false;
+        if (System.Array.IndexOf(BiomeUtil.Playable, bioma) < 0) return false;
+
+        ordemDosSelos.Add(bioma);
+        return true;
+    }
+
+    /// <summary>Quantas regiões já foram seladas.</summary>
+    public static int Selos
+    {
+        get
+        {
+            GarantirEstado();
+            return ordemDosSelos.Count;
+        }
+    }
+
+    /// <summary>Quais, na ordem em que caíram — o fim depende de <i>quais</i> três.</summary>
+    public static List<BiomeType> RegioesSeladas()
+    {
+        GarantirEstado();
+        return new List<BiomeType>(ordemDosSelos);
+    }
+
+    /// <summary>
+    /// A região selada por último: é nela que a passagem se abre.
+    ///
+    /// Devolve <c>Any</c> enquanto não houver selo nenhum — quem chama trata
+    /// isso como "o fim ainda não tem lugar".
+    /// </summary>
+    public static BiomeType UltimoSelo
+    {
+        get
+        {
+            GarantirEstado();
+            return ordemDosSelos.Count == 0 ? BiomeType.Any : ordemDosSelos[ordemDosSelos.Count - 1];
+        }
+    }
+
+    /// <summary>Três selos, e a Sala de Mapas pode desenhar a jornada final.</summary>
+    public static bool OFimEstaAberto => Selos >= SelosParaOFim;
 
     /// <summary>As sete, na ordem do enum — é o formato que o save guarda.</summary>
     public static List<float> Serializar()
@@ -166,18 +312,70 @@ public static class RegionMap
         return lista;
     }
 
+    /// <summary>O quanto de cada região está no mapa, na mesma ordem.</summary>
+    public static List<float> SerializarMapeamento()
+    {
+        GarantirEstado();
+
+        var lista = new List<float>();
+        foreach (var bioma in BiomeUtil.Playable) lista.Add(mapeamento[bioma]);
+        return lista;
+    }
+
+    /// <summary>
+    /// Os selos como índices de <see cref="BiomeUtil.Playable"/>, na ordem em
+    /// que caíram — e não uma lista de sim/não por região, porque é a ordem que
+    /// o fim lê.
+    /// </summary>
+    public static List<int> SerializarSelos()
+    {
+        GarantirEstado();
+
+        var lista = new List<int>();
+        foreach (var bioma in ordemDosSelos) lista.Add(System.Array.IndexOf(BiomeUtil.Playable, bioma));
+        return lista;
+    }
+
     /// <summary>
     /// Devolve o mundo ao ponto em que o save o deixou. Lista vazia ou de
     /// tamanho errado cai no início — save antigo não deve derrubar a partida.
     /// </summary>
     public static void Restaurar(List<float> valores)
     {
+        Restaurar(valores, null, null);
+    }
+
+    /// <summary>
+    /// A versão inteira: corrupção, mapa e selos.
+    ///
+    /// Cada lista é conferida por conta própria porque elas nasceram em versões
+    /// diferentes do save — um arquivo gravado antes de mapear existir tem a
+    /// corrupção das sete regiões e nenhuma das outras duas, e precisa abrir
+    /// como partida com o mundo intacto e o mapa em branco.
+    /// </summary>
+    public static void Restaurar(List<float> valores, List<float> mapas, List<int> selos)
+    {
         Reiniciar();
 
-        if (valores == null || valores.Count != BiomeUtil.Playable.Length) return;
+        int n = BiomeUtil.Playable.Length;
 
-        for (int i = 0; i < BiomeUtil.Playable.Length; i++)
-            corrupcao[BiomeUtil.Playable[i]] = Mathf.Clamp(valores[i], 0f, RunManager.CorruptionMax);
+        if (valores != null && valores.Count == n)
+            for (int i = 0; i < n; i++)
+                corrupcao[BiomeUtil.Playable[i]] = Mathf.Clamp(valores[i], 0f, RunManager.CorruptionMax);
+
+        if (mapas != null && mapas.Count == n)
+            for (int i = 0; i < n; i++)
+                mapeamento[BiomeUtil.Playable[i]] = Mathf.Clamp(mapas[i], 0f, MapeamentoCompleto);
+
+        // Os selos vêm por índice e na ordem gravada. Índice fora da faixa ou
+        // repetido é descartado em silêncio: um save adulterado não deve dar à
+        // partida dois selos da mesma região nem um oitavo bioma.
+        if (selos != null)
+            foreach (int indice in selos)
+            {
+                if (indice < 0 || indice >= n) continue;
+                Selar(BiomeUtil.Playable[indice]);
+            }
     }
 
     /// <summary>A região mais podre — o mapa marca, e o jogador decide se encara.</summary>

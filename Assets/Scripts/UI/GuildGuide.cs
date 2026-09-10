@@ -165,6 +165,17 @@ public class GuildGuide : MonoBehaviour
             return;
         }
 
+        // 2b. Uma região está inteira no mapa e o que a guarda está no quadro.
+        //     Vem logo abaixo da jornada final porque é o passo que leva até
+        //     ela: sem selo, aquela missão nunca aparece.
+        if (SeloNoQuadro(out string regiaoPronta))
+        {
+            sala = "Jornada";
+            texto = $"{regiaoPronta} está inteira no mapa, e o que a guarda entrou no quadro. "
+                  + $"Derrubá-lo sela a região — {RegionMap.Selos} de {RegionMap.SelosParaOFim} selos até o fim.";
+            return;
+        }
+
         // 3. Grupo curto. Não bloqueia a jornada, mas o combate espera quatro.
         if (aptos.Count < GrupoConfortavel)
         {
@@ -227,5 +238,25 @@ public class GuildGuide : MonoBehaviour
         // criar o mundo, e o guia é chamado a cada mudança de ouro.
         List<QuestData> quadro = QuestManager.Instance.QuadroAtual;
         return quadro != null && quadro.Any(q => q != null && q.isFinalBoss);
+    }
+
+    /// <summary>
+    /// Há luta de selo esperando, e de qual região. Devolve a primeira: duas
+    /// regiões prontas ao mesmo tempo são caso raro, e o guia dá um passo por
+    /// vez — apontar duas seria não apontar nenhuma.
+    /// </summary>
+    static bool SeloNoQuadro(out string regiao)
+    {
+        regiao = null;
+        if (QuestManager.Instance == null) return false;
+
+        List<QuestData> quadro = QuestManager.Instance.QuadroAtual;
+        if (quadro == null) return false;
+
+        QuestData selo = quadro.FirstOrDefault(q => q != null && q.isRegionBoss);
+        if (selo == null) return false;
+
+        regiao = BiomeUtil.GetDisplayName(selo.biomeType);
+        return true;
     }
 }

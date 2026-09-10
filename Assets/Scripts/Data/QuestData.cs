@@ -28,6 +28,15 @@ public class QuestData : ScriptableObject
     /// </summary>
     public bool isFinalBoss;
 
+    /// <summary>
+    /// A luta que sela a região: só aparece no quadro depois que a região está
+    /// inteira no mapa, e vencê-la trava a corrupção dali para sempre.
+    ///
+    /// É diferente do <see cref="isFinalBoss"/>, que é a jornada final — aquela
+    /// só existe com três selos na mesa.
+    /// </summary>
+    public bool isRegionBoss;
+
     public List<ClassRequirement> requirements;
 
     public int GetActualDuration()
