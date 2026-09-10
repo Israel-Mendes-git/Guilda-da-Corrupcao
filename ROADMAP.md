@@ -980,6 +980,23 @@ ativos** — e porque os escritos independem dos outros três passos.
 **Fora da fila, esperando decisão:** a arte (ver `ARTE.md`), e o Ladino e o Bardo, que seguem sem
 carta nenhuma.
 
+#### O debate que vem antes — levantado pelo autor em 10/09
+
+Nada aqui está decidido, e vários pontos contrariam o que já está construído. **A fila acima só
+continua depois desta conversa.**
+
+| # | O ponto, nas palavras dele | O que o projeto já mede sobre isso |
+|---|---|---|
+| **D1** | *"a jogatina está meio morta, muita coisa pra fazer, muita informação; jogador não gosta de coisa assim"* | a volta na guilda mostra 4 heróis × 6 números, 4 contratos × 4 números, mercador, forja e ouro — tudo de uma vez. A Biblioteca sozinha tem **49 textos** na tela |
+| **D2** | *"um tutorial não é uma boa forma de guiar o jogador, nem caixas de texto"* | o guia da guilda hoje é exatamente uma caixa de texto: *"A arma de Gromm nunca foi forjada…"* |
+| **D3** | *"as cartas ainda são um elemento secundário, não um fator significativo"* | o baralho decide o combate e mais nada. Das três funções do baralho fora da estrada previstas no GDD, **nenhuma existe** |
+| **D4** | *"a jornada está monótona, muito texto, combate de vez em quando"* | **12 dos 25 eventos** são de combate; o resto é texto com escolha |
+| **D5** | *"o bruto do jogo está bom, mas não jogável/apresentável"* | — |
+| **D6** | *"não acho que faça tanto sentido coletar 3 selos e descobrir do nada uma nova área"* | o que está implementado **não** cria área nova: a passagem abre na região selada por último. O que falta é o selo ser *marcante e próprio daquela área* |
+| **D7** | *"o herói corrompido era uma ideia de boss diferente… ser mais criativo usando as mecânicas apresentadas, semelhante a Inscryption"* — inclusive **finais que não envolvam combate** | o Campeão hoje está escrito como chefe montado com o que o herói era. Nenhum dos sete finais está construído |
+| **D8** | *"o mundo ainda está pobre; um mundo mais dinâmico e vivo, com situações reais e consequências reais"* | as 4 ofertas do quadro saem entre **239 e 254 de ouro** e **6 a 7 dias** — praticamente a mesma missão quatro vezes |
+| **D9** | **Modos:** os dois modos são **dificuldade**, e o pós-game continua — *"é só mais um jogo com heróis mais fortes e apelões (tudo pela diversão)"* | decidido; ajusta o §3.2 do GDD |
+
 ---
 
 ### Fase 4 — Dar peso ao que já está escrito
