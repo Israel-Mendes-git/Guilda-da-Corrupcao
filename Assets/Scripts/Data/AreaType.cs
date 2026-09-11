@@ -95,12 +95,20 @@ public static class AreaCatalog
     };
 
     /// <summary>
-    /// A guilda na borda de baixo, e não no centro.
+    /// A guilda no sul do mapa, na margem de cá do rio — e não no centro.
     ///
     /// No centro todas as áreas ficam à mesma distância, e a distância deixa de
-    /// significar alguma coisa — era esse o problema do mapa anterior.
+    /// significar alguma coisa. As coordenadas são frações do papel, que é
+    /// deitado: <b>x cresce para o leste, y para o norte</b>.
+    ///
+    /// <b>A geografia, e não um leque de nós.</b> O <b>Rio Cinza</b> corre de
+    /// oeste a leste no meio do papel e separa o que fica ao alcance de uma ida
+    /// curta — a Mata e a Cripta, na margem de cá — de todo o resto. A <b>Serra
+    /// Quebrada</b> fecha o norte, e é nela que o Covil se enfia. Foi por isso
+    /// que a Torre e o Covil ficaram longe: não é distância escolhida, é o que
+    /// há entre eles e a cidade.
     /// </summary>
-    public static readonly Vector2 PosicaoDaGuilda = new Vector2(0.50f, 0.07f);
+    public static readonly Vector2 PosicaoDaGuilda = new Vector2(0.44f, 0.16f);
 
     /// <summary>
     /// Quanto custa atravessar de um lugar ao vizinho.
@@ -121,7 +129,7 @@ public static class AreaCatalog
                 nome = "A Mata",
                 aspecto = BiomeType.Forest,
                 moeda = AreaMoeda.Tempo,
-                posicao = new Vector2(0.34f, 0.27f),
+                posicao = new Vector2(0.19f, 0.31f),
                 vizinhas = new[] { AreaType.None, AreaType.Cripta, AreaType.Oraculo, AreaType.Aldeia },
                 regra = "O mato fecha atrás do grupo: quanto mais fundo, mais caro o dia.",
                 oQueDa = "Caça — mantimentos que renovam na estrada.",
@@ -136,7 +144,7 @@ public static class AreaCatalog
                 nome = "A Cripta",
                 aspecto = BiomeType.Ruins,
                 moeda = AreaMoeda.Forca,
-                posicao = new Vector2(0.67f, 0.26f),
+                posicao = new Vector2(0.70f, 0.29f),
                 vizinhas = new[] { AreaType.None, AreaType.Mata, AreaType.Aldeia, AreaType.Forja },
                 regra = "Os mortos se erguem uma vez por turno enquanto o necromante estiver de pé. "
                       + "Herói enterrado sem tributo levanta contra o grupo.",
@@ -152,7 +160,7 @@ public static class AreaCatalog
                 nome = "A Aldeia",
                 aspecto = BiomeType.Swamp,
                 moeda = AreaMoeda.Tempo,
-                posicao = new Vector2(0.51f, 0.50f),
+                posicao = new Vector2(0.46f, 0.58f),
                 vizinhas = new[] { AreaType.Mata, AreaType.Cripta, AreaType.Oraculo, AreaType.Torre, AreaType.Forja },
                 regra = "Parte dos moradores ainda é gente, e os corrompidos têm consciência. "
                       + "Poupar devolve moral; matar dá recurso e cobra moral.",
@@ -169,7 +177,7 @@ public static class AreaCatalog
                 feminino = false,
                 aspecto = BiomeType.Desert,
                 moeda = AreaMoeda.Informacao,
-                posicao = new Vector2(0.16f, 0.47f),
+                posicao = new Vector2(0.12f, 0.55f),
                 vizinhas = new[] { AreaType.Mata, AreaType.Aldeia, AreaType.Torre },
                 regra = "A cega da gruta responde qualquer coisa. Cada resposta custa uma lembrança: "
                       + "um herói perde uma carta do baralho, para sempre.",
@@ -185,7 +193,7 @@ public static class AreaCatalog
                 nome = "A Torre",
                 aspecto = BiomeType.Tundra,
                 moeda = AreaMoeda.Forca,
-                posicao = new Vector2(0.28f, 0.72f),
+                posicao = new Vector2(0.23f, 0.83f),
                 vizinhas = new[] { AreaType.Oraculo, AreaType.Aldeia, AreaType.Covil },
                 regra = "A cada combate, um dos seus heróis aparece do outro lado, "
                       + "com o baralho e o equipamento dele.",
@@ -201,7 +209,7 @@ public static class AreaCatalog
                 nome = "A Forja",
                 aspecto = BiomeType.Volcano,
                 moeda = AreaMoeda.Forca,
-                posicao = new Vector2(0.75f, 0.70f),
+                posicao = new Vector2(0.82f, 0.54f),
                 vizinhas = new[] { AreaType.Cripta, AreaType.Aldeia, AreaType.Covil },
                 regra = "Dá para forjar na estrada, sem voltar à guilda — e cada peça forjada "
                       + "chama o que mora lá.",
@@ -218,7 +226,7 @@ public static class AreaCatalog
                 feminino = false,
                 aspecto = BiomeType.Mountain,
                 moeda = AreaMoeda.Forca,
-                posicao = new Vector2(0.52f, 0.91f),
+                posicao = new Vector2(0.70f, 0.85f),
                 vizinhas = new[] { AreaType.Torre, AreaType.Forja },
                 regra = "A luz desperta o dragão. Cada tocha acesa e cada peça levada "
                       + "aproximam o despertar.",

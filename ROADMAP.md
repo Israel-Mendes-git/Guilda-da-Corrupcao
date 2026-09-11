@@ -1029,7 +1029,8 @@ de contratos, e **o lugar do jogo passou a ser a área também no código**.
 | O que passou a existir | Regra |
 |---|---|
 | **A ficha de área** (`AreaCatalog`) | sete áreas, cada uma com nome, regra, o que dá, o que cobra e o ato do selo. O `BiomeType` vira o **aspecto** que ela veste — e por isso nenhum dos 25 eventos, 11 inimigos ou peças de arte precisou ser tocado |
-| **O plano** | a guilda na borda de baixo; as áreas se tocam; a rota até uma área é o caminho pelo grafo. Nada mais fica à mesma distância de casa |
+| **O plano** | um mapa-múndi que se percorre: arrastar move a vista, a roda aproxima, e a folha é o dobro da janela. A guilda no sul, o Rio Cinza separando o alcance curto do resto, a Serra Quebrada fechando o norte |
+| **A área como lugar** | território com extensão, símbolo e nome dentro, clicável inteiro e pintado pela corrupção — não mais um ícone com três linhas de texto embaixo |
 | **A distância cobra dias** | 2 dias por travessia, ida e volta. A Mata sai por 6 a 8 dias e o Covil por 14 a 16 |
 | **Toda área é destino** | o marcador deixou de acender só onde havia contrato. A expedição nasce do clique, com duração, corrupção e espólio tirados da área |
 | **O quadro vira encomenda** | pedidos que valem em qualquer lugar — espólio, ninguém morto, um mapa fechado, dias fora —, com prazo de três ciclos e prêmio de 90 a 180 |
@@ -1063,6 +1064,14 @@ que presumiam jornada de sete dias:
 clicável**. `RefreshQuestList` saía antes de montar o mapa quando o quadro estava vazio — e quadro
 vazio virou o estado normal da guilda no mesmo dia. Só a captura do Play Mode mostrou. É a vigésima
 primeira ocorrência do padrão **dado certo, exibição ausente**.
+
+**A segunda passada, no mesmo dia.** A primeira versão da tela era o mapa antigo com posições novas:
+sete símbolos, três linhas de texto sob cada um e retas ligando ponto a ponto. O autor foi direto —
+*"o mapa ainda não está como eu pensei"*, e apontou três coisas: área é ponto e não lugar, as retas
+denunciam o grafo, e **não é navegável**. O que ele queria está na frase dele: *"navegar por um mapa
+mundi, algo semelhante ao gps, ou como funciona mapa de jogos no geral; a diferença é que em outros
+jogos você usa pra se localizar, aqui você usa para procurar destinos"*. A tela foi refeita sobre
+isso, e a geografia — rio e serra — entrou para dar causa visível à distância.
 
 **O que isto ainda não faz:** a regra própria de cada área — o mato que fecha, os mortos que se
 erguem, o dragão que acorda — segue escrita em `MUNDO.md` e não construída. O que entrou é o mundo
