@@ -57,7 +57,8 @@ public static class GameStateIO
                 regionSealed = RegionMap.SerializarSelos(),
                 writingsOnShelf = Escritos.SerializarEstante(),
                 writingsTranslated = Escritos.SerializarLidos(),
-                lastTranslationCycle = Escritos.CicloDaUltimaTraducao
+                lastTranslationCycle = Escritos.CicloDaUltimaTraducao,
+                commissions = Encomendas.Serializar()
             };
         }
 
@@ -181,6 +182,8 @@ public static class GameStateIO
 
             Escritos.Restaurar(dados.run.writingsOnShelf, dados.run.writingsTranslated,
                                dados.run.lastTranslationCycle);
+
+            Encomendas.Restaurar(dados.run.commissions);
         }
 
         var quests = QuestManager.Instance;

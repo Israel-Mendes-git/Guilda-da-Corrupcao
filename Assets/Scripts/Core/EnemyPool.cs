@@ -25,8 +25,20 @@ public static class EnemyPool
         Debug.Log($"EnemyPool inicializado com {allEnemies.Count} inimigos");
     }
 
-    /// <summary>Formação para um combate. Chefes vêm sozinhos; encontros normais, em grupo.</summary>
-    public static List<EnemyData> GetLineup(BiomeType biome, bool bossFight, int day)
+    /// <summary>
+    /// Formação para um combate. Chefes vêm sozinhos; encontros normais, em grupo.
+    ///
+    /// <b>O grupo cresce com o quanto da rota já foi andado, não com o número do
+    /// dia.</b> "Dia 5" queria dizer "perto do fim" quando toda jornada tinha
+    /// sete dias. Com o plano navegável, a expedição ao Covil tem quatorze — e a
+    /// régua antiga punha três inimigos em quase todo encontro a partir do quinto
+    /// dia, o que sozinho levou a letalidade de 0,56 para 0,84 mortes por
+    /// jornada. Pela fração, a viagem longa tem a mesma curva da curta: começa
+    /// com um, dobra no meio, triplica no fim.
+    /// </summary>
+    /// <param name="totalDays">Dias previstos para a rota. Zero mantém a régua
+    /// antiga, para quem chama sem saber o tamanho da viagem.</param>
+    public static List<EnemyData> GetLineup(BiomeType biome, bool bossFight, int day, int totalDays = 0)
     {
         Initialize();
 
@@ -38,7 +50,7 @@ public static class EnemyPool
             if (boss != null) lineup.Add(boss);
 
             // Um capanga a partir da metade da jornada.
-            if (day >= 4)
+            if (Progresso(day, totalDays) >= 0.5f)
             {
                 EnemyData minion = PickRegular(biome);
                 if (minion != null) lineup.Add(minion);
@@ -47,7 +59,8 @@ public static class EnemyPool
             return lineup;
         }
 
-        int count = day >= 5 ? 3 : day >= 2 ? 2 : 1;
+        float p = Progresso(day, totalDays);
+        int count = p >= 0.66f ? 3 : p >= 0.25f ? 2 : 1;
         for (int i = 0; i < count; i++)
         {
             EnemyData enemy = PickRegular(biome);
@@ -94,6 +107,16 @@ public static class EnemyPool
         if (bosses.Count > 0) return bosses[Random.Range(0, bosses.Count)];
 
         return null;
+    }
+
+    /// <summary>
+    /// Onde o grupo está na rota, de 0 a 1. Sem o total, cai na régua de sete
+    /// dias — que era a duração de toda jornada até 11/09.
+    /// </summary>
+    static float Progresso(int day, int totalDays)
+    {
+        int total = totalDays > 0 ? totalDays : 7;
+        return Mathf.Clamp01(day / (float)total);
     }
 
     static EnemyData PickRegular(BiomeType biome)

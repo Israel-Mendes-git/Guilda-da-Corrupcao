@@ -220,6 +220,7 @@ public class RunManager : MonoBehaviour
         EndReason = RunEndReason.None;
 
         RegionMap.Reiniciar();
+        Encomendas.Reiniciar();
         Escritos.Reiniciar();
     }
 

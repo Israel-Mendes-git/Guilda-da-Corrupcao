@@ -180,7 +180,7 @@ public static class Escritos
     /// </summary>
     public static string Titulo(BiomeType regiao)
     {
-        return $"Escrito de {BiomeUtil.GetDisplayName(regiao)}";
+        return $"Escrito: {AreaCatalog.Nome(AreaCatalog.Da(regiao))}";
     }
 
     /// <summary>

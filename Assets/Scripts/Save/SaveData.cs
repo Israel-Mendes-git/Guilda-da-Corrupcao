@@ -122,6 +122,16 @@ public class RunSave
     public List<int> writingsTranslated = new List<int>();
 
     public int lastTranslationCycle = -1;
+
+    /// <summary>
+    /// O quadro de encomendas, quatro números por pedido — tipo, alvo, prêmio e
+    /// ciclo limite, na ordem em que estão pendurados.
+    ///
+    /// Campo no fim pelo mesmo motivo dos anteriores: um arquivo gravado antes
+    /// de 11/09 não o tem, e precisa abrir com o quadro vazio. Ele se repõe no
+    /// ciclo seguinte sozinho.
+    /// </summary>
+    public List<int> commissions = new List<int>();
 }
 
 /// <summary>

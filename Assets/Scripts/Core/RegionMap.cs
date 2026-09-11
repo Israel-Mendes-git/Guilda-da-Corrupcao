@@ -17,24 +17,16 @@ using UnityEngine;
 /// </summary>
 public static class RegionMap
 {
-    /// <summary>Onde cada região fica no mapa, em coordenadas de 0 a 1.</summary>
+    /// <summary>
+    /// A guilda no mapa — origem de toda expedição, e desde 11/09 na borda de
+    /// baixo do plano, não no centro.
     ///
-    /// Placeholder geométrico: as sete em volta do centro, que é onde fica a
-    /// guilda. Quando houver mapa ilustrado, é só trocar estes números pelos
-    /// pontos reais do desenho — nada mais depende deles.
-    static readonly Dictionary<BiomeType, Vector2> posicoes = new Dictionary<BiomeType, Vector2>
-    {
-        { BiomeType.Forest,   new Vector2(0.20f, 0.72f) },
-        { BiomeType.Mountain, new Vector2(0.50f, 0.86f) },
-        { BiomeType.Tundra,   new Vector2(0.80f, 0.74f) },
-        { BiomeType.Ruins,    new Vector2(0.14f, 0.40f) },
-        { BiomeType.Volcano,  new Vector2(0.86f, 0.38f) },
-        { BiomeType.Swamp,    new Vector2(0.30f, 0.14f) },
-        { BiomeType.Desert,   new Vector2(0.70f, 0.14f) },
-    };
-
-    /// <summary>A guilda no mapa — origem de toda expedição.</summary>
-    public static readonly Vector2 PosicaoDaGuilda = new Vector2(0.50f, 0.48f);
+    /// As posições das áreas saíram daqui e moram no <see cref="AreaCatalog"/>:
+    /// o lugar do jogo é a área, e quem sabe onde ela fica é a ficha dela. Este
+    /// arquivo continua respondendo por bioma porque é assim que os assets, o
+    /// save e o pool de eventos falam.
+    /// </summary>
+    public static Vector2 PosicaoDaGuilda => AreaCatalog.PosicaoDaGuilda;
 
     /// <summary>
     /// O quanto cada região destoa do relógio global no começo da run.
@@ -166,7 +158,7 @@ public static class RegionMap
     /// <summary>Onde a região fica no mapa, em coordenadas de 0 a 1.</summary>
     public static Vector2 Posicao(BiomeType bioma)
     {
-        return posicoes.ContainsKey(bioma) ? posicoes[bioma] : PosicaoDaGuilda;
+        return AreaCatalog.Posicao(AreaCatalog.Da(bioma));
     }
 
     /// <summary>

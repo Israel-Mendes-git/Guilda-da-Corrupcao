@@ -4,9 +4,10 @@
 > é a **área**, e são sete, cada uma com a sua regra. O que o código hoje chama de bioma é só o
 > aspecto do local no mapa — deixou de ser conceito de design, e não se fala mais dele aqui.
 >
-> **Nada disto está construído**, e boa parte contraria o que o código faz hoje: hoje as sete
-> regiões do código *são* a unidade de jogo, e o mapa é uma tela de escolher missão. Nomes marcados
-> como *(trabalho)* são descartáveis — o que vale é a função.
+> **A estrutura entrou no código em 11/09** (ROADMAP, fase 3.13): o plano, a vizinhança, o custo em
+> dias, a ficha de cada área e o quadro virado encomenda. O que cada área *faz* — a regra própria e
+> o ato do selo — segue escrito e não construído. Nomes marcados como *(trabalho)* são descartáveis
+> — o que vale é a função.
 
 ## A regra do mapa
 
@@ -23,6 +24,51 @@
 **As duas moedas.** Cada área dá **tempo** ou **força**, e dentro de cada grupo elas são substitutas
 — escolhe-se por qual caminho conseguir, não se coleciona todas. O Oráculo é a exceção: dá
 informação, que nenhuma outra dá.
+
+---
+
+## O plano, como ele ficou
+
+Desenhado em 11/09 e construído no mesmo dia. A guilda fica na borda de baixo; as linhas são
+vizinhança, e é por elas que se anda.
+
+```
+                       O COVIL
+                      /       \
+               A TORRE         A FORJA
+                   |   \      /   |
+            O ORÁCULO — A ALDEIA  |
+                   \    /    \    |
+                  A MATA ——— A CRIPTA
+                       \     /
+                     [ A GUILDA ]
+```
+
+**Cada travessia custa 2 dias**, e a volta custa o mesmo. Daí sai o preço de cada área:
+
+| Área | Travessias | Estrada (ida e volta) | Aspecto no código |
+|---|---|---|---|
+| A Mata | 1 | 4 dias | 🌲 Floresta |
+| A Cripta | 1 | 4 dias | 🏯 Ruínas |
+| A Aldeia | 2 | 8 dias | 🏚️ Pântano |
+| O Oráculo | 2 | 8 dias | 🏜️ Deserto |
+| A Forja | 2 | 8 dias | 🌋 Vulcão |
+| A Torre | 3 | 12 dias | ❄️ Tundra |
+| O Covil | 3 | 12 dias | ⛰️ Montanha |
+
+A expedição dura a estrada mais 2 a 4 dias dentro da área: 6 a 8 dias na Mata, 14 a 16 no Covil.
+
+**O aspecto é o que o código já tinha.** Cada área veste um dos sete biomas, e com isso os 25
+eventos, os 11 inimigos e a arte continuam valendo sem tocar em asset nenhum. A escolha não é
+arbitrária: **Deserto, Tundra e Vulcão eram justamente os três sem bestiário próprio**, e caíram
+sobre Oráculo, Torre e Forja — os três selos que não são um chefe de bestiário (a Torre luta contra
+a cópia do próprio herói; os outros dois não têm luta). A dívida de conteúdo das três virou o que a
+decisão de 10/09 já tinha cancelado.
+
+**O quadro deixou de dizer para onde ir.** Ele pendura **encomendas**: pedidos que valem em
+qualquer área — trazer espólio numa saída, voltar sem perder ninguém, fechar o mapa de uma área,
+aguentar tantos dias fora. Cada um tem prazo de três ciclos e paga entre 90 e 180 de ouro, cerca de
+metade de uma expedição. O destino é do mapa; o ouro é do quadro.
 
 ---
 
@@ -165,7 +211,7 @@ represada.
 
 ## Em aberto
 
-- **A posição das áreas no plano.** Só Mata e Cripta (perto) estão fixadas.
+- ~~A posição das áreas no plano.~~ **Fechada em 11/09** — está em "O plano, como ele ficou".
 - **Cinco de sete por partida** — proposto para segurar a carga de regras, não decidido.
 - **O que a saída da Abadia deixou em aberto**, decidida em 10/09: ela era o descanso fundo fora da
   guilda, o único esconderijo confiável e uma das três áreas de *tempo* (sobraram duas, contra

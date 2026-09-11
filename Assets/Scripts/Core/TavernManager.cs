@@ -212,11 +212,7 @@ public class TavernManager : MonoBehaviour
             return;
         }
 
-        if (QuestManager.Instance.HasQuests())
-            return;
-
-        List<QuestData> quests = QuestGenerator.GenerateQuests(3, GetPlayerAverageLevel());
-        QuestManager.Instance.SetQuests(quests);
+        QuestManager.Instance.GarantirQuadro();
     }
 
     int GetPlayerAverageLevel()

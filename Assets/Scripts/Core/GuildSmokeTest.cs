@@ -33,7 +33,10 @@ public static class GuildSmokeTest
         Header("ASSETS");
         TestAssets();
 
-        Header("BIOMAS");
+        Header("O MUNDO");
+        TestAreas();
+
+        Header("ASPECTOS");
         TestBiomeMatching();
 
         Header("INIMIGOS");
@@ -235,6 +238,90 @@ public static class GuildSmokeTest
               $"todo evento tem ao menos uma saída sem exigir carta (sem saída: {semSaidaLivre.Count}"
               + (semSaidaLivre.Count > 0 ? $" — {string.Join(", ", semSaidaLivre.Select(e => e.eventTitle))}" : "")
               + ")");
+    }
+
+    /// <summary>
+    /// O plano navegável: sete áreas, todas alcançáveis, cada uma vestindo um
+    /// aspecto diferente.
+    ///
+    /// Vale a pena travar isto porque o mapa é feito de dados, não de cena: uma
+    /// vizinhança escrita só de um lado deixa a área inalcançável e o jogo não
+    /// dá erro nenhum — o marcador continua no papel, e a trilha até ele some.
+    /// É o mesmo tipo de defeito silencioso que já apareceu vinte vezes aqui:
+    /// dado certo, exibição ausente.
+    /// </summary>
+    static void TestAreas()
+    {
+        Check(AreaCatalog.Todas.Length == 7, $"o mundo tem sete áreas ({AreaCatalog.Todas.Length})");
+
+        var aspectos = new List<BiomeType>();
+        int semFicha = 0, foraDoPapel = 0, assimetricas = 0;
+
+        foreach (var area in AreaCatalog.Todas)
+        {
+            var ficha = AreaCatalog.De(area);
+            if (ficha == null) { semFicha++; continue; }
+
+            aspectos.Add(ficha.aspecto);
+
+            if (ficha.posicao.x < 0f || ficha.posicao.x > 1f ||
+                ficha.posicao.y < 0f || ficha.posicao.y > 1f) foraDoPapel++;
+
+            // Vizinhança é mão dupla: se A lista B, B tem de listar A. Escrita
+            // de um lado só, a trilha aparece e o caminho não conta.
+            foreach (var vizinha in AreaCatalog.Vizinhas(area))
+                if (!AreaCatalog.SaoVizinhas(vizinha, area)) assimetricas++;
+        }
+
+        Check(semFicha == 0, $"toda área tem ficha (sem ficha: {semFicha})");
+        Check(foraDoPapel == 0, $"toda área cabe no plano (fora de 0..1: {foraDoPapel})");
+        Check(assimetricas == 0, $"vizinhança é mão dupla (só de um lado: {assimetricas})");
+        Check(aspectos.Distinct().Count() == aspectos.Count,
+              $"cada área veste um aspecto próprio ({aspectos.Distinct().Count()} de {aspectos.Count})");
+
+        // A volta: todo aspecto jogável tem de achar a área dele, ou os assets
+        // daquele bioma ficam sem lugar no mundo.
+        int orfaos = BiomeUtil.Playable.Count(b => AreaCatalog.Da(b) == AreaType.None);
+        Check(orfaos == 0, $"todo aspecto tem área (órfãos: {orfaos})");
+
+        foreach (var area in AreaCatalog.Todas)
+        {
+            var rota = AreaCatalog.Rota(area);
+            bool alcancavel = rota.Count > 0 && rota[rota.Count - 1] == area;
+
+            Check(alcancavel, $"{AreaCatalog.Nome(area)}: alcançável a pé da guilda"
+                            + (alcancavel ? $" ({AreaCatalog.DiasDeIda(area) * 2} dias de estrada)" : ""));
+        }
+
+        // A expedição que nasce do clique no mapa: é ela que a partida inteira
+        // usa desde que o quadro deixou de oferecer destino.
+        int semExpedicao = 0, semDias = 0;
+        foreach (var area in AreaCatalog.Todas)
+        {
+            QuestData e = QuestGenerator.GerarExpedicao(area, 3);
+            if (e == null) { semExpedicao++; continue; }
+            if (e.minDuration < 2 || e.maxDuration <= e.minDuration) semDias++;
+        }
+
+        Check(semExpedicao == 0, $"toda área gera expedição (falhas: {semExpedicao})");
+        Check(semDias == 0, $"toda expedição tem duração válida (inválidas: {semDias})");
+
+        // O quadro: pedidos, não destinos.
+        Encomendas.Reiniciar();
+        Encomendas.Renovar(0, 3);
+
+        var pedidos = Encomendas.Ativas();
+        Check(pedidos.Count == Encomendas.Vagas,
+              $"o quadro pendura {Encomendas.Vagas} encomendas ({pedidos.Count})");
+        Check(pedidos.All(e => e != null && e.premio > 0 && !string.IsNullOrEmpty(e.Pedido)),
+              "toda encomenda pede algo e paga algo");
+
+        // Prazo: o pedido sai do quadro quando vence, e outro entra no lugar.
+        Encomendas.Renovar(Encomendas.PrazoEmCiclos + 1, 3);
+        Check(Encomendas.Ativas().All(e => e.cicloLimite > Encomendas.PrazoEmCiclos),
+              "encomenda vencida sai do quadro");
+
+        Encomendas.Reiniciar();
     }
 
     static void TestBiomeMatching()
@@ -494,6 +581,15 @@ public static class GuildSmokeTest
     {
         public float mortesPorJornada;
         public float mortesNoChefe;
+
+        /// <summary>
+        /// O que o chefe cobra <b>na jornada em que ele aparece</b>.
+        ///
+        /// Desde 11/09 ele só está na luta de selo — uma em cada cinco jornadas
+        /// simuladas. Diluído em todas, o número afunda para perto de zero e
+        /// deixa de dizer se o clímax ainda cobra alguma coisa.
+        /// </summary>
+        public float mortesPorLutaDeSelo;
         public float mortesEmCombateComum;
         public float mortesNaEstrada;
         public float cartasJogadas;
@@ -517,6 +613,8 @@ public static class GuildSmokeTest
         Info($"duração média: {s.duracaoMedia:F1} dias");
         Info($"combates travados: {s.combates:F2} por jornada"
            + $" | cartas jogadas na estrada: {s.cartasJogadas:F2} por jornada");
+        Info($"o chefe cobra {s.mortesPorLutaDeSelo:F2} morte(s) por luta de selo — "
+           + "é a única jornada em que ele aparece");
         Info($"origem das mortes por jornada — chefe: {s.mortesNoChefe:F2}"
            + $" | encontro do caminho: {s.mortesEmCombateComum:F2}"
            + $" | estrada (fome, eventos): {s.mortesNaEstrada:F2}");
@@ -541,8 +639,12 @@ public static class GuildSmokeTest
         // É o que impede o chefe de virar formalidade: se as mortes migrarem
         // todas para a fome e os eventos, a letalidade total continua no alvo e
         // o clímax da jornada some sem ninguém notar.
-        Expect(s.mortesNoChefe >= 0.10f,
-            $"o chefe é o clímax e cobra por isso (piso 0,10 mortes/jornada): {s.mortesNoChefe:F2}");
+        // O piso mudou de régua em 11/09, não de exigência: o chefe deixou de
+        // fechar toda jornada e passou a morar só na luta de selo, uma em cada
+        // cinco aqui. Medido por jornada geral, 0,25 por luta aparece como 0,05 —
+        // e a trava reprovaria um chefe saudável.
+        Expect(s.mortesPorLutaDeSelo >= 0.10f,
+            $"o chefe é o clímax e cobra por isso (piso 0,10 por luta de selo): {s.mortesPorLutaDeSelo:F2}");
     }
 
     /// <summary>
@@ -657,6 +759,7 @@ public static class GuildSmokeTest
         // se o culpado é o chefe, o encontro do caminho ou a fome — e as três
         // causas pedem correções opostas.
         int mortesEmCombateComum = 0, mortesNoChefe = 0, mortesNaEstrada = 0;
+        int lutasDeSelo = 0;
 
         // Grupos reciclados, como em SimulateCombats: recriar a party a cada run
         // geraria milhares de decks e travaria o Editor por minutos.
@@ -670,7 +773,25 @@ public static class GuildSmokeTest
 
         for (int r = 0; r < runs; r++)
         {
-            QuestData quest = QuestGenerator.GenerateQuests(1, 3)[0];
+            // Uma jornada em cada cinco é luta de selo.
+            //
+            // Não é enfeite de simulação: desde 11/09 o chefe só aparece nessas,
+            // e a partida real cabe umas três em quinze ciclos. Medir só
+            // expedições comuns tiraria o chefe da conta de letalidade — e ele é
+            // justamente a morte que o alvo existe para vigiar.
+            bool deSelo = r % 5 == 4;
+            if (deSelo) lutasDeSelo++;
+
+            QuestData quest;
+            if (deSelo)
+            {
+                var area = AreaCatalog.Todas[r % AreaCatalog.Todas.Length];
+                quest = QuestGenerator.GenerateRegionBossQuest(AreaCatalog.Aspecto(area), 3);
+            }
+            else
+            {
+                quest = QuestGenerator.ExpedicaoQualquer(3);
+            }
 
             SimParty grupo = grupos[r % grupos.Count];
             grupo.Reset(0f, 0f);
@@ -684,9 +805,14 @@ public static class GuildSmokeTest
             // As provisões que a tela de preparação entrega. Antes a simulação
             // usava o padrão interno do StartJourney (10–14 rações), folga que o
             // jogador não tem — e media uma jornada mais fácil que a real.
-            var prep = Object.FindObjectOfType<QuestSelectionUI>(true);
-            int racoes = prep != null ? prep.baseRations : 10;
-            int tochas = prep != null ? prep.baseTorches : 8;
+            //
+            // Desde 11/09 elas vêm da mesma régua da tela, que acompanha os dias:
+            // com o plano navegável a expedição ao Covil dura o dobro da que vai
+            // à Mata, e uma mochila fixa faria a distância matar de fome em vez
+            // de cobrar tempo.
+            int previstos = QuestSelectionUI.DiasPrevistos(quest);
+            int racoes = QuestSelectionUI.RacoesPara(previstos);
+            int tochas = QuestSelectionUI.TochasPara(previstos);
 
             EventPool.ResetHistory();
 
@@ -698,10 +824,19 @@ public static class GuildSmokeTest
 
             for (int dia = 1; dia <= dias + 1 && party.Any(h => h.IsAlive); dia++)
             {
-                bool ehChefe = dia == dias + 1;
+                // O fim da rota, pela mesma regra do JourneyMapGenerator: chefe
+                // só na luta de selo e na final; expedição comum fecha num
+                // encontro forte. Medir com chefe em toda jornada media um jogo
+                // que deixou de existir em 11/09 — e o simulador errar mais que
+                // o jogo já custou cinco conclusões invertidas aqui.
+                bool ehFimDaRota = dia == dias + 1;
+                bool ehChefe = ehFimDaRota && (quest.isRegionBoss || quest.isFinalBoss);
+
                 EventData ev = ehChefe
                     ? EventPool.GetFinalEvent(quest.biomeType)
-                    : EventPool.GetRandomEvent(quest.biomeType, quest.corruptionLevel, dia);
+                    : ehFimDaRota
+                        ? EventPool.GetStrongEncounter(quest.biomeType, quest.corruptionLevel, dia)
+                        : EventPool.GetRandomEvent(quest.biomeType, quest.corruptionLevel, dia);
 
                 if (ev == null) continue;
 
@@ -711,7 +846,7 @@ public static class GuildSmokeTest
                 if (ehCombate && !(evitarProximoCombate && !ev.isBossEvent))
                 {
                     // O caminho que o jogo quer premiar: resolver na mesa.
-                    var lineup = EnemyPool.GetLineup(quest.biomeType, ev.isBossEvent, dia);
+                    var lineup = EnemyPool.GetLineup(quest.biomeType, ev.isBossEvent, dia, dias + 1);
 
                     int vivosAntes = party.Count(h => h.IsAlive);
                     SimulateOneCombat(party, grupo.ownership, grupo.deck, lineup);
@@ -826,6 +961,7 @@ public static class GuildSmokeTest
         {
             mortesPorJornada = mortos / (float)runs,
             mortesNoChefe = mortesNoChefe / (float)runs,
+            mortesPorLutaDeSelo = lutasDeSelo > 0 ? mortesNoChefe / (float)lutasDeSelo : 0f,
             mortesEmCombateComum = mortesEmCombateComum / (float)runs,
             mortesNaEstrada = mortesNaEstrada / (float)runs,
             cartasJogadas = cartasJogadas / (float)runs,

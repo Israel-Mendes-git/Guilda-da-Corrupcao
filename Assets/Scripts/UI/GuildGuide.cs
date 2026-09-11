@@ -234,8 +234,6 @@ public class GuildGuide : MonoBehaviour
     {
         if (QuestManager.Instance == null) return false;
 
-        // GetQuests() gera um quadro quando não há nenhum — perguntar não pode
-        // criar o mundo, e o guia é chamado a cada mudança de ouro.
         List<QuestData> quadro = QuestManager.Instance.QuadroAtual;
         return quadro != null && quadro.Any(q => q != null && q.isFinalBoss);
     }
@@ -256,7 +254,7 @@ public class GuildGuide : MonoBehaviour
         QuestData selo = quadro.FirstOrDefault(q => q != null && q.isRegionBoss);
         if (selo == null) return false;
 
-        regiao = BiomeUtil.GetDisplayName(selo.biomeType);
+        regiao = AreaCatalog.Nome(AreaCatalog.Da(selo.biomeType));
         return true;
     }
 }

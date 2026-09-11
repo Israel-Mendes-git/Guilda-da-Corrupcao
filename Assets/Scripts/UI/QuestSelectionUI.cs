@@ -75,8 +75,15 @@ public class QuestSelectionUI : MonoBehaviour
     // Dimensionadas por simulação (1000 jornadas) para a letalidade alvo: punitiva,
     // ~1 a 2 mortes a cada 3 jornadas. Com 8 rações e 4 tochas a conta não fechava
     // — 81% das jornadas passavam fome e a party morria inteira em 9% delas, o que
-    // é aniquilação, não punição. Cobrem a duração média (7 dias); jornada longa
-    // continua exigindo compra, e é aí que a preparação vira decisão.
+    // é aniquilação, não punição.
+    //
+    // <b>Desde 11/09 elas acompanham a viagem</b>, e o valor abaixo é só o ponto
+    // de partida da tela. Com o plano navegável a duração passou a vir da
+    // distância — média de 11 dias contra os 7 de antes —, e a base fixa de 10
+    // rações virou fome: a letalidade medida foi de 0,56 para <b>2,59</b> mortes
+    // por jornada, com 1,89 delas na estrada. A régua por dia é a mesma que foi
+    // medida (10 rações e 8 tochas para 7 dias); o que mudou é que ela agora
+    // multiplica pelos dias em vez de valer só para a jornada curta.
     public int baseRations = 10;
     public int baseTorches = 8;
     public int rationCost = 8;
@@ -109,6 +116,25 @@ public class QuestSelectionUI : MonoBehaviour
     private readonly Dictionary<HeroData, GameObject> deckCards = new Dictionary<HeroData, GameObject>();
 
     private int ProvisionsCost => extraRations * rationCost + extraTorches * torchCost;
+
+    /// <summary>
+    /// O que a guilda entrega para uma expedição de tantos dias.
+    ///
+    /// Estáticas porque o simulador as chama de fora do Play Mode, e ele precisa
+    /// equipar o grupo exatamente como a tela equipa — medir uma jornada mais
+    /// farta (ou mais faminta) que a real é o erro que já custou cinco
+    /// conclusões invertidas neste projeto.
+    /// </summary>
+    public static int RacoesPara(int dias) => Mathf.CeilToInt(dias * 10f / 7f);
+
+    public static int TochasPara(int dias) => Mathf.CeilToInt(dias * 8f / 7f);
+
+    /// <summary>Os dias que a expedição deve durar, no meio da faixa.</summary>
+    public static int DiasPrevistos(QuestData quest)
+    {
+        if (quest == null) return 7;
+        return Mathf.Max(1, (quest.minDuration + quest.maxDuration) / 2);
+    }
 
     void Awake()
     {
@@ -243,16 +269,12 @@ public class QuestSelectionUI : MonoBehaviour
     {
         UpdateGoldUI();
 
-        // Carrega quests
-        if (QuestManager.Instance != null)
-        {
-            availableQuests = QuestManager.Instance.GetQuests();
-        }
-        else
-        {
-            int playerLevel = GetPlayerAverageLevel();
-            availableQuests = QuestGenerator.GenerateQuests(3, playerLevel);
-        }
+        // O que vem do quadro são só a luta de selo e a jornada final — o mapa
+        // é quem oferece destino. Sem QuestManager na cena, a lista fica vazia e
+        // o mapa continua inteiro: nenhuma área depende de oferta para existir.
+        availableQuests = QuestManager.Instance != null
+            ? QuestManager.Instance.GetQuests()
+            : new List<QuestData>();
 
         // Zera antes de redesenhar: agora a lista de heróis é reconstruída a
         // partir de selectedParty (é o que preserva a marcação ao voltar do
@@ -305,18 +327,23 @@ public class QuestSelectionUI : MonoBehaviour
         foreach (Transform child in questListContainer)
             Destroy(child.gameObject);
 
-        if (availableQuests == null || availableQuests.Count == 0)
-        {
-            Debug.LogWarning("Nenhuma quest disponível!");
-            return;
-        }
-
-        // O destino se escolhe no mapa, não numa lista de ofertas: é o que liga
-        // a decisão ao estado do mundo e dá função à Sala de Mapas. A lista de
-        // itens continua aqui como rede de segurança — se o mapa não puder ser
-        // montado, o jogador ainda tem como partir.
+        // O destino se escolhe no mapa, e o mapa <b>não depende do quadro</b>: as
+        // sete áreas existem sempre.
+        //
+        // Este método saía aqui quando não havia missão, e desde 11/09 não haver
+        // missão é o estado normal da guilda — o quadro só guarda luta de selo e
+        // jornada final. A tela de preparação abria sem nenhum destino clicável,
+        // com o smoke test em 63 verificações e 0 falhas: dado certo, exibição
+        // ausente, pela vigésima primeira vez.
         if (MontarMapaDeRegioes())
             return;
+
+        // Rede de segurança: sem mapa, a lista antiga de ofertas.
+        if (availableQuests == null || availableQuests.Count == 0)
+        {
+            Debug.LogWarning("Sem mapa e sem missão — a preparação ficou sem destino.");
+            return;
+        }
 
         foreach (var quest in availableQuests)
         {
@@ -370,6 +397,25 @@ public class QuestSelectionUI : MonoBehaviour
     {
         if (quest == null) return;
         SelectQuest(quest);
+    }
+
+    /// <summary>
+    /// O jogador clicou numa área do mapa, e a expedição nasce aqui.
+    ///
+    /// <b>É o que substituiu o quadro de contratos como escolha de destino.</b>
+    /// Antes o mapa só acendia onde havia oferta, e ir a um lugar dependia de o
+    /// quadro ter sorteado aquele bioma naquele ciclo — o mundo existia, mas o
+    /// jogador não podia visitá-lo. Agora as sete áreas são sempre destino, e o
+    /// que a viagem custa sai da distância até lá.
+    /// </summary>
+    public void EscolherArea(AreaType lugar)
+    {
+        int nivel = QuestManager.Instance != null ? QuestManager.Instance.GetPlayerAverageLevel() : 1;
+
+        QuestData expedicao = QuestGenerator.GerarExpedicao(lugar, nivel);
+        if (expedicao == null) return;
+
+        SelectQuest(expedicao);
     }
 
     void SetupQuestItem(GameObject item, QuestData quest)
@@ -447,24 +493,57 @@ public class QuestSelectionUI : MonoBehaviour
     {
         selectedQuest = quest;
 
-        // Só agora preenche os detalhes
+        // A mochila é da viagem, não da tela: o destino define quantos dias o
+        // grupo passa fora, e é isso que diz quanta comida a guilda entrega.
+        int previstos = DiasPrevistos(quest);
+        baseRations = RacoesPara(previstos);
+        baseTorches = TochasPara(previstos);
+
+        AreaType lugar = AreaCatalog.Da(quest.biomeType);
+        var ficha = AreaCatalog.De(lugar);
+        bool eSelo = quest.isRegionBoss || quest.isFinalBoss;
+
+        // A ficha da área no lugar do boletim de contrato.
+        //
+        // O que o jogador precisa para escolher é o que aquele lugar faz com as
+        // regras — a etiqueta de bioma não decide nada, e dizia o mesmo que o
+        // nome logo acima dela.
         string details = $"<b>{quest.questName}</b>\n\n";
-        details += $"📍 Bioma: {quest.biome}\n";
-        details += $"⏱️ Duração: {quest.minDuration}-{quest.maxDuration} dias\n";
-        details += $"💰 Recompensa: {quest.baseReward}+ ouro\n";
+
+        if (ficha != null)
+        {
+            details += $"<i>{ficha.regra}</i>\n\n";
+
+            if (eSelo)
+                details += $"<b>O selo:</b> {ficha.selo}\n\n";
+            else
+                details += $"<b>Dá:</b> {ficha.oQueDa}\n<b>Cobra:</b> {ficha.oQueCobra}\n\n";
+        }
+
+        details += $"⏱️ {quest.minDuration}-{quest.maxDuration} dias";
+        if (ficha != null) details += $"  ·  {AreaCatalog.DiasDeIda(lugar) * 2} só de estrada";
+        details += "\n";
+        details += $"💰 {quest.baseReward}+ de espólio\n";
         details += $"⚠️ Risco: {GetRiskText(quest.risk)}\n";
 
         if (quest.isCorrupted)
-            details += "\n<color=red>⚠️ REGIÃO CORROMPIDA!</color>\n";
+            details += "\n<color=red>⚠️ LUGAR CORROMPIDO!</color>\n";
 
-        details += "\n<b>Requisitos:</b>\n";
-        foreach (var req in quest.requirements)
-            details += $"• {req.minAmount}x {req.requiredClass} (Nv.{req.minLevel}+)\n";
+        if (quest.requirements != null && quest.requirements.Count > 0)
+        {
+            details += "\n<b>Requisitos:</b>\n";
+            foreach (var req in quest.requirements)
+                details += $"• {req.minAmount}x {req.requiredClass} (Nv.{req.minLevel}+)\n";
+        }
 
         details += "\n" + BuildRoutePreview(quest);
 
         if (questDetailsText != null)
             questDetailsText.text = details;
+
+        // A mochila mudou de tamanho junto com o destino: sem isto os contadores
+        // continuam mostrando a expedição anterior.
+        UpdateProvisionsUI();
 
         if (nextButton1 != null)
             nextButton1.interactable = true;
@@ -1006,8 +1085,11 @@ public class QuestSelectionUI : MonoBehaviour
     /// </summary>
     string BuildRoutePreview(QuestData quest)
     {
+        bool chefeNoFim = quest.isRegionBoss || quest.isFinalBoss;
+
         var texto = "<b>A rota:</b>\n";
-        texto += $"• {quest.minDuration}-{quest.maxDuration} dias até o confronto final\n";
+        texto += $"• {quest.minDuration}-{quest.maxDuration} dias"
+               + (chefeNoFim ? " até o confronto final\n" : " de ida, estrada e volta\n");
         texto += "• Cada dia oferece 2 ou 3 caminhos\n";
 
         switch (quest.risk)
@@ -1026,7 +1108,11 @@ public class QuestSelectionUI : MonoBehaviour
         if (quest.isCorrupted)
             texto += "• <color=#8A4AA0>A corrupção altera os eventos</color>\n";
 
-        texto += "• 💀 Chefe no fim, inevitável\n";
+        // O chefe deixou de fechar toda jornada em 11/09: prometê-lo numa
+        // expedição comum é prometer uma luta que não vem.
+        texto += chefeNoFim
+            ? "• 💀 Chefe no fim, inevitável\n"
+            : "• ⚔️ Um encontro forte fecha a rota\n";
         texto += "\n<i>Batedores da Sala de Mapas revelam os caminhos adiante.</i>";
 
         return texto;
@@ -1080,6 +1166,47 @@ public class QuestSelectionUI : MonoBehaviour
         if (formationPanel != null) formationPanel.SetActive(false);
 
         if (nextButton1 != null) nextButton1.interactable = selectedQuest != null;
+
+        // Enquanto nada está escolhido, a coluna mostra o que a guilda pede.
+        //
+        // É o quadro inteiro em cinco linhas, e no único instante em que ele
+        // muda alguma coisa: o jogador está olhando o mapa e decidindo até onde
+        // ir. Depois do clique, a mesma coluna passa a falar do lugar.
+        if (selectedQuest == null && questDetailsText != null)
+            questDetailsText.text = TextoDoQuadro();
+    }
+
+    /// <summary>
+    /// O que a guilda pede, para ser lido em cima do mapa.
+    ///
+    /// A encomenda não diz onde — pede um resultado, e é o jogador que decide em
+    /// que área sai mais barato consegui-lo. Sem prazo escrito o pedido vira
+    /// promessa vaga, então o ciclo limite vem junto.
+    /// </summary>
+    string TextoDoQuadro()
+    {
+        var pedidos = Encomendas.Ativas();
+
+        if (pedidos.Count == 0)
+            return "<b>O quadro</b>\n\n<i>Nada pendurado neste ciclo.</i>\n\n"
+                 + "Escolha um lugar no mapa.";
+
+        int ciclo = RunManager.Existe ? RunManager.Instance.Cycle : 0;
+
+        string texto = "<b>O quadro</b>\n\n";
+        foreach (var pedido in pedidos)
+        {
+            int prazo = Mathf.Max(0, pedido.cicloLimite - ciclo);
+
+            texto += $"<b>{pedido.Titulo}</b>\n";
+            texto += $"<size=13>{pedido.Pedido}</size>\n";
+            texto += $"<size=13>💰 {pedido.premio}  ·  "
+                   + (prazo == 0 ? "<color=#B04040>último ciclo</color>" : $"{prazo} ciclos")
+                   + "</size>\n\n";
+        }
+
+        texto += "<i>Escolha um lugar no mapa.</i>";
+        return texto;
     }
 
     void ShowStep2()

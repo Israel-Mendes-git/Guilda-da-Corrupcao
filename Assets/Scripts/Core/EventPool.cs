@@ -65,6 +65,41 @@ public static class EventPool
         return chosen;
     }
 
+    /// <summary>
+    /// O que fecha uma expedição comum, desde 11/09: <b>um encontro forte, não o
+    /// chefe da área</b>.
+    ///
+    /// Toda jornada terminava em nó de chefe, e por isso o jogador derrubava A
+    /// Coisa da Mata em cada ida à Mata — e a derrubava de novo na luta de selo,
+    /// que é a missão feita para isso. O chefe deixou de ser o fim de qualquer
+    /// saída e voltou a ser o que fecha a área.
+    ///
+    /// Prefere um evento de combate; sem nenhum no pool daquele aspecto, cai no
+    /// evento comum, porque uma rota sem último nó não tem fim.
+    /// </summary>
+    public static EventData GetStrongEncounter(BiomeType biome, int corruptionLevel, int day)
+    {
+        Initialize();
+
+        List<EventData> combates = allEvents.FindAll(e =>
+            !e.isBossEvent &&
+            e.eventType == JourneyEventType.Combat &&
+            BiomeUtil.Matches(e.biome, biome) &&
+            e.minCorruptionToAppear <= corruptionLevel
+        );
+
+        if (combates.Count == 0) return GetRandomEvent(biome, corruptionLevel, day);
+
+        // O do próprio lugar tem prioridade: é o último encontro da viagem, e é
+        // dele que o jogador vai lembrar quando pensar naquela área.
+        List<EventData> proprios = combates.Where(e => e.biome == biome).ToList();
+        List<EventData> pool = proprios.Count > 0 ? proprios : combates;
+
+        EventData escolhido = pool[Random.Range(0, pool.Count)];
+        Remember(escolhido);
+        return escolhido;
+    }
+
     public static EventData GetFinalEvent(BiomeType biome)
     {
         Initialize();

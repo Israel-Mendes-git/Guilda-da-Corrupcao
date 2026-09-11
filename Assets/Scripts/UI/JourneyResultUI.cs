@@ -198,17 +198,20 @@ public class JourneyResultUI : MonoBehaviour
     {
         if (report.regiao == BiomeType.Any) return "";
 
-        string lugar = BiomeUtil.GetDisplayName(report.regiao);
+        AreaType onde = AreaCatalog.Da(report.regiao);
+        string lugar = AreaCatalog.Nome(onde);
 
-        // Sem 🗺️ antes do nome: o GetDisplayName já traz o emoji do bioma, e os
+        // Sem 🗺️ antes do nome: o nome da área já traz o símbolo do lugar, e os
         // dois colados saíram como "🗺️ 🏜️ Deserto" na captura. O 🔒 fica porque
         // é informação diferente do lugar — é o selo.
         if (report.regiaoSelada)
-            return $"<color=#D9B85A>🔒 {lugar} selada — a corrupção dali parou de subir "
+            return $"<color=#D9B85A>🔒 {lugar} {AreaCatalog.Concordar(onde, "selada", "selado")} — "
+                 + "a corrupção dali parou de subir "
                  + $"({RegionMap.Selos} de {RegionMap.SelosParaOFim} selos)</color>";
 
         if (report.mapaCompletado)
-            return $"<color=#D9B85A>{lugar} inteira no mapa — o que a guarda apareceu no quadro</color>"
+            return $"<color=#D9B85A>{lugar} {AreaCatalog.Concordar(onde, "inteira", "inteiro")} no mapa — "
+                 + $"o que {AreaCatalog.Concordar(onde, "a", "o")} guarda apareceu no mapa</color>"
                  + (report.escritoEncontrado
                         ? "\n<color=#D9B85A>📜 Uma página veio junto. A Biblioteca a traduz.</color>"
                         : "");
@@ -381,6 +384,18 @@ public class JourneyReport
 
     /// <summary>Fechar o mapa trouxe a página que estava naquela região.</summary>
     public bool escritoEncontrado;
+
+    /// <summary>
+    /// Pedidos do quadro que esta saída cumpriu, já com o ouro de cada um.
+    ///
+    /// Entram no balanço como linha própria: o jogador precisa ver que o desvio
+    /// que ele fez por causa do quadro pagou, ou a encomenda vira ouro que
+    /// aparece sozinho.
+    /// </summary>
+    public readonly List<string> encomendasCumpridas = new List<string>();
+
+    /// <summary>Soma do que as encomendas pagaram.</summary>
+    public int recompensaEncomendas;
 
     /// <summary>
     /// Escolhas oferecidas ao voltar. Vazio quando a jornada fracassou: quem

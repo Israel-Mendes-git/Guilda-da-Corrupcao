@@ -4,88 +4,65 @@ using UnityEngine;
 public static class QuestGenerator
 {
     /// <summary>
-    /// O lugar da missão, com o gênero do substantivo. O gênero mora aqui porque
-    /// é dele que o estado depende: com as duas listas sorteadas à parte, o
-    /// quadro oferecia "Vila Antigo", "Cripta Sagrado" e "Masmorra Antigo".
+    /// Uma expedição a uma área sorteada — o que o simulador e os testes usam
+    /// quando precisam de uma jornada qualquer.
+    ///
+    /// Substituiu o <c>GenerateQuests</c>, que fabricava contratos com nome
+    /// sorteado ("Cripta Esquecida") e destino sorteado. O quadro deixou de
+    /// oferecer destino em 11/09, e manter um gerador de contratos vivo só para
+    /// os testes faria o simulador medir um jogo que não existe mais — que é
+    /// exatamente o erro que já custou cinco conclusões invertidas neste projeto.
     /// </summary>
-    private static readonly (string nome, bool feminino)[] lugares =
+    public static QuestData ExpedicaoQualquer(int playerLevel)
     {
-        ("Túmulo", false), ("Caverna", true), ("Torre", true), ("Santuário", false),
-        ("Vila", true), ("Masmorra", true), ("Templo", false), ("Cripta", true)
-    };
+        var area = AreaCatalog.Todas[Random.Range(0, AreaCatalog.Todas.Length)];
+        return GerarExpedicao(area, playerLevel);
+    }
 
-    /// <summary>O estado do lugar, nas duas formas. Quem escolhe é o lugar sorteado.</summary>
-    private static readonly (string masculino, string feminino)[] estados =
+    /// <summary>
+    /// A expedição a uma área — o que nasce de clicar no mapa, desde 11/09.
+    ///
+    /// Substitui o contrato do quadro como forma de escolher destino. O que muda
+    /// não é o formato (continua sendo um <see cref="QuestData"/>, e a jornada
+    /// inteira a jusante não sabe de onde ela veio), e sim de onde vêm os
+    /// números: <b>a distância cobra os dias</b>, e o lugar cobra o resto.
+    ///
+    /// Ida e volta pela rota, mais dois a quatro dias dentro da área. É por isso
+    /// que a Mata sai por 6 a 8 dias e o Covil por 14 a 16 — e é o que faz o
+    /// mapa ser uma decisão em vez de uma lista.
+    /// </summary>
+    public static QuestData GerarExpedicao(AreaType area, int playerLevel)
     {
-        ("Antigo", "Antiga"), ("Perdido", "Perdida"), ("Abandonado", "Abandonada"),
-        ("Profano", "Profana"), ("Assombrado", "Assombrada"), ("Amaldiçoado", "Amaldiçoada"),
-        ("Sagrado", "Sagrada"), ("Esquecido", "Esquecida")
-    };
-    private static string[] objectives = {
-        "Derrote o chefe",
-        "Colete recursos",
-        "Resgate os prisioneiros",
-        "Explore a região",
-        "Sobreviva aos dias",
-        "Encontre o artefato"
-    };
+        var ficha = AreaCatalog.De(area);
+        if (ficha == null) return null;
 
-    public static List<QuestData> GenerateQuests(int amount, int playerLevel)
-    {
-        List<QuestData> quests = new List<QuestData>();
+        QuestData quest = ScriptableObject.CreateInstance<QuestData>();
+        quest.biomeType = ficha.aspecto;
+        quest.questName = ficha.NomeComIcone;
+        quest.objective = ficha.oQueDa;
+        quest.description = ficha.regra;
 
-        for (int i = 0; i < amount; i++)
-        {
-            QuestData quest = ScriptableObject.CreateInstance<QuestData>();
+        int estrada = AreaCatalog.DiasDeIda(area) * 2;
+        quest.minDuration = estrada + 2;
+        quest.maxDuration = estrada + 4;
 
-            // Bioma
-            quest.biomeType = BiomeUtil.GetRandom();
+        // A corrupção é a da área, com a variação pequena do ponto exato da
+        // rota — a mesma regra que o contrato já usava.
+        quest.corruptionLevel = Mathf.Clamp(
+            Mathf.RoundToInt(RegionMap.Corrupcao(ficha.aspecto)) + Random.Range(-5, 6), 0, 100);
 
-            // Nome da quest. Sem o bioma: todo lugar que mostra o nome mostra a
-            // região ao lado — o quadro tem o cabeçalho da região, a ficha tem a
-            // linha "📍 Bioma:" e o HUD da jornada tem o Txt_Biome. Escrito nos
-            // dois, saía "Santuário Amaldiçoado - 🏯 Ruínas" embaixo de "🏯 Ruínas".
-            var lugar = lugares[Random.Range(0, lugares.Length)];
-            var estado = estados[Random.Range(0, estados.Length)];
-            quest.questName = $"{lugar.nome} {(lugar.feminino ? estado.feminino : estado.masculino)}";
+        // O espólio cresce com a distância: é o único jeito de o fundo do mapa
+        // valer o risco de atravessar tudo o que está no caminho.
+        quest.baseReward = 40 + AreaCatalog.Saltos(area) * 25 + playerLevel * 10;
+        quest.recommendedLevel = Mathf.Max(1, playerLevel + (AreaCatalog.Saltos(area) >= 3 ? 1 : 0));
 
-            // Duração (baseada no nível do jogador)
-            int baseDuration = Random.Range(4, 8);
-            quest.minDuration = baseDuration;
-            quest.maxDuration = baseDuration + Random.Range(2, 5);
+        quest.risk = quest.corruptionLevel > 65 || AreaCatalog.Saltos(area) >= 4 ? QuestRisk.High
+                   : quest.corruptionLevel > 35 || AreaCatalog.Saltos(area) >= 2 ? QuestRisk.Medium
+                   : QuestRisk.Low;
 
-            // Recompensa
-            quest.baseReward = 50 + (playerLevel * 20) + Random.Range(0, 80);
+        quest.requirements = GenerateRequirements(quest.risk, quest.corruptionLevel);
 
-            // Nível recomendado
-            quest.recommendedLevel = Mathf.Max(1, playerLevel + Random.Range(-1, 2));
-
-            // Corrupção: é a da região, não um sorteio.
-            //
-            // Era Random.Range(0, 100) — e por isso o mundo nunca piorava. Depois
-            // virou o medidor global mais um sorteio, o que fazia o mundo andar,
-            // mas ainda deixava duas missões no mesmo bioma saírem uma limpa e
-            // outra podre. Agora vem do RegionMap: o estado do lugar é do lugar,
-            // e é o que o mapa mostra antes de o jogador escolher o destino.
-            //
-            // A variação pequena que sobrou é da missão em si — um ponto mais
-            // exposto dentro da mesma região —, não do mundo.
-            quest.corruptionLevel = Mathf.Clamp(
-                Mathf.RoundToInt(RegionMap.Corrupcao(quest.biomeType)) + Random.Range(-5, 6), 0, 100);
-
-            // Risco
-            quest.risk = (QuestRisk)Random.Range(0, 3);
-
-            // Objetivo
-            quest.objective = objectives[Random.Range(0, objectives.Length)];
-
-            // Requisitos aleatórios baseados na dificuldade
-            quest.requirements = GenerateRequirements(quest.risk, quest.corruptionLevel);
-
-            quests.Add(quest);
-        }
-
-        return quests;
+        return quest;
     }
 
     private static List<ClassRequirement> GenerateRequirements(QuestRisk risk, int corruption)
@@ -134,7 +111,7 @@ public static class QuestGenerator
         quest.biomeType = regiao;
 
         string chefe = EnemyPool.NomeDoChefe(regiao);
-        string lugar = BiomeUtil.GetDisplayName(regiao);
+        string lugar = AreaCatalog.Nome(AreaCatalog.Da(regiao));
 
         quest.questName = string.IsNullOrEmpty(chefe)
             ? $"🔒 Selar {lugar}"
@@ -178,7 +155,7 @@ public static class QuestGenerator
         QuestData bossQuest = ScriptableObject.CreateInstance<QuestData>();
         bossQuest.biomeType = passagem != BiomeType.Any ? passagem : BiomeUtil.GetRandom();
         bossQuest.questName = passagem != BiomeType.Any
-            ? $"⚔️ A PASSAGEM — {BiomeUtil.GetDisplayName(passagem)} ⚔️"
+            ? $"⚔️ A PASSAGEM — {AreaCatalog.Nome(AreaCatalog.Da(passagem))} ⚔️"
             : "⚔️ CHEFE SUPREMO ⚔️";
         bossQuest.minDuration = 10;
         bossQuest.maxDuration = 15;
@@ -186,7 +163,7 @@ public static class QuestGenerator
         bossQuest.recommendedLevel = playerLevel + 2;
         bossQuest.risk = QuestRisk.High;
         bossQuest.objective = passagem != BiomeType.Any
-            ? $"O último selo abriu a passagem em {BiomeUtil.GetDisplayName(passagem)}. Vá até ela."
+            ? $"O último selo abriu a passagem em {AreaCatalog.Nome(AreaCatalog.Da(passagem))}. Vá até ela."
             : "Derrote o Chefe Supremo";
         bossQuest.corruptionLevel = 90;
 
