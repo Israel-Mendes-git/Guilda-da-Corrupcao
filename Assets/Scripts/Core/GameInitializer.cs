@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Prepara o quadro de missões no começo da sessão.
@@ -28,11 +28,10 @@ public class GameInitializer : MonoBehaviour
         if (QuestSelectionUI.Instance != null && QuestSelectionUI.Instance.gameObject.activeSelf)
             QuestSelectionUI.Instance.RefreshAllData();
 
-        if (QuestManager.Instance != null && !QuestManager.Instance.HasQuests())
-        {
-            var quests = QuestGenerator.GenerateQuests(3, GetPlayerAverageLevel());
-            QuestManager.Instance.SetQuests(quests);
-        }
+        // O quadro que precisa existir na primeira volta é o de encomendas: as
+        // missões do QuestManager passaram a ser só a luta de selo e a final, e
+        // nenhuma das duas existe no começo da partida.
+        QuestManager.Instance?.GarantirQuadro();
     }
 
     int GetPlayerAverageLevel()

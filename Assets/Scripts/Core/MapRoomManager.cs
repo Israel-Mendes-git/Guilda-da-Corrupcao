@@ -271,11 +271,12 @@ public class MapRoomManager : MonoBehaviour
     #region A fila das regiões
 
     /// <summary>
-    /// Uma região do quadro, quando há contrato lá.
+    /// O que o quadro ainda tem daquela área — desde 11/09, só a luta de selo e
+    /// a jornada final.
     ///
-    /// Duas ofertas no mesmo bioma resolvem-se pela mais corrompida, que é o
-    /// mesmo critério do mapa da preparação — a sala não pode mostrar uma
-    /// estrada e a preparação, outra.
+    /// O contrato com destino saiu do jogo: para onde ir é pergunta do mapa, e a
+    /// expedição nasce do clique na área. O que sobrou aqui é o aviso de que
+    /// aquele lugar já pode ser fechado.
     /// </summary>
     static QuestData ContratoDe(BiomeType bioma)
     {
@@ -296,19 +297,18 @@ public class MapRoomManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Abre na primeira região com contrato: sem destino a estrada fica vazia, e
-    /// uma sala que abre vazia não mostra o que vende.
+    /// Abre na área que pode ser fechada, se houver uma; senão, na primeira do
+    /// caminho. Uma sala que abre vazia não mostra o que vende.
     ///
-    /// <b>Só enquanto o jogador não escolheu.</b> Reeleger a região a cada
-    /// atualização arrancaria a escolha dele da mesa no meio de uma compra —
-    /// quem olha uma região sem contrato está olhando de propósito.
+    /// <b>Só enquanto o jogador não escolheu.</b> Reeleger a área a cada
+    /// atualização arrancaria a escolha dele da mesa no meio de uma compra.
     /// </summary>
     void GarantirFoco()
     {
         if (jogadorEscolheu && naMesa != BiomeType.Any) return;
 
-        BiomeType comContrato = BiomeUtil.Playable.FirstOrDefault(b => ContratoDe(b) != null);
-        naMesa = comContrato != BiomeType.Any ? comContrato : BiomeUtil.Playable[0];
+        BiomeType comSelo = BiomeUtil.Playable.FirstOrDefault(b => ContratoDe(b) != null);
+        naMesa = comSelo != BiomeType.Any ? comSelo : AreaCatalog.Aspecto(AreaCatalog.Todas[0]);
     }
 
     void BuildRegions()
@@ -374,11 +374,14 @@ public class MapRoomManager : MonoBehaviour
         label.alignment = TextAlignmentOptions.Left;
         label.raycastTarget = false;
         label.color = ativa ? new Color(0.98f, 0.92f, 0.72f) : new Color(0.88f, 0.86f, 0.82f);
-        label.text = $"{BiomeUtil.GetDisplayName(bioma)}\n"
+        // O nome é o da área, e o número ao lado é o que a viagem custa — não
+        // mais "sem contrato", que era o quadro falando pelo mundo. Toda área é
+        // destino agora; o que as separa é a distância.
+        AreaType lugar = AreaCatalog.Da(bioma);
+
+        label.text = $"{AreaCatalog.Nome(lugar)}\n"
                    + $"<size=13>{Mathf.RoundToInt(RegionMap.Corrupcao(bioma))}% corrompida   ·   "
-                   + (contrato != null
-                        ? $"{contrato.minDuration}–{contrato.maxDuration} dias"
-                        : "sem contrato")
+                   + $"{AreaCatalog.DiasDeIda(lugar) * 2} dias de estrada"
                    + $"\n{EstadoDoMapa(bioma)}</size>";
 
         var labelRect = labelGo.GetComponent<RectTransform>();
@@ -405,12 +408,13 @@ public class MapRoomManager : MonoBehaviour
 
         if (RegionMap.OFimEstaAberto)
             return $"<color=#D9B85A>🔒 {selos} selos. A passagem se abriu em "
-                 + $"{BiomeUtil.GetDisplayName(RegionMap.UltimoSelo)} — a jornada final está no quadro.</color>";
+                 + $"{AreaCatalog.Nome(AreaCatalog.Da(RegionMap.UltimoSelo))} — a jornada final espera no mapa.</color>";
 
         int faltam = RegionMap.SelosParaOFim - selos;
         string quais = selos == 0
             ? ""
-            : "  ·  " + string.Join(", ", RegionMap.RegioesSeladas().ConvertAll(BiomeUtil.GetDisplayName));
+            : "  ·  " + string.Join(", ", RegionMap.RegioesSeladas()
+                                                  .ConvertAll(b => AreaCatalog.Nome(AreaCatalog.Da(b))));
 
         return $"<color=#D9B85A>🔒 {selos} de {RegionMap.SelosParaOFim} selos</color>"
              + $"  ·  faltam {faltam} para abrir a passagem{quais}";
@@ -425,16 +429,18 @@ public class MapRoomManager : MonoBehaviour
     /// </summary>
     static string EstadoDoMapa(BiomeType bioma)
     {
+        AreaType lugar = AreaCatalog.Da(bioma);
+
         if (RegionMap.EstaSelada(bioma))
-            return "<color=#D9B85A>🔒 selada</color>";
+            return $"<color=#D9B85A>🔒 {AreaCatalog.Concordar(lugar, "selada", "selado")}</color>";
 
         if (RegionMap.EstaMapeada(bioma))
-            return "<color=#D9B85A>🗺️ mapa completo — o chefe espera no quadro</color>";
+            return "<color=#D9B85A>🗺️ mapa completo — o selo espera no mapa</color>";
 
         int porcento = Mathf.RoundToInt(RegionMap.FracaoMapeada(bioma) * 100f);
         return porcento == 0
-            ? "<color=#8A8278>🗺️ nunca percorrida</color>"
-            : $"<color=#8A8278>🗺️ {porcento}% mapeada</color>";
+            ? $"<color=#8A8278>🗺️ nunca {AreaCatalog.Concordar(lugar, "percorrida", "percorrido")}</color>"
+            : $"<color=#8A8278>🗺️ {porcento}% {AreaCatalog.Concordar(lugar, "mapeada", "mapeado")}</color>";
     }
 
     /// <summary>Traz a estrada daquela região para a mesa. É o único efeito do clique na fila.</summary>
@@ -442,7 +448,7 @@ public class MapRoomManager : MonoBehaviour
     {
         naMesa = bioma;
         jogadorEscolheu = true;
-        SetFeedback($"A estrada até {BiomeUtil.GetDisplayName(bioma)} está na mesa.");
+        SetFeedback($"A estrada até {AreaCatalog.Nome(AreaCatalog.Da(bioma))} está na mesa.");
 
         UpdateTexts();
         BuildRegions();
@@ -475,7 +481,7 @@ public class MapRoomManager : MonoBehaviour
         }
 
         if (regionNameText != null)
-            regionNameText.text = BiomeUtil.GetDisplayName(naMesa);
+            regionNameText.text = AreaCatalog.Nome(AreaCatalog.Da(naMesa));
 
         if (corruptionFill != null)
         {
@@ -485,18 +491,25 @@ public class MapRoomManager : MonoBehaviour
 
         if (dossierText == null) return;
 
-        QuestData contrato = ContratoDe(naMesa);
-        string mapa = $"<size=16>{EstadoDoMapa(naMesa)}</size>\n";
+        QuestData selo = ContratoDe(naMesa);
+        AreaType lugar = AreaCatalog.Da(naMesa);
+        var ficha = AreaCatalog.De(lugar);
 
-        dossierText.text = contrato != null
-            ? $"{Mathf.RoundToInt(RegionMap.Corrupcao(naMesa))}% corrompida\n"
-              + mapa
-              + $"<size=17>{contrato.questName}</size>\n"
-              + $"<size=16>{contrato.minDuration}–{contrato.maxDuration} dias  ·  "
-              + $"{contrato.baseReward}+ ouro  ·  risco {Risco(contrato.risk)}</size>"
-            : $"{Mathf.RoundToInt(RegionMap.Corrupcao(naMesa))}% corrompida\n"
-              + mapa
-              + "<size=16>Nenhum contrato para esta região neste ciclo.</size>";
+        // O dossiê diz o que aquele lugar faz com as regras. Era o boletim de um
+        // contrato — nome sorteado, dias, ouro —, e os quatro contratos do
+        // quadro diziam a mesma coisa com números diferentes.
+        string dossie = $"{Mathf.RoundToInt(RegionMap.Corrupcao(naMesa))}% corrompida  ·  "
+                      + $"{AreaCatalog.DiasDeIda(lugar) * 2} dias de estrada\n"
+                      + $"<size=16>{EstadoDoMapa(naMesa)}</size>\n";
+
+        if (ficha != null)
+            dossie += $"<size=16>{ficha.regra}</size>\n";
+
+        if (selo != null)
+            dossie += $"<size=16><color=#D9B85A>{selo.questName}</color>  ·  "
+                    + $"{selo.minDuration}–{selo.maxDuration} dias  ·  risco {Risco(selo.risk)}</size>";
+
+        dossierText.text = dossie;
     }
 
     static string Risco(QuestRisk risco)
@@ -543,8 +556,13 @@ public class MapRoomManager : MonoBehaviour
         {
             emptyStateText.gameObject.SetActive(!temEstrada);
             emptyStateText.color = sobrePapel ? TintaNoPapel : TintaEscura;
-            emptyStateText.text = $"Não há contrato para {BiomeUtil.GetDisplayName(naMesa)} neste ciclo — "
-                                + "sem destino, não há estrada para traçar.\n"
+            // A estrada desenhada é a da luta de selo, a única missão que
+            // esta sala ainda conhece de véspera. A expedição comum tem rota
+            // sorteada na partida, e traçá-la aqui seria inventar um caminho.
+            AreaType lugarVazio = AreaCatalog.Da(naMesa);
+            emptyStateText.text = $"{AreaCatalog.Nome(lugarVazio)} ainda não pode ser "
+                                + $"{AreaCatalog.Concordar(lugarVazio, "fechada", "fechado")} — "
+                                + "sem luta de selo, não há estrada marcada para traçar.\n"
                                 + "O que você comprar aqui continua valendo para a próxima jornada.";
         }
 
@@ -560,7 +578,7 @@ public class MapRoomManager : MonoBehaviour
 
         if (roadTitleText != null)
         {
-            roadTitleText.text = $"A estrada até {BiomeUtil.GetDisplayName(naMesa)}: "
+            roadTitleText.text = $"A estrada até {AreaCatalog.Nome(AreaCatalog.Da(naMesa))}: "
                                + $"<color=#D9B86B>{abertos} de {dias} dias abertos</color>";
         }
 

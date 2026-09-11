@@ -4,13 +4,15 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// O passo 1 da preparação: escolher o destino olhando o mundo, em vez de ler
-/// uma lista de ofertas.
+/// O passo 1 da preparação: escolher o destino olhando o mundo.
 ///
-/// Sete regiões em posições fixas, pintadas pela própria corrupção, ligadas à
-/// guilda no centro. Onde há contrato, o marcador acende e pode ser clicado;
-/// onde não há, o lugar continua no mapa, apagado — o jogador precisa ver o
-/// mundo inteiro para entender o que está piorando fora do alcance dele.
+/// <b>O plano navegável, decidido em 10/09 e construído em 11/09.</b> Sete áreas
+/// que se tocam, a guilda numa borda, e uma trilha ligando cada par de vizinhas.
+/// Toda área é clicável: o que se paga por ir longe são os dias de estrada, que
+/// saem da distância pelo grafo — não de um contrato ter sorteado aquele lugar.
+///
+/// A corrupção pinta o marcador, como antes. É a única leitura do mapa que não
+/// precisa de texto, e é o que faz o jogador aprender o mundo.
 ///
 /// Monta-se por código, em runtime. É deliberado: a cena é grande e montada por
 /// ferramenta de Editor, e um painel novo dependendo de hierarquia exata seria
@@ -81,6 +83,9 @@ public class RegionMapUI : MonoBehaviour
     static readonly Color CorLimpa = new Color(0.42f, 0.55f, 0.30f);
     static readonly Color CorPodre = new Color(0.55f, 0.15f, 0.15f);
     static readonly Color CorApagada = new Color(0.16f, 0.14f, 0.12f);
+
+    /// <summary>Área selada: parou de apodrecer, e isso se lê como estado, não como grau.</summary>
+    static readonly Color CorSelada = new Color(0.85f, 0.72f, 0.42f);
     static readonly Color CorTrilha = new Color(0.35f, 0.30f, 0.24f, 0.6f);
     static readonly Color CorGuilda = new Color(0.85f, 0.72f, 0.42f);
 
@@ -103,7 +108,7 @@ public class RegionMapUI : MonoBehaviour
     RectTransform area;
     readonly List<GameObject> marcadores = new List<GameObject>();
     QuestSelectionUI dono;
-    BiomeType selecionada = BiomeType.Any;
+    AreaType selecionada = AreaType.None;
 
     /// <summary>
     /// Cria o mapa dentro do painel dado, ou devolve o que já existe ali.
@@ -148,13 +153,20 @@ public class RegionMapUI : MonoBehaviour
         return mapa;
     }
 
-    /// <summary>Redesenha o mapa com as missões do quadro.</summary>
+    /// <summary>
+    /// Redesenha o plano: as sete áreas, as trilhas entre vizinhas e a guilda.
+    ///
+    /// <b>Desde 11/09 o mapa não pergunta mais ao quadro para onde se pode ir.</b>
+    /// Toda área é destino, e o que o quadro ainda tem a dizer são a luta de selo
+    /// e a jornada final — que se penduram na área a que pertencem, em vez de
+    /// decidir quais lugares existem.
+    /// </summary>
     public void Desenhar(List<QuestData> missoes)
     {
         if (area == null) area = GetComponent<RectTransform>();
 
         // Sem isto, no frame em que o painel nasce o retângulo ainda mede zero e
-        // as sete regiões empilham no centro — um mapa que só fica certo se o
+        // as sete áreas empilham no centro — um mapa que só fica certo se o
         // jogador reabrir a tela.
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(area);
@@ -164,32 +176,41 @@ public class RegionMapUI : MonoBehaviour
         marcadores.Clear();
 
         DesenharFundo();
+        DesenharArestas();
 
-        // Uma missão por região. Se o quadro trouxer duas no mesmo bioma, a mais
-        // corrompida é a que aparece — é a decisão mais interessante das duas, e
-        // o mapa não tem onde empilhar contratos.
-        var porRegiao = new Dictionary<BiomeType, QuestData>();
-        if (missoes != null)
-        {
-            foreach (var missao in missoes)
-            {
-                if (missao == null) continue;
-                if (missao.biomeType == BiomeType.Any) continue;
-
-                if (!porRegiao.ContainsKey(missao.biomeType) ||
-                    missao.corruptionLevel > porRegiao[missao.biomeType].corruptionLevel)
-                    porRegiao[missao.biomeType] = missao;
-            }
-        }
-
-        foreach (var bioma in BiomeUtil.Playable)
-        {
-            QuestData missao = porRegiao.ContainsKey(bioma) ? porRegiao[bioma] : null;
-            DesenharTrilha(bioma, missao != null);
-            DesenharRegiao(bioma, missao);
-        }
+        foreach (var lugar in AreaCatalog.Todas)
+            DesenharArea(lugar, MissaoEspecial(missoes, lugar));
 
         DesenharGuilda();
+    }
+
+    /// <summary>
+    /// A luta de selo ou a passagem final daquela área, se estiverem no quadro.
+    ///
+    /// A final vem antes do selo: quando as duas existem no mesmo lugar, o que
+    /// interessa é a que termina a partida.
+    /// </summary>
+    static QuestData MissaoEspecial(List<QuestData> missoes, AreaType lugar)
+    {
+        if (missoes == null) return null;
+
+        BiomeType aspecto = AreaCatalog.Aspecto(lugar);
+        QuestData selo = null;
+
+        foreach (var m in missoes)
+        {
+            if (m == null || m.biomeType != aspecto) continue;
+            if (m.isFinalBoss) return m;
+            if (m.isRegionBoss && selo == null) selo = m;
+        }
+
+        return selo;
+    }
+
+    /// <summary>Onde o lugar fica — a guilda é o nó sem ficha.</summary>
+    static Vector2 PosicaoDe(AreaType lugar)
+    {
+        return lugar == AreaType.None ? AreaCatalog.PosicaoDaGuilda : AreaCatalog.Posicao(lugar);
     }
 
     void DesenharFundo()
@@ -294,77 +315,94 @@ public class RegionMapUI : MonoBehaviour
         marcadores.Add(go);
     }
 
-    /// <summary>Linha da guilda até a região — o caminho que a expedição faria.</summary>
-    void DesenharTrilha(BiomeType bioma, bool ativa)
+    /// <summary>
+    /// As trilhas entre vizinhas — o que faz do mapa um plano, e não um leque.
+    ///
+    /// Antes havia uma linha reta da guilda até cada região, e por isso a
+    /// distância não significava nada: tudo ficava a um passo de casa. Agora o
+    /// caminho até o Covil passa por quem está no meio, e é isso que faz a
+    /// corrupção de uma área pesar mesmo quando não se vai a ela.
+    ///
+    /// Cada par sai uma vez só: a vizinhança é simétrica, e desenhar dos dois
+    /// lados dobraria a linha sem que ninguém visse por quê.
+    /// </summary>
+    void DesenharArestas()
     {
-        Vector2 origem = ParaPixels(RegionMap.PosicaoDaGuilda);
-        Vector2 destino = ParaPixels(RegionMap.Posicao(bioma));
+        var feitas = new HashSet<string>();
+
+        var lugares = new List<AreaType> { AreaType.None };
+        lugares.AddRange(AreaCatalog.Todas);
+
+        foreach (var origem in lugares)
+        {
+            foreach (var destino in AreaCatalog.Vizinhas(origem))
+            {
+                string chave = string.CompareOrdinal(origem.ToString(), destino.ToString()) < 0
+                    ? $"{origem}|{destino}" : $"{destino}|{origem}";
+                if (!feitas.Add(chave)) continue;
+
+                DesenharTrilha(PosicaoDe(origem), PosicaoDe(destino));
+            }
+        }
+    }
+
+    void DesenharTrilha(Vector2 deNormalizado, Vector2 ateNormalizado)
+    {
+        Vector2 origem = ParaPixels(deNormalizado);
+        Vector2 destino = ParaPixels(ateNormalizado);
         Vector2 delta = destino - origem;
 
-        var go = new GameObject($"Trilha_{bioma}", typeof(RectTransform));
+        var go = new GameObject("Trilha", typeof(RectTransform));
         go.transform.SetParent(transform, false);
 
         var rt = go.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.pivot = new Vector2(0f, 0.5f);
         rt.anchoredPosition = origem - Tamanho() * 0.5f;
-        rt.sizeDelta = new Vector2(delta.magnitude, ativa ? 3f : 1.5f);
+        rt.sizeDelta = new Vector2(delta.magnitude, 3f);
         rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
 
         var img = go.AddComponent<Image>();
-        Color corDaLinha = sobrePapel ? CorTrilhaNoPapel : CorTrilha;
-        img.color = ativa ? corDaLinha : new Color(corDaLinha.r, corDaLinha.g, corDaLinha.b, 0.22f);
+        img.color = sobrePapel ? CorTrilhaNoPapel : CorTrilha;
         img.raycastTarget = false;
 
         go.transform.SetAsFirstSibling();
         marcadores.Add(go);
     }
 
-    void DesenharRegiao(BiomeType bioma, QuestData missao)
+    void DesenharArea(AreaType lugar, QuestData especial)
     {
-        bool disponivel = missao != null;
-        float corrupcao = RegionMap.Corrupcao(bioma);
+        var ficha = AreaCatalog.De(lugar);
+        if (ficha == null) return;
+
+        BiomeType aspecto = ficha.aspecto;
+        float corrupcao = RegionMap.Corrupcao(aspecto);
+        bool selada = RegionMap.EstaSelada(aspecto);
 
         MapArtCatalog arte = MapArtCatalog.Carregar();
-        Sprite icone = arte != null ? arte.IconeDe(bioma) : null;
+        Sprite icone = arte != null ? arte.IconeDe(aspecto) : null;
 
         // Com ícone desenhado o marcador cresce um pouco: o símbolo precisa ser
-        // reconhecível. Mas não muito — a 3,2× o nome da região ficava a quase
-        // 100px do desenho, e as sete legendas soltas pelo papel não se ligavam
-        // mais a nenhum símbolo.
-        // A correção de tamanho vem do catálogo, medida nos pixels do desenho:
-        // sem ela, o símbolo com mais margem transparente sai um traço ao lado
-        // do que tem menos.
-        float correcao = arte != null ? arte.EscalaDe(bioma) : 1f;
+        // reconhecível. A correção de tamanho vem do catálogo, medida nos pixels
+        // do desenho — sem ela, o símbolo com mais margem transparente sai um
+        // traço ao lado do que tem menos.
+        float correcao = arte != null ? arte.EscalaDe(aspecto) : 1f;
         float raio = RaioDoMarcador();
         float tamanho = icone != null ? raio * 2.2f * correcao : raio * 2f;
-        var go = NovoElemento($"Regiao_{bioma}", RegionMap.Posicao(bioma), tamanho);
+        var go = NovoElemento($"Area_{lugar}", ficha.posicao, tamanho);
 
         var img = go.AddComponent<Image>();
         img.sprite = icone != null ? icone : Circulo();
         img.preserveAspect = icone != null;
 
-        // <b>A corrupção continua sendo cor, mesmo com arte.</b> No círculo ela
-        // era o próprio preenchimento; sobre o desenho, ela tinge. Perder essa
-        // leitura seria trocar informação por enfeite — é ela que diz onde o
-        // mundo está apodrecendo.
-        img.color = disponivel ? Color.Lerp(CorLimpa, CorPodre, RegionMap.Fracao(bioma))
-                               : (sobrePapel ? CorApagadaNoPapel : CorApagada);
-        img.raycastTarget = disponivel;
+        // <b>A corrupção continua sendo cor.</b> É ela que diz onde o mundo está
+        // apodrecendo, e é a única leitura do mapa que não precisa de texto.
+        // Área selada sai dourada: parou de apodrecer, e isso é estado, não grau.
+        img.color = selada ? CorSelada : Color.Lerp(CorLimpa, CorPodre, RegionMap.Fracao(aspecto));
+        img.raycastTarget = true;
 
-        // Nome, corrupção e — quando há contrato — o que ele paga. É o bastante
-        // para decidir sem abrir o painel de detalhes.
-        string texto = $"{BiomeUtil.GetDisplayName(bioma)}\n<size=11>{Mathf.RoundToInt(corrupcao)}% corrompida</size>";
-        if (disponivel)
-            texto += $"\n<size=11>{missao.baseReward}+ ouro</size>";
-        else
-            texto += "\n<size=11>sem contrato</size>";
-
-        Color corDoNome = disponivel
-            ? (sobrePapel ? CorTextoNoPapel : Color.white)
-            : (sobrePapel ? CorApagadaNoPapel : new Color(0.45f, 0.42f, 0.38f));
-
-        var rotulo = NovoTexto(go.transform, texto, CorpoDoRotulo(), corDoNome);
+        var rotulo = NovoTexto(go.transform, TextoDoMarcador(lugar, corrupcao, selada),
+                               CorpoDoRotulo(), sobrePapel ? CorTextoNoPapel : Color.white);
         var rt = rotulo.rectTransform;
         rt.anchorMin = new Vector2(0.5f, 0f);
         rt.anchorMax = new Vector2(0.5f, 0f);
@@ -372,22 +410,84 @@ public class RegionMapUI : MonoBehaviour
         rt.anchoredPosition = new Vector2(0f, -2f);
         rt.sizeDelta = new Vector2(190f, 56f);
 
-        if (disponivel)
-        {
-            var botao = go.AddComponent<Button>();
-            botao.targetGraphic = img;
+        var botao = go.AddComponent<Button>();
+        botao.targetGraphic = img;
 
-            QuestData escolhida = missao;
-            BiomeType regiao = bioma;
-            botao.onClick.AddListener(() =>
-            {
-                selecionada = regiao;
-                if (dono != null) dono.EscolherDestino(escolhida);
-                MarcarSelecao();
-            });
-        }
+        AreaType escolhida = lugar;
+        botao.onClick.AddListener(() =>
+        {
+            selecionada = escolhida;
+            if (dono != null) dono.EscolherArea(escolhida);
+            MarcarSelecao();
+        });
 
         marcadores.Add(go);
+
+        if (especial != null) DesenharMissaoEspecial(go, especial);
+    }
+
+    /// <summary>
+    /// Nome, estado do lugar e o que a viagem custa em dias.
+    ///
+    /// O preço em dias vem antes de qualquer outra coisa que o mapa poderia
+    /// dizer: é o único número que separa ir à Mata de ir ao Covil, e sem ele o
+    /// plano volta a ser sete botões equivalentes.
+    /// </summary>
+    string TextoDoMarcador(AreaType lugar, float corrupcao, bool selada)
+    {
+        var ficha = AreaCatalog.De(lugar);
+        int viagem = AreaCatalog.DiasDeIda(lugar) * 2;
+
+        string estado = selada
+            ? $"<color=#D9B85A>{AreaCatalog.Concordar(lugar, "selada", "selado")}</color>"
+            : $"{Mathf.RoundToInt(corrupcao)}% corrompida";
+
+        return $"{ficha.nome}\n<size=11>{estado}</size>\n<size=11>{viagem} dias de estrada</size>";
+    }
+
+    /// <summary>
+    /// A luta de selo, ou a passagem final, presa ao marcador da área.
+    ///
+    /// Fica ao lado e não no lugar: a área mapeada continua valendo como
+    /// expedição comum — tem espólio, evento e escrito —, e trocar o botão
+    /// obrigaria a selar para poder voltar lá.
+    /// </summary>
+    void DesenharMissaoEspecial(GameObject marcadorDaArea, QuestData missao)
+    {
+        var go = new GameObject("Selo", typeof(RectTransform));
+        go.transform.SetParent(marcadorDaArea.transform, false);
+
+        float lado = RaioDoMarcador() * 0.9f;
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(lado * 0.15f, lado * 0.15f);
+        rt.sizeDelta = new Vector2(lado, lado);
+
+        var img = go.AddComponent<Image>();
+        img.sprite = Circulo();
+        img.color = missao.isFinalBoss ? new Color(0.62f, 0.16f, 0.16f) : CorSelada;
+
+        var marca = NovoTexto(go.transform, missao.isFinalBoss ? "\u2694" : "\U0001F512",
+                              CorpoDoRotulo(), new Color(0.10f, 0.09f, 0.08f));
+        marca.alignment = TextAlignmentOptions.Center;
+        var mrt = marca.rectTransform;
+        mrt.anchorMin = Vector2.zero;
+        mrt.anchorMax = Vector2.one;
+        mrt.offsetMin = Vector2.zero;
+        mrt.offsetMax = Vector2.zero;
+
+        var botao = go.AddComponent<Button>();
+        botao.targetGraphic = img;
+
+        QuestData escolhida = missao;
+        botao.onClick.AddListener(() =>
+        {
+            selecionada = AreaCatalog.Da(escolhida.biomeType);
+            if (dono != null) dono.EscolherDestino(escolhida);
+            MarcarSelecao();
+        });
     }
 
     /// <summary>Contorno no destino escolhido — a única leitura de estado que a tela precisa.</summary>
@@ -395,10 +495,10 @@ public class RegionMapUI : MonoBehaviour
     {
         foreach (var m in marcadores)
         {
-            if (m == null || !m.name.StartsWith("Regiao_")) continue;
+            if (m == null || !m.name.StartsWith("Area_")) continue;
 
             var contorno = m.GetComponent<Outline>();
-            bool eEsta = m.name == $"Regiao_{selecionada}";
+            bool eEsta = m.name == $"Area_{selecionada}";
 
             if (eEsta && contorno == null)
             {

@@ -230,46 +230,47 @@ para se fechar segue planejado.
 - **Não se salva no meio da estrada.** O botão aparece desligado com o motivo
   escrito. O ponto seguro é a guilda entre jornadas, onde o autosave já cai.
 
-## 5. O mundo: sete regiões **[IMPLEMENTADO]**
+## 5. O mundo: sete áreas **[IMPLEMENTADO]**
 
-> **Decidido em 10/09: o lugar do jogo passa a ser a área.** O rumo é o mundo de
-> [`MUNDO.md`](MUNDO.md) — **sete áreas com regra própria** num plano navegável —,
-> e a lista de arte de [`ARTE.md`](ARTE.md) está orçada nele. O que o código chama
-> de bioma vira só o **aspecto do local no mapa**, e sai do vocabulário de design.
-> O que esta seção descreve é o que existe hoje.
+> **Construído em 11/09** (ROADMAP, fase 3.13), sobre o mundo decidido em 10/09 e
+> desenhado em [`MUNDO.md`](MUNDO.md). O lugar do jogo é a **área**; o que o código
+> chama de bioma é o **aspecto** que ela veste — a chave dos eventos, do bestiário
+> e da arte, e nada além disso.
 
-A guilda fica no centro do mapa e sete regiões a cercam. Cada uma tem **corrupção
-própria**, ritmo próprio de apodrecimento, eventos que só acontecem nela e um
-chefe que a fecha. É o que o jogador aprende a ler: "o Pântano está pior que a
-Floresta" é informação estável, não sorteio por missão.
+A guilda fica na **borda de baixo** do plano, e as sete áreas se tocam. Chegar às
+distantes obriga a atravessar as próximas, e é por isso que a corrupção de uma área
+pesa mesmo quando não se vai a ela. O jogador clica no destino: **toda área é
+destino**, sempre.
 
-| Região | Como começa | Quem a fecha |
-|---|---|---|
-| 🌲 Floresta | a mais limpa, e a que apodrece mais devagar | A Coisa da Mata |
-| ⛰️ Montanha | pouco abaixo do relógio do mundo | O Gigante de Pedra |
-| 🏚️ Pântano | nasce pior que o mundo, e piora rápido | O Afogado |
-| 🏯 Ruínas | acima do relógio | O Bibliotecário Cego |
-| 🌋 Vulcão | a pior de saída, e a mais rápida a virar | **[PARCIAL]** O Guardião Sem Nome |
-| ❄️ Tundra | acompanha o relógio | **[PARCIAL]** idem |
-| 🏜️ Deserto | limpo, e o mais lento a apodrecer | **[PARCIAL]** idem |
+| Área | Travessias | Estrada | Aspecto | Quem a fecha hoje |
+|---|---|---|---|---|
+| 🌲 A Mata | 1 | 4 dias | Floresta | A Coisa da Mata |
+| 🏯 A Cripta | 1 | 4 dias | Ruínas | O Bibliotecário Cego |
+| 🏚️ A Aldeia | 2 | 8 dias | Pântano | O Afogado |
+| 🏜️ O Oráculo | 2 | 8 dias | Deserto | **[PARCIAL]** o curinga |
+| 🌋 A Forja | 2 | 8 dias | Vulcão | **[PARCIAL]** o curinga |
+| ❄️ A Torre | 3 | 12 dias | Tundra | **[PARCIAL]** o curinga |
+| ⛰️ O Covil | 3 | 12 dias | Montanha | O Gigante de Pedra *(nome a trocar)* |
 
-- A corrupção de uma missão é a da região (±5). Corrupção alta significa
-  requisitos de classe mais duros, eventos piores liberados, e mais XP e ouro.
-- **Atravessar suja o lugar:** +4 de corrupção na região que a expedição percorreu.
-- **Mapear e selar [IMPLEMENTADO]:** cada expedição volta com mapa da região que
-  percorreu — 50 vencendo, 20 fracassando, e 100 fecha o desenho. Região inteira no
-  mapa põe a luta de selo no quadro e entrega o escrito que estava nela (§3.2, §6);
-  vencer a luta **congela** a corrupção daquela região e tira a oferta do quadro no
-  mesmo ciclo. Três selos abrem a passagem, que nasce na região selada por último.
-- **[PARCIAL]** Deserto, Tundra e Vulcão **não têm criatura própria nenhuma**: o
-  único inimigo comum que pode sair nelas é o genérico, e o chefe é o mesmo
-  curinga nas três. Têm dois eventos próprios cada, contra três a quatro das
-  outras — uma jornada nelas é quase só o pool genérico. A decisão de 10/09 tira
-  isso da fila: não se produz bestiário para elas, porque o lugar passou a ser a
-  área.
-- **[PARCIAL]** O mapa é feito de círculos e linhas montados por código, pintados
-  pela corrupção. As coordenadas são placeholder geométrico, e nada depende delas —
-  o plano navegável de `MUNDO.md` entra no lugar disto.
+- **A distância cobra dias:** 2 por travessia, ida e volta, mais 2 a 4 dentro da
+  área. A Mata sai por 6 a 8 dias; o Covil, por 14 a 16.
+- **A mochila acompanha a viagem.** A guilda entrega rações e tochas proporcionais
+  aos dias previstos — 10 e 8 para sete dias, que é a régua medida. Sem isso a
+  distância matava de fome em vez de cobrar tempo: a primeira medição do mapa novo
+  deu 2,59 mortes por jornada, 1,89 delas na estrada.
+- **A corrupção é da área** (±5 no ponto exato da rota), e **atravessar suja o
+  lugar**: +4 na área percorrida.
+- **Mapear e selar:** cada expedição volta com mapa — 50 vencendo, 20 fracassando,
+  e 100 fecha o desenho. Área inteira no mapa põe a luta de selo **no próprio
+  marcador do mapa** e entrega o escrito que estava nela (§3.2, §6); vencer
+  **congela** a corrupção dali. Três selos abrem a passagem, que nasce na área
+  selada por último.
+- **[PLANEJADO]** A regra própria de cada área — o mato que fecha, os mortos que se
+  erguem, o dragão que a luz desperta — está escrita em `MUNDO.md` e não construída.
+  Hoje as sete se diferenciam por distância, corrupção, aspecto e o ato do selo.
+- **[PARCIAL]** O plano é desenhado com os símbolos do pacote de mapa sobre
+  pergaminho, e as posições são coordenadas de 0 a 1. O mapa ilustrado troca o fundo
+  e os números; nada mais depende deles.
 
 ## 6. A guilda **[IMPLEMENTADO]**
 
@@ -278,7 +279,7 @@ Floresta" é informação estável, não sorteio por missão.
 | Ouro | 500 (+ destrave) | Recrutar, comprar carta, item e melhoria |
 | Reputação | 100 (+ destrave) | Zerou, a partida acaba |
 | Roster | 4 heróis, teto 8 (+ destrave) | Quem existe para mandar |
-| Quadro de missões | 3 ofertas (+ destrave) | O que há para fazer |
+| Quadro de encomendas | 3 pedidos (+ destrave) | O que a guilda pede — **não** para onde ir |
 
 | Sala | O que faz |
 |---|---|
@@ -287,7 +288,7 @@ Floresta" é informação estável, não sorteio por missão.
 | Mercado | Rações e tochas; tratamento, bandagem e vinho de efeito imediato; frascos e a relíquia do ciclo |
 | Forja | Um herói na bigorna por vez: arma (+1 de dano nas cartas dele) e armadura (+4 de HP), até nível 3 |
 | Cemitério | Lista os caídos; monumento devolve reputação; vigília alivia estresse |
-| Sala de Mapas | Batedores revelam trechos da rota; desvios trocam um evento adiante; conta os selos e diz onde a passagem abriu |
+| Sala de Mapas | Batedores revelam trechos da rota da luta de selo; desvios trocam um evento adiante; conta os selos e diz onde a passagem abriu |
 | Baralhos | Monta o baralho de cada herói dentro do limite do nível dele |
 
 **As salas são lugares [IMPLEMENTADO].** A **Forja** estabeleceu o molde — fila à

@@ -11,8 +11,9 @@ public class QuestManager : MonoBehaviour
     /// <summary>
     /// Vagas no quadro, já contando o destrave "Contatos na estrada".
     ///
-    /// Todo lugar que repunha missões usava o campo cru, então o destrave
-    /// comprado no Santuário não teria efeito nenhum depois do primeiro ciclo.
+    /// Desde 11/09 as vagas são de <see cref="Encomendas"/>: o quadro deixou de
+    /// oferecer destino, e o destrave comprado no Santuário passou a comprar
+    /// mais pedidos pendurados.
     /// </summary>
     public int TamanhoDoQuadro => questBoardSize + MetaProgression.ExtraQuestSlots();
 
@@ -54,21 +55,28 @@ public class QuestManager : MonoBehaviour
     /// </summary>
     public List<QuestData> QuadroAtual => currentQuests;
 
+    /// <summary>
+    /// As missões que existem hoje — e, desde 11/09, <b>só as que não são
+    /// destino</b>: a luta de selo de cada área mapeada e a jornada final.
+    ///
+    /// Não fabrica mais contrato quando a lista está vazia, e vazia é o estado
+    /// normal do começo da partida. Para onde ir é pergunta do mapa
+    /// (<see cref="RegionMapUI"/>), e a expedição nasce do clique na área; o que
+    /// a guilda pendura no quadro são <see cref="Encomendas"/>, que pedem um
+    /// resultado e não um lugar.
+    /// </summary>
     public List<QuestData> GetQuests()
     {
-        if (!hasQuests || currentQuests == null || currentQuests.Count == 0)
-        {
-            Debug.Log("QuestManager: Nenhuma quest armazenada, gerando novas...");
-            currentQuests = QuestGenerator.GenerateQuests(TamanhoDoQuadro, GetPlayerAverageLevel());
-            hasQuests = true;
-        }
-
+        if (currentQuests == null) currentQuests = new List<QuestData>();
         return currentQuests;
     }
 
     /// <summary>
-    /// Tira a missão do quadro depois da jornada e repõe as vagas,
-    /// para que o jogador não repita eternamente a mesma missão.
+    /// A expedição voltou.
+    ///
+    /// Não repõe vaga nenhuma: a expedição comum nem estava aqui — ela nasceu do
+    /// mapa e morre ao voltar. O que este método ainda faz é tirar da mesa a
+    /// luta de selo que acabou de ser disputada e conferir se o fim abriu.
     /// </summary>
     public void CompleteQuest(QuestData quest)
     {
@@ -76,13 +84,6 @@ public class QuestManager : MonoBehaviour
 
         currentQuests.Remove(quest);
 
-        int missing = TamanhoDoQuadro - currentQuests.Count;
-        if (missing > 0)
-            currentQuests.AddRange(QuestGenerator.GenerateQuests(missing, GetPlayerAverageLevel()));
-
-        // Quando a Corrupção passa do limiar, o Chefe Supremo entra no quadro e
-        // fica. GenerateBossQuest existia desde sempre e nunca era chamada — era
-        // a vitória do jogo escrita e inalcançável.
         GarantirChefeSupremo();
 
         hasQuests = currentQuests.Count > 0;
@@ -103,19 +104,20 @@ public class QuestManager : MonoBehaviour
     /// </summary>
     public void RenovarQuadro()
     {
-        if (currentQuests == null) return;
+        if (currentQuests == null) currentQuests = new List<QuestData>();
 
         // A jornada final e as lutas de selo sobrevivem à renovação: nenhuma das
-        // duas é oferta da semana. A região continua mapeada no ciclo seguinte,
-        // e o chefe que a guarda continua lá.
+        // duas é oferta da semana. A área continua mapeada no ciclo seguinte, e
+        // o chefe que a guarda continua lá. O resto não existe mais — contrato
+        // com destino saiu do jogo em 11/09.
         currentQuests.RemoveAll(q => q == null || (!q.isFinalBoss && !q.isRegionBoss));
-
-        int faltando = TamanhoDoQuadro - currentQuests.Count;
-        if (faltando > 0)
-            currentQuests.AddRange(QuestGenerator.GenerateQuests(faltando, GetPlayerAverageLevel()));
 
         GarantirChefesDeRegiao();
         GarantirChefeSupremo();
+
+        // O quadro de verdade, o que o jogador lê antes de sair: os pedidos.
+        var run = RunManager.Instance;
+        Encomendas.Renovar(run != null ? run.Cycle : 0, GetPlayerAverageLevel(), TamanhoDoQuadro);
 
         hasQuests = currentQuests.Count > 0;
         onQuestsChanged?.Invoke();
@@ -168,6 +170,23 @@ public class QuestManager : MonoBehaviour
         currentQuests.Add(chefe);
     }
 
+    /// <summary>
+    /// O quadro precisa ter o que ler antes da primeira saída.
+    ///
+    /// Ponto único desde 11/09: a taverna e o inicializador chamavam cada um o
+    /// seu gerador de contratos, e os dois viravam três ofertas que ninguém
+    /// pediu. O que se garante agora são as encomendas — as missões daqui são
+    /// consequência do que o jogador fez no mapa, e não existem no começo.
+    /// </summary>
+    public void GarantirQuadro()
+    {
+        if (Encomendas.Total > 0) return;
+
+        var run = RunManager.Instance;
+        Encomendas.Renovar(run != null ? run.Cycle : 0, GetPlayerAverageLevel(), TamanhoDoQuadro);
+        onQuestsChanged?.Invoke();
+    }
+
     public bool HasQuests()
     {
         return hasQuests && currentQuests != null && currentQuests.Count > 0;
@@ -180,7 +199,12 @@ public class QuestManager : MonoBehaviour
         onQuestsChanged?.Invoke();
     }
 
-    int GetPlayerAverageLevel()
+    /// <summary>
+    /// O nível médio de quem está na guilda — a régua de dificuldade de tudo o
+    /// que se gera. Público desde que a expedição passou a nascer do clique no
+    /// mapa, e não mais só aqui dentro.
+    /// </summary>
+    public int GetPlayerAverageLevel()
     {
         if (GuildManager.Instance == null || GuildManager.Instance.roster.Count == 0)
             return 1;

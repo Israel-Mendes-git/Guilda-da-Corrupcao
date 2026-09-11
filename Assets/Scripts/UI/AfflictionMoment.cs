@@ -70,17 +70,28 @@ public static class AfflictionMoment
         Object.Destroy(raiz);
     }
 
+    /// <summary>
+    /// O fade do momento.
+    ///
+    /// <b>Confere o grupo a cada quadro, e não só na entrada.</b> A corrotina
+    /// atravessa vários frames, e o que ela anima é um objeto criado sobre o
+    /// Canvas principal — trocar de tela no meio o destrói, e a linha seguinte
+    /// escreve num <c>CanvasGroup</c> morto. Conferir uma vez só protege contra
+    /// o objeto que nunca existiu, não contra o que deixou de existir.
+    /// </summary>
     static IEnumerator Desvanecer(CanvasGroup grupo, float de, float para, float duracao)
     {
         if (grupo == null) yield break;
 
         for (float t = 0f; t < duracao; t += Time.unscaledDeltaTime)
         {
+            if (grupo == null) yield break;
+
             grupo.alpha = Mathf.Lerp(de, para, t / duracao);
             yield return null;
         }
 
-        grupo.alpha = para;
+        if (grupo != null) grupo.alpha = para;
     }
 
     static GameObject Montar(Canvas canvas, HeroData heroi)

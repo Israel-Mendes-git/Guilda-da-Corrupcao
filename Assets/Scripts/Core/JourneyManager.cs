@@ -674,7 +674,8 @@ public class JourneyManager : MonoBehaviour
         List<EnemyData> lineup = EnemyPool.GetLineup(
             currentQuest.biomeType,
             currentEvent.isBossEvent,
-            currentDay
+            currentDay,
+            journeyMap != null ? journeyMap.LayerCount : totalDays
         );
 
         CombatManager.Instance.StartCombat(currentParty, currentDeck, lineup, OnCombatFinished, currentOwnership);
@@ -1451,6 +1452,8 @@ public class JourneyManager : MonoBehaviour
         for (int i = 0; i < days; i++)
         {
             // O confronto final não se contorna.
+            // O fim da rota não se desvia, seja ele chefe ou encontro forte:
+            // sem ele a jornada não tem como terminar.
             var opcoes = journeyMap.GetChoices().Where(n => !n.isBoss).ToList();
             if (opcoes.Count == 0) break;
 
@@ -1670,6 +1673,28 @@ public class JourneyManager : MonoBehaviour
                 // passando: voltar sempre ao mesmo lugar seguro cobra um preço
                 // visível ali.
                 RegionMap.Corromper(regiao, RegionMap.CorrupcaoPorVisita);
+
+                // O quadro da guilda: quais pedidos esta saída cumpriu.
+                //
+                // Conferido na volta, e não aceito na partida: a encomenda fica
+                // pendurada, e quem volta com o que ela pede recebe. É o que
+                // sobrou do quadro depois que o destino passou a ser do mapa —
+                // ela pede um resultado, e o jogador decide em que área é mais
+                // barato consegui-lo.
+                var cumpridas = Encomendas.Conferir(
+                    report.recompensaTotal, journeyCasualties.Count, currentDay, report.mapaCompletado);
+
+                foreach (var encomenda in cumpridas)
+                {
+                    report.encomendasCumpridas.Add($"{encomenda.Titulo} — +{encomenda.premio}");
+                    report.recompensaEncomendas += encomenda.premio;
+                }
+
+                if (report.recompensaEncomendas > 0)
+                {
+                    GuildManager.Instance.AddGold(report.recompensaEncomendas);
+                    report.recompensaTotal += report.recompensaEncomendas;
+                }
             }
         }
 

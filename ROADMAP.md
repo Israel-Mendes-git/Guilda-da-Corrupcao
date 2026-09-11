@@ -971,7 +971,7 @@ qualquer contrato, e depois o derruba de novo na missão de selo.
 |---|---|---|---|
 | **1** | **Os escritos e a Biblioteca** | página cai na estrada, a Biblioteca traduz uma por ciclo, cada uma atrasa a corrupção e nenhuma reverte; o traduzido vira carta de contenção no baralho | Play Mode + relatório de telas |
 | **2** | **Selar cobra cartas** | a região pede um tipo fixo, sabido desde o ciclo 1, e queima as cartas sem volta ao aceitar | Play Mode: o preço aparece na Sala de Mapas desde o começo |
-| **3** | **O chefe sai das jornadas comuns** | jornada comum termina em encontro forte; o chefe fica para a luta de selo e para a final | Smoke test — o chefe responde por 0,24 das 0,56 mortes/jornada, e a faixa 0,33–0,67 precisa ser resegurada |
+| **3** | ✅ **O chefe sai das jornadas comuns** *(11/09)* | jornada comum termina em encontro forte; o chefe ficou para a luta de selo e para a final | Smoke test: o chefe cobra **0,30 morte por luta de selo** e a letalidade fechou em **0,63** (alvo 0,33–0,67) |
 | **4** | **A economia para de saturar** | recalibrar depois que os passos 1 e 2 criarem um custo que não é ouro | `GameplayReport.txt` |
 
 A Biblioteca vem primeiro porque é a sala mais quebrada do jogo — **10 botões desligados contra 7
@@ -979,6 +979,12 @@ ativos** — e porque os escritos independem dos outros três passos.
 
 **Fora da fila, esperando decisão:** a arte (ver `ARTE.md`), e o Ladino e o Bardo, que seguem sem
 carta nenhuma.
+
+> **Desde 11/09** (fase 3.13) os passos 3 e 4 mudaram de tamanho. O passo 3 continua valendo — toda
+> jornada ainda termina em chefe —, e agora vale mais: com expedições de até 16 dias, derrubar o
+> chefe da área em toda saída é o que mais achata a diferença entre ir perto e ir longe. O passo 4
+> ganhou onde mexer: o espólio da expedição e o prêmio das encomendas são números novos, e é por
+> eles que a economia se recalibra.
 
 #### O debate que vem antes — levantado pelo autor em 10/09
 
@@ -1012,6 +1018,55 @@ conversa.** Dois já foram fechados — ver "O que a conversa já decidiu", abai
   área, e não mais de uma região-bioma. Estão na tabela do GDD §3.2 e no documento de apresentação.
   **Só a Mata se ganha lutando limpo, e o Oráculo se ganha sem um golpe** — que é o que o **D7**
   pedia. Seguem `[PLANEJADO]`: nenhum está construído.
+
+---
+
+### Fase 3.13 — O mapa dá o destino ✅ *construída em 11/09*
+
+A primeira peça do mundo decidido em 10/09 (`MUNDO.md`). O plano navegável entrou no lugar do quadro
+de contratos, e **o lugar do jogo passou a ser a área também no código**.
+
+| O que passou a existir | Regra |
+|---|---|
+| **A ficha de área** (`AreaCatalog`) | sete áreas, cada uma com nome, regra, o que dá, o que cobra e o ato do selo. O `BiomeType` vira o **aspecto** que ela veste — e por isso nenhum dos 25 eventos, 11 inimigos ou peças de arte precisou ser tocado |
+| **O plano** | a guilda na borda de baixo; as áreas se tocam; a rota até uma área é o caminho pelo grafo. Nada mais fica à mesma distância de casa |
+| **A distância cobra dias** | 2 dias por travessia, ida e volta. A Mata sai por 6 a 8 dias e o Covil por 14 a 16 |
+| **Toda área é destino** | o marcador deixou de acender só onde havia contrato. A expedição nasce do clique, com duração, corrupção e espólio tirados da área |
+| **O quadro vira encomenda** | pedidos que valem em qualquer lugar — espólio, ninguém morto, um mapa fechado, dias fora —, com prazo de três ciclos e prêmio de 90 a 180 |
+
+**A escolha de aspecto que se pagou sozinha:** Deserto, Tundra e Vulcão eram os três biomas sem
+criatura própria, e vestiram Oráculo, Torre e Forja — os três selos que **não** são um chefe de
+bestiário. A dívida de conteúdo das três virou aquilo que a decisão de 10/09 já tinha cancelado.
+
+**O que a medição cobrou.** Com a distância cobrando dias, a duração média da jornada foi de 7 para
+11,1 dias — e a mochila continuava dimensionada para 7. A letalidade saltou de 0,56 para **2,59**
+mortes por jornada, **1,89 delas na estrada**: não era combate, era fome. As provisões da guilda
+passaram a acompanhar os dias, na mesma régua já medida (10 rações e 8 tochas para 7 dias), e o
+simulador passou a equipar o grupo pela mesma função da tela — pela quinta vez, o instrumento
+precisava enxergar a mudança antes de medi-la.
+
+**Travas novas no smoke test** (63 verificações, contra 45): as sete áreas existem e cabem no plano,
+a vizinhança é mão dupla, cada área veste um aspecto próprio e todo aspecto tem área, toda área é
+alcançável a pé da guilda, toda área gera expedição com duração válida, e o quadro pendura
+encomendas que vencem.
+
+**Três efeitos colaterais que só a medição mostrou**, e que não eram do mapa e sim de réguas antigas
+que presumiam jornada de sete dias:
+
+| O que apareceu | A causa | O que ficou |
+|---|---|---|
+| 2,59 mortes/jornada, 1,89 na estrada | a mochila era fixa em 10 rações e 8 tochas | as provisões passam a acompanhar os dias, na régua já medida — 0,95 |
+| 0,84, com o chefe em toda saída | toda rota fechava em nó de chefe | o passo 3 da fase 3.12: chefe só na luta de selo e na final — 0,84 |
+| 0,84, com 0,53 em encontros do caminho | `EnemyPool` punha três inimigos "a partir do dia 5", e a viagem ao Covil tem quatorze | o grupo cresce pela **fração da rota** andada — **0,63, dentro do alvo** |
+
+**E um defeito que os 63 testes não pegaram:** a tela de preparação abria **sem nenhum destino
+clicável**. `RefreshQuestList` saía antes de montar o mapa quando o quadro estava vazio — e quadro
+vazio virou o estado normal da guilda no mesmo dia. Só a captura do Play Mode mostrou. É a vigésima
+primeira ocorrência do padrão **dado certo, exibição ausente**.
+
+**O que isto ainda não faz:** a regra própria de cada área — o mato que fecha, os mortos que se
+erguem, o dragão que acorda — segue escrita em `MUNDO.md` e não construída. O que entrou é o mundo
+como lugar; o que cada lugar *faz* é a fase seguinte.
 
 ---
 

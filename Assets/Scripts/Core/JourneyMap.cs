@@ -46,6 +46,11 @@ public class JourneyMap
 
     public IEnumerable<MapNode> AllNodes() => byId.Values;
 
+    /// <summary>
+    /// O último nó da rota. Continua se chamando assim porque é o que a UI e o
+    /// desvio entendem — mas desde 11/09 ele só é chefe de verdade nas missões
+    /// de selo e na final; nas comuns é um encontro forte.
+    /// </summary>
     public MapNode BossNode => layers.Count > 0 ? layers[layers.Count - 1][0] : null;
 
     internal void Register(MapNode node)
@@ -137,14 +142,29 @@ public static class JourneyMapGenerator
             map.layers.Add(row);
         }
 
-        // Chefe: nó único, destino obrigatório de toda a rota.
+        // O fim da rota: nó único, destino obrigatório de toda a rota.
+        //
+        // <b>Chefe só quando a missão é de chefe</b> — a luta de selo e a jornada
+        // final. A expedição comum fecha num encontro forte, que a esta altura da
+        // rota já vem com três inimigos. Antes de 11/09 toda jornada terminava
+        // com o chefe da região: ele respondia por 0,44 das 0,95 mortes por
+        // jornada, e o jogador o derrubava numa ida qualquer e de novo na missão
+        // feita para derrubá-lo.
+        bool chefeNoFim = quest != null && (quest.isRegionBoss || quest.isFinalBoss);
+
         var boss = new MapNode
         {
             id = nextId,
             layer = days,
             slot = 0,
+
+            // Continua marcado: isBoss é "o fim da rota", e é isso que o desvio
+            // respeita e que a UI desenha como marco maior. Quem diz se ali mora
+            // um chefe é o evento.
             isBoss = true,
-            eventData = EventPool.GetFinalEvent(quest.biomeType)
+            eventData = chefeNoFim
+                ? EventPool.GetFinalEvent(quest.biomeType)
+                : EventPool.GetStrongEncounter(quest.biomeType, quest.corruptionLevel, days + 1)
         };
         map.layers.Add(new List<MapNode> { boss });
         map.Register(boss);

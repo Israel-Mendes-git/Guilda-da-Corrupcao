@@ -2458,18 +2458,46 @@ public class PlayModeProbe : MonoBehaviour
             else
                 Line("  o guia da guilda não diz nada nesta volta");
 
-            // ── O que o quadro oferece ──
-            var missoes = quadro.GetQuests();
-            Line($"  o quadro oferece {missoes.Count} contrato(s):");
+            // ── O que o quadro pede ──
+            //
+            // Desde 11/09 o quadro não oferece destino: pendura encomendas, que
+            // pedem um resultado e valem em qualquer área. Para onde ir é
+            // pergunta do mapa, e por isso as sete áreas entram logo abaixo.
+            var pedidos = Encomendas.Ativas();
+            Line($"  o quadro pede {pedidos.Count} encomenda(s):");
 
+            foreach (var pedido in pedidos)
+                Line($"    {StripTags(pedido.Titulo),-24} {pedido.Pedido,-46} "
+                   + $"{pedido.premio,4} de ouro · até o ciclo {pedido.cicloLimite}");
+
+            // ── O que o mapa oferece ──
+            Line("  o mapa oferece as sete áreas:");
+
+            foreach (var area in AreaCatalog.Todas)
+            {
+                var ficha = AreaCatalog.De(area);
+                QuestData expedicao = QuestGenerator.GerarExpedicao(area, quadro.GetPlayerAverageLevel());
+                if (expedicao == null) continue;
+
+                int dias = expedicao.GetActualDuration();
+                Line($"    {StripTags(AreaCatalog.Nome(area)),-16} "
+                   + $"{AreaCatalog.DiasDeIda(area) * 2,2} de estrada · {dias,2} dias · "
+                   + $"{expedicao.GetTotalReward(dias),4} de espólio · "
+                   + $"corrupção {Mathf.RoundToInt(RegionMap.Corrupcao(ficha.aspecto)),3}"
+                   + (RegionMap.EstaSelada(ficha.aspecto) ? "  ◆ selada"
+                      : RegionMap.EstaMapeada(ficha.aspecto) ? "  ◆ selo disponível" : ""));
+            }
+
+            // As missões que sobraram no quadro são as que não são destino: a
+            // luta de selo de quem já está no mapa, e a passagem final.
+            var missoes = quadro.GetQuests();
             foreach (var q in missoes)
             {
                 if (q == null) continue;
 
                 int dias = q.GetActualDuration();
-                Line($"    {q.questName,-32} {StripTags(BiomeUtil.GetDisplayName(q.biomeType)),-12} "
-                   + $"{dias,2} dias · {q.GetTotalReward(dias),4} de ouro · corrupção {q.corruptionLevel,3}"
-                   + (q.isFinalBoss ? "  ◆ CHEFE SUPREMO" : ""));
+                Line($"    {q.questName,-32} {dias,2} dias · {q.GetTotalReward(dias),4} de ouro"
+                   + (q.isFinalBoss ? "  ◆ CHEFE SUPREMO" : "  ◆ luta de selo"));
             }
 
             // ── O que a carroça traz nesta volta ──
@@ -2900,7 +2928,7 @@ public class PlayModeProbe : MonoBehaviour
            + (faltam > 0 ? $" ({faltam} repostos — a jornada anterior esvaziou o roster)" : ""));
         QuestData quest = QuestManager.Instance != null && QuestManager.Instance.GetQuests().Count > 0
             ? QuestManager.Instance.GetQuests()[0]
-            : QuestGenerator.GenerateQuests(1, 2)[0];
+            : QuestGenerator.ExpedicaoQualquer(2);
 
         var built = JourneyDeckBuilder.Build(party[0], party);
 
@@ -3072,7 +3100,7 @@ public class PlayModeProbe : MonoBehaviour
 
         QuestData quest = QuestManager.Instance != null && QuestManager.Instance.GetQuests().Count > 0
             ? QuestManager.Instance.GetQuests()[0]
-            : QuestGenerator.GenerateQuests(1, 2)[0];
+            : QuestGenerator.ExpedicaoQualquer(2);
 
         // Mesmo caminho da tela de preparação: principal + cartas dos companheiros.
         var built = JourneyDeckBuilder.Build(party[0], party);

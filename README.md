@@ -17,9 +17,11 @@ qual baralho** e **até onde** vale a pena ir.
 ## O jogo
 
 Você é o mestre da última guilda de um reino sendo devorado pela **Corrupção**. Recruta
-heróis, monta os baralhos deles e envia expedições por sete biomas — floresta, montanha,
-pântano, deserto, tundra, vulcão e ruínas. Cada bioma tem seu próprio nível de corrupção,
-que define dificuldade, eventos e recompensas.
+heróis, monta os baralhos deles e envia expedições por **sete áreas** — a Mata, a Cripta,
+a Aldeia, o Oráculo, a Torre, a Forja e o Covil. Elas se tocam num plano navegável, com a
+guilda numa borda: chegar às distantes obriga a atravessar as próximas, e cada travessia
+custa dias. Cada área tem seu próprio nível de corrupção, que define dificuldade, eventos
+e recompensas.
 
 Heróis morrem **permanentemente**. A guilda vai cair mais cedo ou mais tarde; a questão é
 quão longe você chega antes disso, e quanto da progressão você carrega para a próxima
@@ -41,6 +43,7 @@ mapa ramificado → eventos e combates → vitória ou derrota → retorno à gu
 | Sistema | Estado |
 |---|---|
 | Combate por cartas (energia, bloqueio, intenções do inimigo, estresse) | funcionando |
+| Mapa do mundo navegável: sete áreas, vizinhança e custo em dias | funcionando |
 | Jornada com mapa ramificado, eventos e nós de descanso/tesouro | funcionando |
 | Guilda: recrutamento, forja, mercado, biblioteca, cemitério | funcionando |
 | Formação de grupo e efeitos de posição | funcionando |

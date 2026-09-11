@@ -959,7 +959,10 @@ public class JourneyMapUI : MonoBehaviour
     static string DescribeType(MapNode node)
     {
         if (node == null) return "";
-        if (node.isBoss) return "Chefe";
+        // O fim da rota é sempre o marco maior; chefe, só quando há um.
+        // Chamar de chefe o encontro forte prometeria uma luta que não vem.
+        if (node.isBoss)
+            return node.eventData != null && node.eventData.isBossEvent ? "Chefe" : "O fim da rota";
         if (node.eventData == null) return "?";
 
         switch (node.eventData.eventType)
@@ -983,7 +986,9 @@ public class JourneyMapUI : MonoBehaviour
         MapArtCatalog arte = MapArtCatalog.Carregar();
         if (arte == null || node == null) return null;
 
-        if (node.isBoss) return arte.marcoDeChefe;
+        // A arte de chefe só no que é chefe: nas expedições comuns o fim da
+        // rota é um encontro, e a caveira prometeria outra coisa.
+        if (node.isBoss && node.eventData != null && node.eventData.isBossEvent) return arte.marcoDeChefe;
         if (node.eventData == null) return null;
 
         return arte.IconeDe(node.eventData.eventType);
