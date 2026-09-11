@@ -2073,6 +2073,22 @@ public static class GuildSceneSetup
 
         Transform root = qs.selectionRoot.transform;
 
+        // O painel da preparação toma a tela inteira.
+        //
+        // Ele reservava 167px embaixo para o rodapé da guilda — que a própria
+        // preparação já desliga (UIManager.ShowQuestSelection esconde o
+        // hideDuringCombat, porque o atalho de Baralhos ali descartaria a
+        // preparação em curso). Era uma faixa preta vazia atravessando a tela,
+        // e é dela que o mapa precisava para chegar aos 90% pedidos.
+        var rootRect = root as RectTransform;
+        if (rootRect != null)
+        {
+            Undo.RecordObject(rootRect, "Tema da preparação");
+            ApplyRect(rootRect, new Vector2(0, 0), new Vector2(1, 1),
+                      new Vector2(0, 12), new Vector2(0, 0));
+            EditorUtility.SetDirty(rootRect);
+        }
+
         var rootImage = root.GetComponent<Image>();
         if (rootImage != null)
         {
@@ -2097,23 +2113,39 @@ public static class GuildSceneSetup
         //
         // O passo cabia em 948×599 no canto da tela, herdado de quando era uma
         // lista de três contratos: uma caixa de texto não precisa de mais que
-        // isso. O mapa precisa — é nele que se lê o estado das sete regiões e se
-        // escolhe para onde a guilda vai, e a 526px de largura cada símbolo de
-        // terreno virava um carimbo com o nome maior que ele.
+        // isso. O mapa precisa — é nele que se lê o estado do mundo e se escolhe
+        // para onde a guilda vai.
         //
-        // Agora o passo ocupa a tela entre o cabeçalho e o rodapé da guilda.
+        // <b>Desde 11/09 o mapa toma a tela.</b> Com 150px de margem embaixo e
+        // 60 em cima sobravam 1872×703 de 1920×1080 — dois terços da tela para a
+        // decisão mais importante da volta, e o mapa dividia isso com uma coluna
+        // de texto. Agora o passo ocupa o painel inteiro, e a ficha do lugar
+        // flutua por cima do mapa em vez de tomar um terço dele.
         Reposition(root, "QuestListContainer",
-            new Vector2(0, 0), new Vector2(1, 1), new Vector2(24, 150), new Vector2(-24, -60));
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(12, 12), new Vector2(-12, -12));
 
-        // O painel de detalhes encosta na direita e vira uma coluna: era ele que
-        // dividia a largura com o mapa meio a meio.
+        // A ficha do lugar: coluna estreita encostada na direita, <b>sobre</b> o
+        // mapa. Ela fala do que foi apontado, então não precisa de espaço
+        // reservado quando não há nada apontado — o mapa continua embaixo dela.
         Reposition(root, "QuestListContainer/Panel_QuestDetails",
-            new Vector2(0.68f, 0), new Vector2(1, 1), new Vector2(0, 76), new Vector2(0, 0));
+            new Vector2(0.77f, 0), new Vector2(1, 1), new Vector2(0, 84), new Vector2(-8, -8));
 
         Restyle(root, "QuestListContainer/Panel_QuestDetails/QuestDetailsTxt", null, 20,
             new Vector2(0, 0), new Vector2(1, 1), new Vector2(18, 18), new Vector2(-18, -18));
         Reposition(root, "QuestListContainer/Button_Next1",
             new Vector2(1, 0), new Vector2(1, 0), new Vector2(-220, 16), new Vector2(-20, 60));
+
+        // O painel da ficha ganha fundo próprio e opaco o bastante para o texto
+        // se ler sobre o pergaminho: flutuando, ele não tem mais o fundo do
+        // passo atrás de si.
+        Transform ficha = root.Find("QuestListContainer/Panel_QuestDetails");
+        var fichaImg = ficha != null ? ficha.GetComponent<Image>() : null;
+        if (fichaImg != null)
+        {
+            Undo.RecordObject(fichaImg, "Tema da preparação");
+            fichaImg.color = new Color(0.10f, 0.09f, 0.085f, 0.94f);
+            EditorUtility.SetDirty(fichaImg);
+        }
 
         // ── Passo 2: escolha dos heróis ────────────────────────────────────
         // Txt_Requirements não é lido por nenhum campo do QuestSelectionUI: ficava

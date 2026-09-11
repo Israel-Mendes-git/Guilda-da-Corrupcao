@@ -32,24 +32,30 @@ public class RegionMapUI : MonoBehaviour,
     /// <summary>
     /// Tamanho da folha, em pixels. Deitada, e bem maior que a janela: é o que
     /// obriga a percorrer.
+    ///
+    /// <b>Cresceu com a tela.</b> Quando o mapa ocupava dois terços do passo,
+    /// 2400×1400 era o dobro da janela; com o mapa em 1884×1032 a mesma folha
+    /// cabia quase inteira de uma vez, e percorrer deixava de ter função. A
+    /// regra é essa: a folha tem de ser bem maior que a janela, ou o mapa volta
+    /// a ser um quadro.
     /// </summary>
-    static readonly Vector2 TamanhoDoPapel = new Vector2(2400f, 1400f);
+    static readonly Vector2 TamanhoDoPapel = new Vector2(3400f, 2000f);
 
     /// <summary>
     /// O quanto se vê ao abrir.
     ///
     /// Nem tudo (aí não haveria o que procurar), nem colado (aí o jogador não
-    /// saberia que há mundo além). A 0,8 a janela mostra o sul inteiro e o
-    /// começo do norte — e o fundo do mapa exige arrastar.
+    /// saberia que há mundo além). A 0,85 a janela mostra cerca de dois terços
+    /// da folha — o sul inteiro e o começo do norte.
     /// </summary>
-    const float EscalaInicial = 0.8f;
+    const float EscalaInicial = 0.85f;
 
     /// <summary>Afastar até ver a folha inteira; aproximar até ler de perto.</summary>
-    const float EscalaMin = 0.52f;
-    const float EscalaMax = 1.6f;
+    const float EscalaMin = 0.45f;
+    const float EscalaMax = 1.5f;
 
     /// <summary>Raio de um território, em fração da largura do papel.</summary>
-    const float RaioDoTerritorio = 0.082f;
+    const float RaioDoTerritorio = 0.068f;
 
     RectTransform janela;
     RectTransform papel;
@@ -97,17 +103,19 @@ public class RegionMapUI : MonoBehaviour,
 
         var rt = go.GetComponent<RectTransform>();
 
-        // Dois terços da largura do passo, altura inteira: o mapa é o assunto da
-        // tela. O terço restante é a coluna que fala do lugar apontado.
+        // O passo inteiro. O mapa é o assunto da tela, e a ficha do lugar flutua
+        // por cima dele — ocupar dois terços era deixar um terço da decisão para
+        // uma caixa de texto que só tem o que dizer depois do clique.
         rt.anchorMin = new Vector2(0f, 0f);
-        rt.anchorMax = new Vector2(0.66f, 1f);
-        rt.offsetMin = new Vector2(16f, 16f);
-        rt.offsetMax = new Vector2(-12f, -16f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.offsetMin = new Vector2(6f, 6f);
+        rt.offsetMax = new Vector2(-6f, -6f);
 
-        // Último irmão: em UGUI quem nasce depois é desenhado por cima. Como
-        // primeiro, o mapa ficava atrás do Scroll View da lista antiga — que tem
-        // fundo opaco — e a tela aparecia vazia, sem erro nenhum no console.
-        rt.SetAsLastSibling();
+        // Primeiro irmão: em UGUI quem nasce depois é desenhado por cima, e
+        // agora é a ficha que precisa ficar na frente. Isto só é seguro porque a
+        // lista antiga de ofertas é desligada quando o mapa sobe — como último
+        // irmão, o mapa cobriria a ficha e o botão de avançar.
+        rt.SetAsFirstSibling();
 
         var mapa = go.AddComponent<RegionMapUI>();
         mapa.janela = rt;
@@ -149,10 +157,11 @@ public class RegionMapUI : MonoBehaviour,
         DesenharGuilda();
         DesenharBussola();
 
-        // Um palmo acima da guilda: abrir centrado nela exatamente jogaria a
-        // cidade contra a borda de baixo do papel, e o mundo que interessa
-        // procurar fica todo ao norte dela.
-        CentralizarEm(AreaCatalog.PosicaoDaGuilda + new Vector2(0f, 0.14f));
+        // Um palmo acima da guilda, e um pouco a oeste: acima porque a cidade
+        // fica no sul e o mundo que interessa procurar está ao norte dela; a
+        // oeste porque a ficha do lugar flutua sobre o canto direito da janela,
+        // e abrir com o leste debaixo dela esconderia duas áreas de saída.
+        CentralizarEm(AreaCatalog.PosicaoDaGuilda + new Vector2(-0.05f, 0.13f));
     }
 
     /// <summary>
@@ -231,10 +240,10 @@ public class RegionMapUI : MonoBehaviour,
         };
 
         for (int i = 0; i < curso.Count - 1; i++)
-            Traco($"Rio_{i}", curso[i], curso[i + 1], 22f, CorRio);
+            Traco($"Rio_{i}", curso[i], curso[i + 1], 30f, CorRio);
 
-        Rotulo("Rio Cinza", new Vector2(0.33f, 0.385f), 22f,
-               new Color(0.30f, 0.36f, 0.42f), 300f, true);
+        Rotulo("Rio Cinza", new Vector2(0.33f, 0.385f), 30f,
+               new Color(0.30f, 0.36f, 0.42f), 400f, true);
     }
 
     /// <summary>
@@ -257,7 +266,7 @@ public class RegionMapUI : MonoBehaviour,
 
         for (int i = 0; i < crista.Count; i++)
         {
-            var go = Elemento($"Serra_{i}", crista[i], 150f);
+            var go = Elemento($"Serra_{i}", crista[i], 200f);
 
             var img = go.AddComponent<Image>();
             img.sprite = pico;
@@ -268,8 +277,8 @@ public class RegionMapUI : MonoBehaviour,
             go.transform.SetAsFirstSibling();
         }
 
-        Rotulo("Serra Quebrada", new Vector2(0.44f, 0.875f), 22f,
-               new Color(0.34f, 0.29f, 0.23f), 360f, true);
+        Rotulo("Serra Quebrada", new Vector2(0.44f, 0.875f), 30f,
+               new Color(0.34f, 0.29f, 0.23f), 480f, true);
     }
 
     /// <summary>
@@ -321,7 +330,7 @@ public class RegionMapUI : MonoBehaviour,
 
             Vector2 ponto = reto + perpendicular * (curva + ondulacao);
 
-            Traco($"Trilha_{chave}_{i}", anterior, ponto, 5f, CorTrilha);
+            Traco($"Trilha_{chave}_{i}", anterior, ponto, 7f, CorTrilha);
             anterior = ponto;
         }
     }
@@ -381,7 +390,7 @@ public class RegionMapUI : MonoBehaviour,
         // Só o nome fica sobre a folha. Corrupção, dias e espólio moram na coluna
         // ao lado, que já fala do lugar apontado — vinte e uma linhas de número
         // sobre o papel eram o que mais fazia isto parecer um painel.
-        var nome = NovoTexto(go.transform, ficha.nome, 30f, CorTinta);
+        var nome = NovoTexto(go.transform, ficha.nome, 40f, CorTinta);
         nome.fontStyle = FontStyles.SmallCaps;
         nome.alignment = TextAlignmentOptions.Center;
 
@@ -461,7 +470,7 @@ public class RegionMapUI : MonoBehaviour,
         MapArtCatalog arte = MapArtCatalog.Carregar();
         Sprite marca = arte != null ? arte.guilda : null;
 
-        float lado = TamanhoDoPapel.x * 0.075f;
+        float lado = TamanhoDoPapel.x * 0.062f;
         var go = Elemento("Marcador_Guilda", AreaCatalog.PosicaoDaGuilda, lado);
 
         var img = go.AddComponent<Image>();
@@ -470,15 +479,15 @@ public class RegionMapUI : MonoBehaviour,
         img.color = marca != null ? new Color(0.42f, 0.22f, 0.11f) : new Color(0.85f, 0.72f, 0.42f);
         img.raycastTarget = false;
 
-        var rotulo = NovoTexto(go.transform, "A GUILDA", 26f, new Color(0.45f, 0.24f, 0.12f));
+        var rotulo = NovoTexto(go.transform, "A GUILDA", 34f, new Color(0.45f, 0.24f, 0.12f));
         rotulo.alignment = TextAlignmentOptions.Top;
 
         var rt = rotulo.rectTransform;
         rt.anchorMin = new Vector2(0.5f, 0f);
         rt.anchorMax = new Vector2(0.5f, 0f);
         rt.pivot = new Vector2(0.5f, 1f);
-        rt.anchoredPosition = new Vector2(0f, -6f);
-        rt.sizeDelta = new Vector2(320f, 34f);
+        rt.anchoredPosition = new Vector2(0f, -8f);
+        rt.sizeDelta = new Vector2(420f, 44f);
     }
 
     /// <summary>
