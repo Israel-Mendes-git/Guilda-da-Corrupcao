@@ -2148,14 +2148,39 @@ public static class GuildSceneSetup
         }
 
         // ── Passo 2: escolha dos heróis ────────────────────────────────────
+        //
+        // <b>A tela era um terço usado e dois vazios.</b> A formação ocupava uma
+        // coluna à esquerda, o elenco uma coluna à direita, e o meio — mais de
+        // mil pixels de largura — tinha duas linhas de texto e nada mais.
+        //
+        // Agora a formação fica na coluna da esquerda, e o elenco ocupa todo o
+        // resto numa grade de três colunas: escolher quem vai é comparar os
+        // heróis, e comparar exige vê-los ao mesmo tempo.
+        // O container do passo 2 primeiro: ele era a coluna da direita, e tudo
+        // o que mora dentro dele é ancorado em fração <b>dele</b>. Sem esticar o
+        // pai, mandar a lista ocupar "de 27% a 100% da largura" ocupa 27% a 100%
+        // de uma coluna estreita — que foi exatamente o que aconteceu na
+        // primeira tentativa.
+        Reposition(root, "PartySelectionContainer",
+            new Vector2(0, 0), new Vector2(1, 1), new Vector2(12, 12), new Vector2(-12, -12));
+
+        Reposition(root, "Panel_Formation",
+            new Vector2(0, 0), new Vector2(0.27f, 1), new Vector2(12, 88), new Vector2(-8, -12));
+
+        Reposition(root, "PartySelectionContainer/Panel_Requirements",
+            new Vector2(0.27f, 1), new Vector2(1, 1), new Vector2(8, -86), new Vector2(-12, -12));
+
+        Reposition(root, "PartySelectionContainer/Scroll View",
+            new Vector2(0.27f, 0), new Vector2(1, 1), new Vector2(8, 88), new Vector2(-12, -90));
+
         // Txt_Requirements não é lido por nenhum campo do QuestSelectionUI: ficava
         // eternamente com o "New Text" do editor, em corpo 36, no meio da tela.
         // Vira o título do passo — o aviso de requisitos já sai no Txt_PartyCount.
         Restyle(root, "PartySelectionContainer/Panel_Requirements/Txt_Requirements",
             "⚔️ Quem vai à missão", 26,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(18, -56), new Vector2(-18, -14));
+            new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(18, -44), new Vector2(-8, -8));
         Restyle(root, "PartySelectionContainer/Panel_Requirements/Txt_PartyCount", null, 20,
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(18, -300), new Vector2(-18, -64));
+            new Vector2(0.5f, 1), new Vector2(1, 1), new Vector2(8, -44), new Vector2(-18, -8));
         Reposition(root, "PartySelectionContainer/Button_Back2",
             new Vector2(1, 0), new Vector2(1, 0), new Vector2(-460, -88), new Vector2(-240, -24));
         Reposition(root, "PartySelectionContainer/Button_Next2",
@@ -2164,8 +2189,11 @@ public static class GuildSceneSetup
         // ── Passo 3: deck principal ────────────────────────────────────────
         // Os dois textos do topo cabiam em 200px de largura com corpo 36; o nome
         // do herói principal não entrava. Ficam acima da lista, lado a lado.
+        // Duas linhas de 22 e o corpo menor da regra: 64px, e não 42. O texto
+        // transbordava por cima do primeiro card do grupo — a caixa tinha altura
+        // de uma linha e recebia sete.
         Restyle(root, "DeckSelectionContainer/SelectedTxt", null, 22,
-            new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(12, 10), new Vector2(-8, 52));
+            new Vector2(0, 1), new Vector2(0.55f, 1), new Vector2(12, -4), new Vector2(-8, 60));
         Restyle(root, "DeckSelectionContainer/Txt_TeamSummary", null, 18,
             new Vector2(0.5f, 1), new Vector2(1, 1), new Vector2(8, 10), new Vector2(-12, 52));
         Reposition(root, "DeckSelectionContainer/Button_Back3",

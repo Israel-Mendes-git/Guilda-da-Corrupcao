@@ -579,6 +579,8 @@ public class QuestSelectionUI : MonoBehaviour
         if (selectedMainHero != null && !selectedParty.Contains(selectedMainHero))
             selectedMainHero = null;
 
+        AjustarGradeDeHerois();
+
         foreach (var hero in GuildManager.Instance.roster)
         {
             if (hero.isDead) continue;
@@ -595,6 +597,29 @@ public class QuestSelectionUI : MonoBehaviour
 
         UpdatePartyCountText();
     }
+
+    /// <summary>
+    /// A grade da lista de heróis, dimensionada em execução.
+    ///
+    /// Em coluna única os cards ficavam empilhados numa faixa estreita da
+    /// direita, com o meio da tela vazio. Em três colunas o elenco inteiro cabe
+    /// de uma vez — e escolher quem vai é comparar, não rolar uma lista.
+    /// </summary>
+    void AjustarGradeDeHerois()
+    {
+        var grid = partySelectionContainer.GetComponent<GridLayoutGroup>();
+        if (grid == null) return;
+
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = 3;
+        grid.cellSize = new Vector2(TamanhoDoCard.x, TamanhoDoCard.y);
+        grid.spacing = new Vector2(16f, 16f);
+        grid.padding = new RectOffset(12, 12, 12, 12);
+        grid.childAlignment = TextAnchor.UpperLeft;
+    }
+
+    /// <summary>Tamanho da célula do grid, e do card que mora nela.</summary>
+    static readonly Vector2 TamanhoDoCard = new Vector2(336f, 146f);
 
     void SetupPartySelectCard(GameObject card, HeroData hero)
     {
@@ -617,17 +642,11 @@ public class QuestSelectionUI : MonoBehaviour
         // o jogador não saberia por quê.
         bool apto = hero.IsFitForJourney;
 
-        if (nameText != null)
-            nameText.text = apto
-                ? hero.heroName
-                : $"<color=#8A7A6A>{hero.heroName}</color>";
-
+        // Os textos herdados são preenchidos assim mesmo: se um dia o card
+        // voltar a usá-los, não voltam com o conteúdo de exemplo do prefab.
+        if (nameText != null) nameText.text = hero.heroName;
         if (classText != null) classText.text = GetClassName(hero.heroClass);
-
-        if (levelText != null)
-            levelText.text = apto
-                ? $"Nv.{hero.level}{(hero.isInjured ? "  <color=#B04040>🩸</color>" : "")}"
-                : $"<color=#B0A040>🧠 {hero.UnfitReason}</color>";
+        if (levelText != null) levelText.text = $"Nv.{hero.level}";
 
         // Toggle para selecionar
         Toggle toggle = card.GetComponentInChildren<Toggle>();
@@ -669,6 +688,212 @@ public class QuestSelectionUI : MonoBehaviour
         // compartilhado com a cena, então desligar é mais seguro que apagar.
         DesligarFilho(card, "MainButton");
         DesligarFilho(card, "MainIndicator");
+
+        VestirCardDeSelecao(card, hero, nameText, classText, levelText, toggle);
+    }
+
+    /// <summary>
+    /// Põe no card do passo 2 o que decide a escolha: rosto, vida, estresse e
+    /// ferimento.
+    ///
+    /// <b>O card dizia nome, classe e nível — e nada disso decide quem vai.</b>
+    /// Quem escolhe o grupo precisa saber quem voltou machucado da última vez e
+    /// quem está a um susto de quebrar; essa informação existia no
+    /// <see cref="HeroData"/> desde sempre e só aparecia na ficha do herói, a
+    /// duas telas de distância. O prefab é o card herdado da cena e não tem
+    /// esses campos, então eles nascem aqui — como no resto do jogo, que monta
+    /// UI em execução.
+    /// </summary>
+    void VestirCardDeSelecao(GameObject card, HeroData hero,
+                             TMP_Text nameText, TMP_Text classText, TMP_Text levelText,
+                             Toggle toggle)
+    {
+        var rt = card.GetComponent<RectTransform>();
+        if (rt == null) return;
+
+        bool apto = hero.IsFitForJourney;
+
+        // O retrato à esquerda, e o texto do prefab empurrado para a direita
+        // dele. As posições do prefab vinham de quando o card era só três linhas
+        // de texto — reaproveitar os componentes e reposicioná-los custa menos
+        // que manter dois layouts vivos.
+        const float MargemDoRetrato = 116f;
+
+        if (hero.portrait != null)
+        {
+            // Último irmão, e não primeiro: o card tem um Background opaco
+            // entre os filhos, e o retrato criado antes dele simplesmente
+            // desaparecia — sem erro no console, como sempre.
+            var moldura = new GameObject("Retrato", typeof(RectTransform));
+            moldura.transform.SetParent(card.transform, false);
+            moldura.transform.SetAsLastSibling();
+
+            var mrt = moldura.GetComponent<RectTransform>();
+            mrt.anchorMin = new Vector2(0f, 0.5f);
+            mrt.anchorMax = new Vector2(0f, 0.5f);
+            mrt.pivot = new Vector2(0f, 0.5f);
+            mrt.anchoredPosition = new Vector2(12f, 8f);
+            mrt.sizeDelta = new Vector2(92f, 92f);
+
+            var img = moldura.AddComponent<Image>();
+            img.sprite = hero.portrait;
+            img.preserveAspect = true;
+
+            // Quem não pode partir sai lavado: é a mesma leitura do nome em
+            // cinza, feita onde o olho cai primeiro.
+            img.color = apto ? Color.white : new Color(0.45f, 0.42f, 0.40f);
+            img.raycastTarget = false;
+        }
+
+        // Os textos do prefab saem de cena e as linhas nascem aqui.
+        //
+        // Reposicioná-los não bastou: cada um tem pai e âncoras próprios,
+        // herdados de um card menor, e "Nv.3" continuava escrito por cima de
+        // "Guerreiro". Com três linhas criadas na hora, o card tem um layout
+        // só — e é o mesmo que decide onde entram as barras logo abaixo.
+        if (nameText != null) nameText.gameObject.SetActive(false);
+        if (classText != null) classText.gameObject.SetActive(false);
+        if (levelText != null) levelText.gameObject.SetActive(false);
+
+        var nome = NovoRotulo(card, "Nome", 26f);
+        nome.text = apto ? hero.heroName : $"<color=#8A7A6A>{hero.heroName}</color>";
+        Ancorar(nome.rectTransform, MargemDoRetrato, -8f, 30f);
+
+        var oficio = NovoRotulo(card, "Oficio", 20f);
+        oficio.color = new Color(0.66f, 0.62f, 0.56f);
+        oficio.text = $"{GetClassName(hero.heroClass)}  ·  Nv.{hero.level}";
+        Ancorar(oficio.rectTransform, MargemDoRetrato, -40f, 26f);
+
+        // Quem não pode partir diz por quê no lugar da linha de ofício: é a
+        // única coisa que o jogador precisa saber sobre ele agora.
+        if (!apto)
+        {
+            oficio.text = $"<color=#B0A040>🧠 {hero.UnfitReason}</color>";
+        }
+
+        // O toggle vai para o canto, fora do caminho do retrato e do nome.
+        if (toggle != null)
+        {
+            var trt = toggle.GetComponent<RectTransform>();
+            if (trt != null)
+            {
+                trt.anchorMin = trt.anchorMax = new Vector2(1f, 1f);
+                trt.pivot = new Vector2(1f, 1f);
+                trt.anchoredPosition = new Vector2(-10f, -10f);
+            }
+        }
+
+        // As duas barras que dizem em que estado o herói volta e parte.
+        float vida = hero.maxHp > 0 ? Mathf.Clamp01(hero.currentHp / (float)hero.maxHp) : 0f;
+        float nervo = Mathf.Clamp01(hero.stress / 100f);
+
+        Barra(card, "BarraVida", -94f, vida,
+              Color.Lerp(new Color(0.62f, 0.20f, 0.18f), new Color(0.36f, 0.52f, 0.28f), vida),
+              $"{hero.currentHp}/{hero.maxHp}");
+
+        Barra(card, "BarraEstresse", -116f, nervo,
+              Color.Lerp(new Color(0.40f, 0.40f, 0.46f), new Color(0.72f, 0.56f, 0.22f), nervo),
+              $"{Mathf.RoundToInt(hero.stress)}");
+
+        // A linha de aviso só aparece quando há o que avisar. Card sem marca é
+        // herói inteiro — e num jogo de morte permanente isso também é
+        // informação.
+        string marca = "";
+        if (hero.isInjured) marca += "<color=#B04040>🩸 ferido</color>   ";
+        if (MentalStateUtil.IsAffliction(hero.mentalState))
+            marca += $"<color=#B0A040>🧠 {MentalStateUtil.GetLabel(hero.mentalState)}</color>";
+        else if (MentalStateUtil.IsVirtue(hero.mentalState))
+            marca += $"<color=#60A060>✦ {MentalStateUtil.GetLabel(hero.mentalState)}</color>";
+
+        if (!string.IsNullOrEmpty(marca))
+        {
+            var aviso = NovoRotulo(card, "Marca", 18f);
+            aviso.text = marca;
+
+            Ancorar(aviso.rectTransform, MargemDoRetrato, -66f, 22f);
+        }
+    }
+
+    /// <summary>Uma linha do card: presa ao topo, começando depois do retrato.</summary>
+    static void Ancorar(RectTransform rt, float x, float y, float altura)
+    {
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(-x - 44f, altura);
+    }
+
+    /// <summary>
+    /// Uma barra de trilho e preenchimento dentro do card.
+    ///
+    /// O preenchimento usa <see cref="UIUtil.Branco"/> porque
+    /// <c>Image.type = Filled</c> é <b>ignorado</b> quando o Image não tem
+    /// sprite: o componente desenha o retângulo inteiro, o <c>fillAmount</c> não
+    /// vale nada e a barra fica sempre cheia, sem erro no console.
+    /// </summary>
+    static void Barra(GameObject card, string nome, float y, float fracao, Color cor, string leitura)
+    {
+        const float Esquerda = 116f;
+        const float Altura = 14f;
+
+        var trilho = new GameObject(nome, typeof(RectTransform));
+        trilho.transform.SetParent(card.transform, false);
+
+        var trt = trilho.GetComponent<RectTransform>();
+        trt.anchorMin = new Vector2(0f, 1f);
+        trt.anchorMax = new Vector2(1f, 1f);
+        trt.pivot = new Vector2(0f, 1f);
+        trt.anchoredPosition = new Vector2(Esquerda, y);
+        trt.sizeDelta = new Vector2(-Esquerda - 64f, Altura);
+
+        var fundo = trilho.AddComponent<Image>();
+        fundo.sprite = UIUtil.Branco();
+        fundo.color = new Color(0.12f, 0.11f, 0.10f, 0.9f);
+        fundo.raycastTarget = false;
+
+        var cheio = new GameObject("Preenchimento", typeof(RectTransform));
+        cheio.transform.SetParent(trilho.transform, false);
+
+        var crt = cheio.GetComponent<RectTransform>();
+        crt.anchorMin = Vector2.zero;
+        crt.anchorMax = Vector2.one;
+        crt.offsetMin = new Vector2(2f, 2f);
+        crt.offsetMax = new Vector2(-2f, -2f);
+
+        var img = cheio.AddComponent<Image>();
+        img.sprite = UIUtil.Branco();
+        img.type = Image.Type.Filled;
+        img.fillMethod = Image.FillMethod.Horizontal;
+        img.fillAmount = fracao;
+        img.color = cor;
+        img.raycastTarget = false;
+
+        var numero = NovoRotulo(card, nome + "_Leitura", 16f);
+        numero.text = leitura;
+        numero.alignment = TextAlignmentOptions.Right;
+
+        var nrt = numero.rectTransform;
+        nrt.anchorMin = new Vector2(1f, 1f);
+        nrt.anchorMax = new Vector2(1f, 1f);
+        nrt.pivot = new Vector2(1f, 1f);
+        nrt.anchoredPosition = new Vector2(-12f, y + 1f);
+        nrt.sizeDelta = new Vector2(52f, Altura + 4f);
+    }
+
+    static TMP_Text NovoRotulo(GameObject card, string nome, float corpo)
+    {
+        var go = new GameObject(nome, typeof(RectTransform));
+        go.transform.SetParent(card.transform, false);
+
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.fontSize = corpo;
+        tmp.color = new Color(0.86f, 0.83f, 0.78f);
+        tmp.raycastTarget = false;
+        tmp.richText = true;
+        tmp.enableWordWrapping = false;
+
+        return tmp;
     }
 
     static void DesligarFilho(GameObject card, string nome)
@@ -969,6 +1194,7 @@ public class QuestSelectionUI : MonoBehaviour
             hpText.text = $"❤️ {hero.currentHp}/{hero.maxHp}";
 
         VestirRetrato(card, hero);
+        MostrarComposicaoDoBaralho(card, deck);
         LiberarCliqueDoCard(card);
 
         // Botão para selecionar o deck
@@ -977,6 +1203,74 @@ public class QuestSelectionUI : MonoBehaviour
         {
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => SelectDeck(hero, card));
+        }
+    }
+
+    /// <summary>
+    /// De que é feito o baralho daquele herói, em quatro linhas.
+    ///
+    /// <b>O card do passo 3 tinha um vão de 150px entre a classe e a contagem de
+    /// cartas.</b> "10 cartas" não ajuda a escolher o principal — dez cartas de
+    /// ataque e dez de suporte ganham jornadas diferentes, e essa informação só
+    /// existia entrando na tela de Baralhos, que a preparação não alcança.
+    ///
+    /// O papel vem do <see cref="CardRoleUtil"/>, que é o mesmo eixo pelo qual o
+    /// <c>DeckGenerator</c> monta o baralho — e não de uma segunda leitura dos
+    /// números da carta, que chamaria a Fúria de ataque.
+    /// </summary>
+    void MostrarComposicaoDoBaralho(GameObject card, DeckData deck)
+    {
+        if (deck == null || deck.cards == null) return;
+
+        var contagem = new Dictionary<CardRole, int>();
+        foreach (var carta in deck.cards)
+        {
+            if (carta == null) continue;
+
+            CardRole papel = CardRoleUtil.Of(carta);
+            contagem[papel] = contagem.ContainsKey(papel) ? contagem[papel] + 1 : 1;
+        }
+
+        var linhas = new List<string>();
+        foreach (CardRole papel in new[] { CardRole.Ataque, CardRole.Defesa,
+                                           CardRole.Suporte, CardRole.Utilidade })
+        {
+            if (!contagem.ContainsKey(papel)) continue;
+            linhas.Add($"{contagem[papel]}  {NomeDoPapel(papel)}");
+        }
+
+        if (linhas.Count == 0) return;
+
+        var go = new GameObject("Composicao", typeof(RectTransform));
+        go.transform.SetParent(card.transform, false);
+
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text = string.Join("\n", linhas);
+        tmp.fontSize = 19f;
+        tmp.color = new Color(0.70f, 0.66f, 0.60f);
+        tmp.alignment = TextAlignmentOptions.Top;
+        tmp.lineSpacing = 10f;
+        tmp.raycastTarget = false;
+
+        // Abaixo da linha de classe e acima da contagem de cartas: a faixa de
+        // 130px que sobrava no meio do card. Medida do topo do card, e não do
+        // retrato — a primeira versão começava em -230 e escrevia por cima de
+        // "Mago · Nv.2".
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 0f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.offsetMin = new Vector2(16f, 56f);
+        rt.offsetMax = new Vector2(-16f, -360f);
+    }
+
+    static string NomeDoPapel(CardRole papel)
+    {
+        switch (papel)
+        {
+            case CardRole.Ataque: return "de ataque";
+            case CardRole.Defesa: return "de defesa";
+            case CardRole.Suporte: return "de suporte";
+            default: return "de utilidade";
         }
     }
 
@@ -1067,9 +1361,20 @@ public class QuestSelectionUI : MonoBehaviour
 
         JourneyDeckBuilder.Result preview = JourneyDeckBuilder.Build(main, selectedParty);
 
+        // Duas linhas, e não sete.
+        //
+        // O detalhamento por herói — "Lyra — 10 cartas (base)", "Gromm — +3
+        // cartas", uma linha por companheiro — repetia o que cada card da mesma
+        // tela já diz no rodapé ("10 cartas"), e transbordava da caixa por cima
+        // do primeiro card do grupo. A regra do baralho híbrido cabe numa frase.
+        int emprestadas = Mathf.Max(0, selectedParty.Count - 1);
+
         string texto = $"⭐ Deck Principal: {main.heroName}\n";
-        texto += $"<b>{preview.deck.cards.Count} cartas na jornada</b>\n";
-        texto += string.Join("\n", preview.breakdown);
+        texto += $"<b>{preview.deck.cards.Count} cartas na jornada</b>";
+
+        if (emprestadas > 0)
+            texto += $"  <size=16>— o baralho de {main.heroName} mais 3 cartas "
+                   + $"de cada um dos {emprestadas} companheiros</size>";
 
         // A formação sai daqui: o Txt_TeamSummary, do outro lado do mesmo passo,
         // já mostra frente e retaguarda e marca quem está fora de posição. As
