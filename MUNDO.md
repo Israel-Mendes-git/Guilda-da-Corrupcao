@@ -29,20 +29,30 @@ informação, que nenhuma outra dá.
 
 ## O plano, como ele ficou
 
-Desenhado em 11/09 e construído no mesmo dia. A guilda fica na borda de baixo; as linhas são
-vizinhança, e é por elas que se anda.
+Desenhado em 11/09 e construído no mesmo dia. **A tela é um mapa-múndi que se percorre** — arrastar
+move a vista, a roda aproxima e afasta, e a folha é quase o dobro da janela. É a interface de mapa
+de um jogo (*Hollow Knight*, *Ori*) com outra função: lá serve para se localizar, aqui para
+**procurar destino**. O mapa abre sobre a guilda, e o resto do mundo fica além da borda.
+
+**A geografia, e não um leque de nós.** O **Rio Cinza** corre de oeste a leste no meio da folha e
+separa o que está ao alcance de uma ida curta de todo o resto; a **Serra Quebrada** fecha o norte, e
+é nela que o Covil se enfia. A Torre e o Covil são longe porque há isso entre eles e a cidade — não
+porque a distância foi escolhida.
 
 ```
-                       O COVIL
-                      /       \
-               A TORRE         A FORJA
-                   |   \      /   |
-            O ORÁCULO — A ALDEIA  |
-                   \    /    \    |
-                  A MATA ——— A CRIPTA
-                       \     /
-                     [ A GUILDA ]
+   ~~~~~~~~~~~~~~~~  SERRA QUEBRADA  ~~~~~~~~~~~~~~~~
+        A TORRE                        O COVIL
+
+     O ORÁCULO         A ALDEIA         A FORJA
+   ================== RIO CINZA ====================
+        A MATA                        A CRIPTA
+                    [ A GUILDA ]
 ```
+
+Cada área é um **território com extensão**, não um ponto: mancha de terreno com o símbolo e o nome
+dentro, clicável inteira e pintada pela própria corrupção. Os caminhos entre vizinhas serpenteiam —
+reta entre dois pontos é desenho de aresta de grafo, e foi assim que a primeira versão se denunciou.
+Sobre a folha só fica o nome do lugar; corrupção, dias e espólio moram na coluna ao lado.
 
 **Cada travessia custa 2 dias**, e a volta custa o mesmo. Daí sai o preço de cada área:
 
