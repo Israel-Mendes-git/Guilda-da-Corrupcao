@@ -258,7 +258,7 @@ public static class GameplayAudit
             else if (corrupcao >= RunManager.CorruptionMax)
                 marco = "o mundo é consumido — fim de run";
 
-            float ouro = 500 + ciclo * porJornada;
+            float ouro = MetaProgression.OuroBasePorRun + ciclo * porJornada;
 
             Linha($"  {ciclo,5}   {corrupcao,8:F0}   {marco,-38}   {ouro,10:F0}");
 

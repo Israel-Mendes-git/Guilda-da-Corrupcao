@@ -81,6 +81,23 @@ public class TavernManager : MonoBehaviour
 
     readonly List<HeroData> currentRecruits = new List<HeroData>();
 
+    /// <summary>Os candidatos que a sala mostra agora — para o relatório de Play Mode.</summary>
+    public IReadOnlyList<HeroData> Candidatos => currentRecruits;
+
+    /// <summary>
+    /// Os candidatos a fundador, sorteados uma vez e mantidos até a fundação
+    /// terminar. A leva comum é refeita a cada abertura da sala; os fundadores
+    /// não — quem o jogador viu ao entrar é quem ele vai escolher.
+    /// </summary>
+    readonly List<HeroData> fundadores = new List<HeroData>();
+
+    /// <summary>
+    /// Nível com que os fundadores chegam. Iguais entre si de propósito: a
+    /// escolha é de ofício e bagagem, não de número. O simulador monta o grupo
+    /// de fundação com este mesmo valor.
+    /// </summary>
+    public const int NivelDosFundadores = 2;
+
     /// <summary>
     /// O baralho já sorteado de cada candidato. É o que a prateleira mostra e o
     /// que o herói leva ao ser contratado — a promessa e a entrega são o mesmo
@@ -89,6 +106,8 @@ public class TavernManager : MonoBehaviour
     readonly Dictionary<HeroData, DeckData> baralhoDoCandidato = new Dictionary<HeroData, DeckData>();
 
     HeroData naMesa;
+
+    bool EmFundacao => GuildManager.Instance != null && GuildManager.Instance.EmFundacao;
 
     void Awake()
     {
@@ -171,7 +190,14 @@ public class TavernManager : MonoBehaviour
 
     void GenerateRecruits()
     {
+        if (EmFundacao)
+        {
+            GerarFundadores();
+            return;
+        }
+
         DescartarBaralhosNaoAdotados();
+        fundadores.Clear();
         currentRecruits.Clear();
 
         for (int i = 0; i < TamanhoDaLeva; i++)
@@ -184,6 +210,48 @@ public class TavernManager : MonoBehaviour
             baralhoDoCandidato[novo] = DeckGenerator.GenerateDeckForHero(novo);
         }
 
+        naMesa = currentRecruits.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Os candidatos a fundador: um por classe jogável, todos do mesmo nível.
+    ///
+    /// <b>É o primeiro ato da partida</b>, desde 12/09: a guilda nasce vazia e
+    /// o jogador escolhe dois entre quatro. Escolher é escolher de que a guilda
+    /// é feita — quem segura a frente, quem cura, quem fere de longe — e é por
+    /// isso que os quatro são de classes diferentes e do mesmo nível: a decisão
+    /// é de ofício e bagagem, não de número. A leva fica de pé enquanto durar a
+    /// fundação; quem já entrou sai dela.
+    /// </summary>
+    void GerarFundadores()
+    {
+        GuildManager guilda = GuildManager.Instance;
+        fundadores.RemoveAll(f => f == null || (guilda != null && guilda.roster.Contains(f)));
+
+        if (fundadores.Count == 0)
+        {
+            DescartarBaralhosNaoAdotados();
+
+            var nomesUsados = new HashSet<string>();
+            foreach (HeroClass classe in HeroFactory.ClassesJogaveis)
+            {
+                // Nomes distintos: o retrato sai do nome, e dois fundadores com
+                // a mesma cara seriam a mesma escolha duas vezes.
+                HeroData candidato = HeroFactory.CriarCandidato(classe, NivelDosFundadores);
+                for (int tentativa = 0; tentativa < 20 && nomesUsados.Contains(candidato.heroName); tentativa++)
+                {
+                    Destroy(candidato);
+                    candidato = HeroFactory.CriarCandidato(classe, NivelDosFundadores);
+                }
+                nomesUsados.Add(candidato.heroName);
+
+                fundadores.Add(candidato);
+                baralhoDoCandidato[candidato] = DeckGenerator.GenerateDeckForHero(candidato);
+            }
+        }
+
+        currentRecruits.Clear();
+        currentRecruits.AddRange(fundadores);
         naMesa = currentRecruits.FirstOrDefault();
     }
 
@@ -241,8 +309,13 @@ public class TavernManager : MonoBehaviour
             goldText.text = $"💰 {ouro}";
 
         if (hintText != null)
-            hintText.text = "Contratar custa o salário do herói e vale para sempre: quem morre na estrada não volta.   "
-                          + $"Guilda: {noRoster}/{limite}.";
+        {
+            hintText.text = EmFundacao
+                ? $"Escolha os {GuildManager.FundadoresDaGuilda} fundadores da guilda. Eles não custam nada.   "
+                  + $"Faltam {GuildManager.Instance.FundadoresQueFaltam}."
+                : "Contratar custa o salário do herói e vale para sempre: quem morre na estrada não volta.   "
+                  + $"Guilda: {noRoster}/{limite}.";
+        }
 
         // Quem foi contratado saiu da leva, e quem chegou agora precisa de alguém
         // na mesa — a sala nunca fica com o meio vazio tendo candidato na porta.
@@ -256,6 +329,13 @@ public class TavernManager : MonoBehaviour
 
     void AtualizarBotaoDeRenovar()
     {
+        // Durante a fundação não há leva para renovar: os quatro que atenderam
+        // ao chamado são os quatro. O botão some em vez de ficar desligado.
+        bool fundacao = EmFundacao;
+        if (refreshButton != null) refreshButton.gameObject.SetActive(!fundacao);
+        if (refreshCostText != null) refreshCostText.gameObject.SetActive(!fundacao);
+        if (fundacao) return;
+
         bool podePagar = GuildManager.Instance != null && GuildManager.Instance.gold >= refreshCost;
 
         if (refreshCostText != null)
@@ -345,6 +425,8 @@ public class TavernManager : MonoBehaviour
 
     string PrecoNaFicha(HeroData hero)
     {
+        if (EmFundacao) return "<color=#7FB069>fundador</color>";
+
         return PodePagar(hero.salary)
             ? $"💰 {hero.salary}"
             : $"<color=#B04040>💰 {hero.salary}</color>";
@@ -440,8 +522,9 @@ public class TavernManager : MonoBehaviour
     {
         if (hireButton == null) return;
 
+        bool fundacao = EmFundacao;
         bool temVaga = GuildManager.Instance != null && GuildManager.Instance.CanRecruit();
-        bool temOuro = PodePagar(naMesa.salary);
+        bool temOuro = fundacao || PodePagar(naMesa.salary);
 
         hireButton.interactable = temVaga && temOuro;
 
@@ -452,6 +535,8 @@ public class TavernManager : MonoBehaviour
         {
             if (!temVaga)
                 texto.text = "GUILDA CHEIA";
+            else if (fundacao)
+                texto.text = $"🍺 FUNDAR COM {naMesa.heroName.ToUpperInvariant()}";
             else
                 texto.text = temOuro
                     ? $"🍺 CONTRATAR   {naMesa.salary}💰"
@@ -477,10 +562,14 @@ public class TavernManager : MonoBehaviour
         if (!GuildManager.Instance.CanRecruit())
             return $"A guilda está cheia: {noRoster}/{limite} heróis.";
 
+        int cartas = BaralhoDe(naMesa)?.cards.Count ?? 0;
+
+        if (GuildManager.Instance.EmFundacao)
+            return $"{noRoster + 1}º de {GuildManager.FundadoresDaGuilda} fundadores   ·   "
+                 + $"traz {cartas} cartas ao baralho dele   ·   sem custo";
+
         if (!PodePagar(naMesa.salary))
             return $"Faltam {naMesa.salary - ouro}💰 para contratar {naMesa.heroName}.";
-
-        int cartas = BaralhoDe(naMesa)?.cards.Count ?? 0;
 
         return $"A guilda fica com {noRoster + 1} de {limite} heróis   ·   "
              + $"traz {cartas} cartas ao baralho dele   ·   sobram {ouro - naMesa.salary}💰";
@@ -647,13 +736,23 @@ public class TavernManager : MonoBehaviour
             return;
         }
 
-        if (!PodePagar(hero.salary))
-        {
-            SetFeedback($"<color=#B04040>Ouro insuficiente: {hero.heroName} pede {hero.salary}💰.</color>");
-            return;
-        }
+        bool fundador = GuildManager.Instance.EmFundacao;
 
-        GuildManager.Instance.RecruitHero(hero);
+        if (fundador)
+        {
+            // Sem cobrar: é a fundação, e os fundadores são a guilda nascendo.
+            GuildManager.Instance.AceitarFundador(hero);
+        }
+        else
+        {
+            if (!PodePagar(hero.salary))
+            {
+                SetFeedback($"<color=#B04040>Ouro insuficiente: {hero.heroName} pede {hero.salary}💰.</color>");
+                return;
+            }
+
+            GuildManager.Instance.RecruitHero(hero);
+        }
 
         if (!GuildManager.Instance.roster.Contains(hero))
         {
@@ -674,10 +773,21 @@ public class TavernManager : MonoBehaviour
                 $"+{baralho.cards.Count} cartas", new Color(0.50f, 0.78f, 0.41f));
 
         currentRecruits.Remove(hero);
+        fundadores.Remove(hero);
         naMesa = currentRecruits.FirstOrDefault();
 
-        SetFeedback($"{hero.heroName} entrou na guilda: {GuildManager.Instance.roster.Count}"
-                  + $"/{GuildManager.Instance.maxRosterSize} heróis, {baralho.cards.Count} cartas novas no baralho dele.");
+        if (fundador)
+        {
+            int faltam = GuildManager.Instance.FundadoresQueFaltam;
+            SetFeedback(faltam > 0
+                ? $"{hero.heroName} funda a guilda. Falta escolher mais {faltam}."
+                : $"{hero.heroName} funda a guilda com quem já estava. A guilda está fundada.");
+        }
+        else
+        {
+            SetFeedback($"{hero.heroName} entrou na guilda: {GuildManager.Instance.roster.Count}"
+                      + $"/{GuildManager.Instance.maxRosterSize} heróis, {baralho.cards.Count} cartas novas no baralho dele.");
+        }
 
         AtualizarSala();
     }

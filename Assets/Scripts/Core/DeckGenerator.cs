@@ -78,6 +78,13 @@ public static class DeckGenerator
         isLoaded = false;
     }
 
+    /// <summary>
+    /// Quantas cartas o baralho de um herói daquele nível comporta. É a régua do
+    /// GDD (§9), num lugar só: o gerador monta por ela, e a guilda lê por ela se
+    /// um baralho ainda tem vaga — que é o que acende a Biblioteca.
+    /// </summary>
+    public static int LimiteDoBaralho(int level) => Mathf.Clamp(8 + level, 8, 12);
+
     public static DeckData GenerateDeckForHero(HeroData hero)
     {
         DeckData deck = ScriptableObject.CreateInstance<DeckData>();
@@ -92,7 +99,7 @@ public static class DeckGenerator
             return CreateDefaultDeck(hero);
         }
 
-        int deckSize = Mathf.Clamp(8 + hero.level, 8, 12);
+        int deckSize = LimiteDoBaralho(hero.level);
 
         var copias = new Dictionary<CardData, int>();
 

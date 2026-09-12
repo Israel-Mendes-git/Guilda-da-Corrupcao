@@ -30,11 +30,58 @@ public static class PartyFormation
     /// </summary>
     public static bool Enabled = true;
 
-    /// <summary>Quantas posições formam a linha de frente.</summary>
+    /// <summary>Quantas posições formam a linha de frente, num grupo completo.</summary>
     public const int FrontSlots = 2;
 
     /// <summary>Tamanho máximo pensado para a formação.</summary>
     public const int MaxSlots = 4;
+
+    /// <summary>
+    /// Quantas posições formam a linha de frente num grupo deste tamanho.
+    ///
+    /// <b>Metade da fila, arredondada para cima, até o teto de duas.</b> Com
+    /// três ou mais, são as duas de sempre. Com dois — a guilda recém-fundada —
+    /// é uma: sem isto os dois fundadores ficavam ambos na linha de frente, e o
+    /// de retaguarda saía com as cartas a 60% em toda primeira jornada, sem
+    /// nenhuma ordem em que ele rendesse. Conta o grupo inteiro, mortos
+    /// inclusive: quem morre não encolhe a linha de frente dos que ficaram.
+    /// </summary>
+    public static int FrontSlotsFor(int partySize)
+    {
+        if (partySize <= 0) return 0;
+        return Mathf.Min(FrontSlots, Mathf.CeilToInt(partySize / 2f));
+    }
+
+    /// <summary>A posição (entre os vivos) está na linha de frente deste grupo?</summary>
+    public static bool IsFront(int position, IList<HeroData> party)
+    {
+        return position >= 0 && position < FrontSlotsFor(party != null ? party.Count : 0);
+    }
+
+    /// <summary>
+    /// A ordem em que o grupo rende: quem é de frente primeiro, por nível; quem
+    /// se vira em qualquer fileira no meio; a retaguarda por último. É a formação
+    /// que a preparação preenche sozinha quando o jogador aponta um destino —
+    /// trocar continua sendo dele.
+    /// </summary>
+    public static List<HeroData> OrdemRecomendada(IEnumerable<HeroData> herois)
+    {
+        if (herois == null) return new List<HeroData>();
+
+        int Peso(HeroData h)
+        {
+            FormationRow? fileira = PreferredRow(h.heroClass);
+            if (fileira == FormationRow.Front) return 0;
+            if (fileira == null) return 1;
+            return 2;
+        }
+
+        return herois.Where(h => h != null && h.IsAlive)
+                     .OrderBy(Peso)
+                     .ThenByDescending(h => h.level)
+                     .ThenByDescending(h => h.maxHp)
+                     .ToList();
+    }
 
     /// <summary>
     /// Rações que um grupo desse tamanho come por dia.
@@ -94,7 +141,7 @@ public static class PartyFormation
     public static FormationRow GetRow(HeroData hero, IList<HeroData> party)
     {
         int position = GetPosition(hero, party);
-        return position >= 0 && position < FrontSlots ? FormationRow.Front : FormationRow.Back;
+        return IsFront(position, party) ? FormationRow.Front : FormationRow.Back;
     }
 
     /// <summary>
@@ -170,7 +217,7 @@ public static class PartyFormation
 
         for (int i = 0; i < pool.Count; i++)
         {
-            weights[i] = alive.IndexOf(pool[i]) < FrontSlots ? FrontTargetWeight : BackTargetWeight;
+            weights[i] = IsFront(alive.IndexOf(pool[i]), party) ? FrontTargetWeight : BackTargetWeight;
             total += weights[i];
         }
 

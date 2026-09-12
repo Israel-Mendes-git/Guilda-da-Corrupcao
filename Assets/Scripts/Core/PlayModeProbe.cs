@@ -284,6 +284,10 @@ public class PlayModeProbe : MonoBehaviour
         if (QuestManager.Instance != null)
             Line($"missões no quadro: {QuestManager.Instance.GetQuests().Count}");
 
+        Section("A FUNDACAO");
+        yield return TestarFundacao();
+        RepovoarElencoClassico();
+
         Section("FORMACAO DO GRUPO");
         TestFormation();
 
@@ -328,9 +332,6 @@ public class PlayModeProbe : MonoBehaviour
         Section("O QUE CADA TELA OFERECE");
         yield return AuditarTelas();
 
-        Section("O PRIMEIRO CONTATO");
-        yield return MedirPrimeiroContato();
-
         Section("CUSTO DE CADA ACAO, EM CLIQUES");
         yield return CustoDasAcoes();
 
@@ -339,6 +340,12 @@ public class PlayModeProbe : MonoBehaviour
 
         Section("SAVE E MENUS");
         yield return TestSaveAndMenus();
+
+        // Depois dos menus de propósito: a última coisa que eles fazem é fundar
+        // uma guilda nova, e é nela — vazia, em fundação — que se mede o que o
+        // jogo pede de quem acabou de chegar.
+        Section("O PRIMEIRO CONTATO");
+        yield return MedirPrimeiroContato();
 
         Section("ERROS CAPTURADOS");
         if (ignoredErrors.Count > 0)
@@ -1065,8 +1072,13 @@ public class PlayModeProbe : MonoBehaviour
            + $" (esperado {esperado}) | reputação {guilda.reputation}"
            + $" | ciclo {(RunManager.Existe ? RunManager.Instance.Cycle : -1)}");
 
-        if (guilda.roster.Count != 4)
-            Line($"FALHA: guilda nova deveria ter 4 heróis e tem {guilda.roster.Count}.");
+        // Desde 12/09 a guilda nasce vazia e em fundação: os dois fundadores são
+        // escolhidos pelo jogador na Taverna.
+        if (guilda.roster.Count != 0)
+            Line($"FALHA: guilda nova deveria nascer sem heróis e tem {guilda.roster.Count}.");
+
+        if (!guilda.EmFundacao)
+            Line("FALHA: guilda nova deveria estar em fundação.");
 
         if (guilda.gold != esperado)
             Line("FALHA: a guilda nova herdou o ouro da partida anterior.");
@@ -1224,57 +1236,265 @@ public class PlayModeProbe : MonoBehaviour
 
     #endregion
 
+    /// <summary>
+    /// A porta abre direto.
+    ///
+    /// Até 12/09 a primeira visita a cada sala passava por um painel de "deseja
+    /// entrar?", e este teste vigiava a ordem de irmãos desse painel, que sumia
+    /// atrás do mapa na segunda abertura. O painel saiu do caminho (ver
+    /// <see cref="MapManager"/>); o que fica para vigiar é que o clique na porta
+    /// entra na sala, e que nada aparece no meio.
+    /// </summary>
     IEnumerator TestLocationInfo(UIManager ui)
     {
         var mm = Resources.FindObjectsOfTypeAll<MapManager>()
                           .FirstOrDefault(m => m != null && m.gameObject.scene.rootCount > 0);
 
-        if (mm == null || mm.locationInfoPanel == null || mm.enterButton == null)
+        if (mm == null)
         {
-            Line("pulada: MapManager sem painel de informação ou sem botão de entrar");
+            Line("pulada: MapManager ausente");
             yield break;
         }
 
         ui.ShowGuildScreen();
         yield return new WaitForSeconds(0.35f);
 
-        Transform painel = mm.locationInfoPanel.transform;
-        int irmaos = painel.parent != null ? painel.parent.childCount - 1 : 0;
-
-        // ── Primeira abertura ──
         if (mm.tavernButton != null) mm.tavernButton.onClick.Invoke();
         yield return null;
 
-        Line($"1ª abertura: visível={mm.locationInfoPanel.activeInHierarchy}"
-           + $" | ordem entre irmãos: {painel.GetSiblingIndex()} de {irmaos}");
-        ReportarAlcancavel(mm.enterButton);
+        bool painelNoMeio = mm.locationInfoPanel != null && mm.locationInfoPanel.activeInHierarchy;
+        bool salaAberta = ui.tavernPanel != null && ui.tavernPanel.activeInHierarchy;
+        Line($"clique na porta da Taverna: sala aberta={salaAberta} | painel de 'deseja entrar?' no meio={painelNoMeio}");
 
-        // ── Entra na sala e volta para o mapa ──
-        mm.enterButton.onClick.Invoke();
-        yield return new WaitForSeconds(0.45f);
+        if (painelNoMeio) Line("FALHA: a porta ainda abre a caixa de texto antes da sala.");
+        if (!salaAberta) Line("FALHA: o clique na porta não abriu a sala.");
 
         ui.ShowGuildScreen();
         yield return new WaitForSeconds(0.45f);
 
-        // ── Segunda abertura: é aqui que o painel sumia ──
         if (mm.libraryButton != null) mm.libraryButton.onClick.Invoke();
         yield return null;
 
-        int ordemDepois = painel.GetSiblingIndex();
-        bool porCima = painel.parent == null || ordemDepois == irmaos;
+        bool bibliotecaAberta = ui.libraryPanel != null && ui.libraryPanel.activeInHierarchy;
+        Line($"clique na porta da Biblioteca, depois de visitar uma sala: sala aberta={bibliotecaAberta}");
+        if (!bibliotecaAberta) Line("FALHA: a segunda porta não abriu a sala.");
 
-        Line($"2ª abertura (após visitar uma sala): visível={mm.locationInfoPanel.activeInHierarchy}"
-           + $" | ordem entre irmãos: {ordemDepois} de {irmaos}"
-           + (porCima ? " — na frente" : " — ATRÁS de alguém"));
-
-        ReportarAlcancavel(mm.enterButton);
-
-        if (!porCima)
-            Line("FALHA: o painel de informação da sala ficou atrás e não recebe cliques");
-
-        mm.CloseLocationInfo();
+        ui.ShowGuildScreen();
         yield return new WaitForSeconds(0.2f);
     }
+
+    #region A fundação
+
+    /// <summary>
+    /// A guilda nasce vazia e o jogador escolhe dois fundadores — o começo
+    /// decidido pelo autor em 12/09. O teste faz o que o jogador faz: olha a
+    /// guilda escura, entra na Taverna, aceita dois pelo botão de verdade, volta
+    /// e aponta a Mata no mapa. E deixa registrado o que cada porta dizia em cada
+    /// momento.
+    /// </summary>
+    IEnumerator TestarFundacao()
+    {
+        var guilda = GuildManager.Instance;
+        var ui = UIManager.Instance;
+        if (guilda == null || ui == null)
+        {
+            Line("pulada: GuildManager ou UIManager ausentes");
+            yield break;
+        }
+
+        int esperado = MetaProgression.OuroBasePorRun + MetaProgression.StartingGoldBonus();
+        Line($"a guilda nasce com {guilda.roster.Count} herói(s) e {guilda.gold} de ouro (esperado 0 e {esperado})"
+           + $" | em fundação: {guilda.EmFundacao}");
+
+        if (guilda.roster.Count != 0) Line("FALHA: a guilda nova deveria nascer sem heróis.");
+        if (!guilda.EmFundacao) Line("FALHA: a guilda nova deveria estar em fundação.");
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.4f);
+        RelatarLuzDasPortas("no ciclo 0, antes dos fundadores");
+        yield return Capture("fundacao_guilda");
+
+        // Toda sala abre com a guilda vazia, sem erro no console: porta escura
+        // não é porta trancada.
+        int errosAntes = errors.Count;
+        var salas = new (string nome, System.Action abrir, System.Action fechar)[]
+        {
+            ("Taverna",       () => ui.ShowTavern(),      () => ui.CloseTavern()),
+            ("Biblioteca",    () => ui.ShowLibrary(),     () => ui.CloseLibrary()),
+            ("Forja",         () => ui.ShowForge(),       () => ui.CloseForge()),
+            ("Mercado",       () => ui.ShowMarket(),      () => ui.CloseMarket()),
+            ("Cemitério",     () => ui.ShowCemetery(),    () => ui.CloseCemetery()),
+            ("Sala de Mapas", () => ui.ShowMapRoom(),     () => ui.CloseMapRoom()),
+            ("Baralhos",      () => ui.ShowDeckManager(), () => ui.CloseDeckManager()),
+            ("Preparação",    () => { ui.ShowQuestSelection(); QuestSelectionUI.Instance?.RefreshAllData(); },
+                              () => ui.CloseQuestSelection())
+        };
+
+        foreach (var sala in salas)
+        {
+            int antes = errors.Count;
+            sala.abrir();
+            yield return new WaitForSeconds(0.2f);
+            sala.fechar();
+            yield return new WaitForSeconds(0.1f);
+
+            if (errors.Count > antes)
+                Line($"  {sala.nome}: {errors.Count - antes} erro(s) ao abrir com a guilda vazia");
+        }
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.2f);
+        Line($"as sete salas, os Baralhos e a preparação abertos com a guilda vazia: {errors.Count - errosAntes} erro(s)");
+
+        // ── A Taverna em fundação ──
+        ui.ShowTavern();
+        yield return new WaitForSeconds(0.35f);
+
+        var tav = TavernManager.Instance;
+        if (tav == null)
+        {
+            Line("FALHA: TavernManager ausente");
+            yield break;
+        }
+
+        int classes = tav.Candidatos.Select(c => c.heroClass).Distinct().Count();
+        var rotuloDoBotao = tav.hireButton != null ? tav.hireButton.GetComponentInChildren<TMP_Text>(true) : null;
+        bool renovarVisivel = tav.refreshButton != null && tav.refreshButton.gameObject.activeSelf;
+
+        Line($"candidatos a fundador: {tav.Candidatos.Count} ({classes} classes, todos Nv.{TavernManager.NivelDosFundadores})"
+           + $" | renovar visível: {renovarVisivel}"
+           + $" | botão: '{(rotuloDoBotao != null ? StripTags(rotuloDoBotao.text) : "")}'");
+
+        if (tav.Candidatos.Count != HeroFactory.ClassesJogaveis.Length)
+            Line($"FALHA: a fundação deveria oferecer {HeroFactory.ClassesJogaveis.Length} candidatos, um por classe.");
+        if (renovarVisivel)
+            Line("FALHA: o botão de renovar não deveria aparecer durante a fundação.");
+
+        if (tav.hireButton != null) ReportarAlcancavel(tav.hireButton);
+        yield return Capture("fundacao_taverna");
+
+        int ouroAntes = guilda.gold;
+        for (int i = 0; i < GuildManager.FundadoresDaGuilda; i++)
+        {
+            if (tav.hireButton == null || !tav.hireButton.interactable)
+            {
+                Line("FALHA: o botão de fundar não está disponível.");
+                break;
+            }
+
+            tav.hireButton.onClick.Invoke();
+            yield return new WaitForSeconds(0.3f);
+        }
+
+        Line($"fundadores aceitos: {string.Join(", ", guilda.roster.Select(h => $"{h.heroName} ({h.heroClass} Nv.{h.level})"))}"
+           + $" | ouro {ouroAntes} → {guilda.gold} | em fundação: {guilda.EmFundacao}");
+
+        if (guilda.roster.Count != GuildManager.FundadoresDaGuilda)
+            Line($"FALHA: a guilda deveria ter {GuildManager.FundadoresDaGuilda} fundadores e tem {guilda.roster.Count}.");
+        if (guilda.gold != ouroAntes)
+            Line("FALHA: fundador não deveria custar ouro.");
+        if (guilda.EmFundacao)
+            Line("FALHA: a fundação deveria terminar com os dois fundadores.");
+
+        ui.CloseTavern();
+        yield return new WaitForSeconds(0.4f);
+        RelatarLuzDasPortas("com os dois fundadores");
+        yield return Capture("fundacao_pronta");
+
+        // ── O mapa é a preparação: apontar a Mata e ver Partir aceso ──
+        ui.ShowQuestSelection();
+        var qs = QuestSelectionUI.Instance;
+        if (qs != null)
+        {
+            qs.gameObject.SetActive(true);
+            qs.RefreshAllData();
+        }
+        yield return new WaitForSeconds(0.4f);
+
+        Transform passo1 = qs != null && qs.step1Panel != null ? qs.step1Panel.transform : null;
+        Button area = passo1 != null ? FirstEnabledButton(passo1, $"Area_{AreaType.Mata}") : null;
+        Button partir = passo1 != null ? passo1.Find("Btn_Partir")?.GetComponent<Button>() : null;
+
+        Line($"antes de apontar: Partir interativo={partir != null && partir.interactable}");
+
+        if (area != null)
+        {
+            area.onClick.Invoke();
+            yield return new WaitForSeconds(0.3f);
+        }
+        else Line("FALHA: a Mata não está clicável no mapa.");
+
+        var rotuloAjustar = qs != null && qs.nextButton1 != null ? qs.nextButton1.GetComponentInChildren<TMP_Text>(true) : null;
+        Line($"Mata apontada: Partir interativo={partir != null && partir.interactable}"
+           + $" | o outro botão diz '{(rotuloAjustar != null ? StripTags(rotuloAjustar.text) : "")}'");
+
+        if (partir == null || !partir.interactable)
+            Line("FALHA: Partir deveria estar disponível com a Mata apontada e dois fundadores.");
+        if (partir != null) ReportarAlcancavel(partir);
+
+        if (qs != null && qs.questDetailsText != null)
+        {
+            string ficha = StripTags(qs.questDetailsText.text).Replace("\n", " / ");
+            Line("ficha: " + (ficha.Length > 360 ? ficha.Substring(0, 360) + "…" : ficha));
+        }
+
+        yield return Capture("fundacao_mapa");
+
+        ui.CloseQuestSelection();
+        yield return new WaitForSeconds(0.2f);
+    }
+
+    /// <summary>O que cada porta da guilda diz agora: pulsando, acesa ou escura.</summary>
+    void RelatarLuzDasPortas(string quando)
+    {
+        var guia = Resources.FindObjectsOfTypeAll<GuildGuide>()
+                            .FirstOrDefault(g => g != null && g.gameObject.scene.rootCount > 0);
+        if (guia == null)
+        {
+            Line($"portas {quando}: GuildGuide ausente");
+            return;
+        }
+
+        guia.Atualizar();
+        var luzes = guia.LuzDasPortas().ToList();
+
+        Line($"portas {quando}: {luzes.Count(l => l.luz != GuildGuide.Luz.Escura)} com motivo, de {luzes.Count}");
+        foreach (var (nome, luz) in luzes)
+            Line($"  {nome,-16} {RotuloDaLuz(luz)}");
+    }
+
+    static string RotuloDaLuz(GuildGuide.Luz luz)
+    {
+        return luz == GuildGuide.Luz.Pulsando ? "pulsando"
+             : luz == GuildGuide.Luz.Acesa ? "acesa"
+             : "escura";
+    }
+
+    /// <summary>
+    /// O elenco de sempre — Gromm, Lyra, Finn e Sera — no lugar dos fundadores,
+    /// para o resto do relatório medir a guilda que ele sempre mediu. O jogo não
+    /// nasce mais com eles; o teste os põe direto no roster, sem passar pela
+    /// Taverna, porque contratar não é o que as seções seguintes medem.
+    /// </summary>
+    void RepovoarElencoClassico()
+    {
+        var guilda = GuildManager.Instance;
+        if (guilda == null) return;
+
+        foreach (var h in guilda.roster.ToList())
+            DeckRepository.Remove(h);
+        guilda.roster.Clear();
+
+        guilda.roster.Add(HeroFactory.CreateHero("Gromm", HeroClass.Warrior, 3));
+        guilda.roster.Add(HeroFactory.CreateHero("Lyra", HeroClass.Mage, 2));
+        guilda.roster.Add(HeroFactory.CreateHero("Finn", HeroClass.Healer, 2));
+        guilda.roster.Add(HeroFactory.CreateHero("Sera", HeroClass.Hunter, 1));
+        guilda.NotificarTudoMudou();
+
+        Line("elenco de teste reposto: Gromm, Lyra, Finn e Sera — daqui em diante o relatório mede a guilda de sempre");
+    }
+
+    #endregion
 
     IEnumerator TestMapRoom(UIManager ui)
     {
@@ -2718,79 +2938,116 @@ public class PlayModeProbe : MonoBehaviour
     IEnumerator MedirPrimeiroContato()
     {
         var ui = UIManager.Instance;
-        if (ui == null)
+        var guilda = GuildManager.Instance;
+        if (ui == null || guilda == null)
         {
-            Line("pulada: UIManager ausente");
+            Line("pulada: UIManager ou GuildManager ausentes");
             yield break;
         }
 
-        // O caminho mínimo: o que o jogador atravessa para a primeira jornada
-        // acontecer. Não é o caminho que ele deveria fazer — é o mais curto que
-        // existe, e por isso é o piso do que o jogo exige entender.
-        var caminho = new (string nome, GameObject painel, System.Action abrir)[]
-        {
-            ("Guilda",      ui.guildPanel,          () => ui.ShowGuildScreen()),
-            ("Preparação",  ui.questSelectionPanel, () => ui.ShowQuestSelection())
-        };
+        if (!guilda.EmFundacao)
+            Line("  aviso: a guilda não está em fundação — o caminho medido não é o de quem acabou de chegar");
 
+        // O caminho mínimo, desde 12/09: a guilda vazia, a Taverna para escolher
+        // os dois fundadores, a guilda fundada e o mapa com Partir. Não é o
+        // caminho que o jogador deveria fazer — é o mais curto que existe, e por
+        // isso é o piso do que o jogo exige entender.
         var vistosNoCaminho = new HashSet<string>();
 
-        foreach (var tela in caminho)
+        // O rodapé mora fora do painel da guilda e faz parte da tela: é nele
+        // que o relógio da Corrupção passou a ficar.
+        GameObject rodape = ui.guildPanel != null && ui.guildPanel.transform.parent != null
+            ? ui.guildPanel.transform.parent.Find("Panel_DownBar")?.gameObject
+            : null;
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.25f);
+        ContarTela("Guilda", vistosNoCaminho, "inédito(s)", ui.guildPanel, rodape);
+
+        ui.ShowTavern();
+        yield return new WaitForSeconds(0.3f);
+        ContarTela("Taverna", vistosNoCaminho, "inédito(s)", ui.tavernPanel);
+
+        var tav = TavernManager.Instance;
+        for (int i = 0; i < GuildManager.FundadoresDaGuilda && guilda.EmFundacao; i++)
         {
-            if (tela.painel == null) continue;
-
-            tela.abrir();
+            if (tav == null || tav.hireButton == null || !tav.hireButton.interactable) break;
+            tav.hireButton.onClick.Invoke();
             yield return new WaitForSeconds(0.25f);
-
-            var achados = ConceitosNaTela(tela.painel);
-            var novos = achados.Where(c => !vistosNoCaminho.Contains(c)).ToList();
-            foreach (var c in novos) vistosNoCaminho.Add(c);
-
-            Line($"  {tela.nome,-14} {achados.Count,2} conceito(s), {novos.Count,2} inédito(s)"
-               + (novos.Count > 0 ? $"  ·  {string.Join(", ", novos)}" : ""));
         }
 
-        Line("");
-        Line($"  o caminho mínimo até a primeira jornada exige {vistosNoCaminho.Count} conceito(s)");
+        ui.CloseTavern();
+        yield return new WaitForSeconds(0.3f);
+        ContarTela("Guilda fundada", vistosNoCaminho, "inédito(s)", ui.guildPanel, rodape);
 
-        // E o resto da guilda, que está aberto desde o primeiro minuto e não é
-        // preciso atravessar para jogar.
-        var salas = new (string nome, GameObject painel, System.Action abrir)[]
+        ui.ShowQuestSelection();
+        var qs = QuestSelectionUI.Instance;
+        if (qs != null)
         {
-            ("Taverna",       ui.tavernPanel,    () => ui.ShowTavern()),
-            ("Biblioteca",    ui.libraryPanel,   () => ui.ShowLibrary()),
-            ("Forja",         ui.forgePanel,     () => ui.ShowForge()),
-            ("Mercado",       ui.marketPanel,    () => ui.ShowMarket()),
-            ("Cemitério",     ui.cemeteryPanel,  () => ui.ShowCemetery()),
-            ("Sala de Mapas", ui.mapRoomPanel,   () => ui.ShowMapRoom()),
-            ("Baralhos",      ui.deckManagerPanel, () => ui.ShowDeckManager())
+            qs.gameObject.SetActive(true);
+            qs.RefreshAllData();
+        }
+        yield return new WaitForSeconds(0.3f);
+
+        Button area = qs != null && qs.step1Panel != null
+            ? FirstEnabledButton(qs.step1Panel.transform, $"Area_{AreaType.Mata}")
+            : null;
+        if (area != null)
+        {
+            area.onClick.Invoke();
+            yield return new WaitForSeconds(0.25f);
+        }
+        ContarTela("Preparação", vistosNoCaminho, "inédito(s)", ui.questSelectionPanel);
+
+        ui.CloseQuestSelection();
+        yield return new WaitForSeconds(0.2f);
+
+        Line("");
+        Line($"  o caminho mínimo até a primeira jornada exige {vistosNoCaminho.Count} conceito(s)"
+           + (vistosNoCaminho.Count > 0 ? $"  ·  {string.Join(", ", vistosNoCaminho)}" : ""));
+
+        // E o resto da guilda, que não é preciso atravessar para jogar.
+        var salas = new (string nome, GameObject painel, System.Action abrir, System.Action fechar)[]
+        {
+            ("Biblioteca",    ui.libraryPanel,     () => ui.ShowLibrary(),     () => ui.CloseLibrary()),
+            ("Forja",         ui.forgePanel,       () => ui.ShowForge(),       () => ui.CloseForge()),
+            ("Mercado",       ui.marketPanel,      () => ui.ShowMarket(),      () => ui.CloseMarket()),
+            ("Cemitério",     ui.cemeteryPanel,    () => ui.ShowCemetery(),    () => ui.CloseCemetery()),
+            ("Sala de Mapas", ui.mapRoomPanel,     () => ui.ShowMapRoom(),     () => ui.CloseMapRoom()),
+            ("Baralhos",      ui.deckManagerPanel, () => ui.ShowDeckManager(), () => ui.CloseDeckManager())
         };
 
         var vistosNoTodo = new HashSet<string>(vistosNoCaminho);
-        int portasAbertas = 0;
 
         Line("");
         foreach (var sala in salas)
         {
             if (sala.painel == null) continue;
 
-            portasAbertas++;
             sala.abrir();
             yield return new WaitForSeconds(0.25f);
-
-            var achados = ConceitosNaTela(sala.painel);
-            var novos = achados.Where(c => !vistosNoTodo.Contains(c)).ToList();
-            foreach (var c in novos) vistosNoTodo.Add(c);
-
-            Line($"  {sala.nome,-14} {achados.Count,2} conceito(s), {novos.Count,2} além do caminho"
-               + (novos.Count > 0 ? $"  ·  {string.Join(", ", novos)}" : ""));
+            ContarTela(sala.nome, vistosNoTodo, "além do caminho", sala.painel);
+            sala.fechar();
+            yield return new WaitForSeconds(0.1f);
         }
 
         ui.ShowGuildScreen();
         yield return new WaitForSeconds(0.25f);
 
-        Line("");
-        Line($"  a guilda abre {portasAbertas} sala(s) de uma vez, na primeira volta");
+        // As portas que a guilda fundada acende — o que substitui "abre sete
+        // salas de uma vez": as sete continuam abrindo, mas só as que têm
+        // motivo estão acesas.
+        var guia = Resources.FindObjectsOfTypeAll<GuildGuide>()
+                            .FirstOrDefault(g => g != null && g.gameObject.scene.rootCount > 0);
+        if (guia != null)
+        {
+            guia.Atualizar();
+            var luzes = guia.LuzDasPortas().ToList();
+            Line("");
+            Line($"  a guilda fundada acende {luzes.Count(l => l.luz != GuildGuide.Luz.Escura)} porta(s) de {luzes.Count}: "
+               + string.Join(", ", luzes.Select(l => $"{l.nome} {RotuloDaLuz(l.luz)}")));
+        }
+
         Line($"  o jogo inteiro nomeia {vistosNoTodo.Count} conceito(s) — "
            + $"{vistosNoTodo.Count - vistosNoCaminho.Count} deles fora do caminho de jogar");
         Line("");
@@ -2798,17 +3055,33 @@ public class PlayModeProbe : MonoBehaviour
         Line("   ouro e dano ficam de fora, porque quem abre um roguelike já sabe o que são)");
     }
 
-    /// <summary>Quais termos do vocabulário aparecem escritos numa tela.</summary>
-    static List<string> ConceitosNaTela(GameObject painel)
+    /// <summary>Conta os conceitos de uma tela e registra os que ainda não tinham aparecido.</summary>
+    void ContarTela(string nome, HashSet<string> vistos, string rotuloDosNovos, params GameObject[] paineis)
+    {
+        var achados = ConceitosNaTela(paineis);
+        var novos = achados.Where(c => !vistos.Contains(c)).ToList();
+        foreach (var c in novos) vistos.Add(c);
+
+        Line($"  {nome,-15} {achados.Count,2} conceito(s), {novos.Count,2} {rotuloDosNovos}"
+           + (novos.Count > 0 ? $"  ·  {string.Join(", ", novos)}" : ""));
+    }
+
+    /// <summary>Quais termos do vocabulário aparecem escritos numa tela (ou em várias partes dela).</summary>
+    static List<string> ConceitosNaTela(params GameObject[] paineis)
     {
         var achados = new List<string>();
-        if (painel == null) return achados;
+        if (paineis == null) return achados;
 
         var texto = new System.Text.StringBuilder();
-        foreach (TMP_Text t in painel.GetComponentsInChildren<TMP_Text>(true))
+        foreach (GameObject painel in paineis)
         {
-            if (!t.gameObject.activeInHierarchy || string.IsNullOrWhiteSpace(t.text)) continue;
-            texto.Append(StripTags(t.text).ToLowerInvariant()).Append(' ');
+            if (painel == null) continue;
+
+            foreach (TMP_Text t in painel.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (!t.gameObject.activeInHierarchy || string.IsNullOrWhiteSpace(t.text)) continue;
+                texto.Append(StripTags(t.text).ToLowerInvariant()).Append(' ');
+            }
         }
 
         string tudo = texto.ToString();
@@ -2843,6 +3116,40 @@ public class PlayModeProbe : MonoBehaviour
         GuildManager.Instance.AddGold(5000);
 
         int cliques;
+
+        // ── Partir, pelo mapa ──
+        // Contado sem apertar Partir: apertar começaria uma jornada de verdade no
+        // meio do relatório. O terceiro clique é o botão aceso.
+        cliques = 0;
+        ui.ShowQuestSelection(); cliques++;
+        var qs = QuestSelectionUI.Instance;
+        if (qs != null)
+        {
+            qs.gameObject.SetActive(true);
+            qs.RefreshAllData();
+        }
+        yield return new WaitForSeconds(0.3f);
+
+        Button areaDaMata = qs != null && qs.step1Panel != null
+            ? FirstEnabledButton(qs.step1Panel.transform, $"Area_{AreaType.Mata}")
+            : null;
+        Button botaoDePartir = qs != null && qs.step1Panel != null
+            ? qs.step1Panel.transform.Find("Btn_Partir")?.GetComponent<Button>()
+            : null;
+
+        if (areaDaMata != null)
+        {
+            areaDaMata.onClick.Invoke(); cliques++;
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        if (botaoDePartir != null && botaoDePartir.interactable)
+            Relatar("partir para a Mata, apontando no mapa", cliques + 1);
+        else
+            Line("  partir pelo mapa: Partir indisponível no momento do teste");
+
+        ui.CloseQuestSelection();
+        yield return new WaitForSeconds(0.2f);
 
         // ── Forjar a arma de um herói ──
         cliques = 0;

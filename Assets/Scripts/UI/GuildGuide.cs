@@ -1,31 +1,38 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Acende a sala que resolve o que o jogador tem pela frente.
+/// Acende as portas da guilda pelo que cada uma tem a oferecer agora.
 ///
-/// <b>Desde 12/09 ele não escreve mais nada.</b> A frase no alto da guilda era
-/// uma caixa de texto explicando o jogo, e o autor descartou as duas coisas como
-/// forma de guiar. A decisão de <i>qual</i> sala importa agora continua igual —
-/// é ela que acende a moldura —, e quem explica o que fazer lá dentro é a
-/// própria sala, que já tem a sua linha de dica.
+/// <b>Desde 12/09 a luz tem três níveis.</b> Até então a guilda era sete portas
+/// do mesmo peso com uma moldura pulsando numa delas — e a moldura, sozinha,
+/// não bastou: o autor voltou dizendo que a sensação de estar perdido
+/// continuava a mesma. O que mudou é que a porta passou a dizer se há motivo
+/// para entrar:
 ///
-/// A guilda é sete portas escuras lado a lado, todas com o mesmo peso visual:
-/// nada distingue a sala que faz o jogo andar da sala que o jogador só visita
-/// quando alguém morre. Quem abre o jogo pela primeira vez não tem como saber
-/// que "Jornada" é o loop e o resto é apoio — e quem volta de uma jornada com o
-/// grupo esgotado não tem como saber que o remédio está no Mercado.
+/// - <b>pulsando</b>: a porta mais urgente, escolhida por <see cref="Decidir"/>;
+/// - <b>acesa</b>: há o que fazer lá dentro — ouro para a Forja, alguém ferido
+///   para o Mercado, um morto para o Cemitério;
+/// - <b>escura</b>: nada ainda. Continua clicável, e lá dentro a sala mostra
+///   que não há o que fazer — tranca seria mentir sobre o que existe.
 ///
-/// A regra é uma só: **a primeira condição que casa manda**, da mais bloqueante
-/// para a mais rotineira. Um guia que listasse tudo o que é possível fazer não
-/// seria guia nenhum — seria o mesmo menu de sete portas, agora por escrito.
+/// Não é tutorial nem caixa de texto, que o autor descartou. É a guilda dizendo
+/// o que tem sem falar, e é o que faz a guilda recém-fundada abrir com duas
+/// portas acesas em vez de sete.
 ///
-/// O texto de cada caso continua escrito no <see cref="Decidir"/>: ele é o que
-/// explica a regra de cada condição para quem lê o código, e é lido pelo
-/// relatório de Play Mode, que audita se o guia aponta para a sala certa.
+/// A regra da moldura é uma só: <b>a primeira condição que casa manda</b>, da
+/// mais bloqueante para a mais rotineira. O texto de cada caso continua escrito
+/// no <see cref="Decidir"/>: explica a regra para quem lê o código, e é lido
+/// pelo relatório de Play Mode, que audita se o guia aponta para a sala certa.
+///
+/// A frase não vai para a tela desde 12/09; o <c>Txt_Guia</c> fica na cena,
+/// vazio e desligado, porque é a referência que este componente guarda e apagar
+/// objeto de cena por ferramenta é irreversível.
 /// </summary>
 public class GuildGuide : MonoBehaviour
 {
@@ -36,6 +43,9 @@ public class GuildGuide : MonoBehaviour
         public string nome;
         public GameObject realce;
     }
+
+    /// <summary>A luz de uma porta: o que a guilda diz sem falar.</summary>
+    public enum Luz { Escura, Acesa, Pulsando }
 
     public TMP_Text linha;
     public List<Sala> salas = new List<Sala>();
@@ -68,7 +78,35 @@ public class GuildGuide : MonoBehaviour
     /// </summary>
     const int OuroParado = 1200;
 
+    /// <summary>
+    /// Brilho do cenário e do rótulo de cada nível de luz. A porta que pulsa
+    /// fica inteira; a acesa recua um pouco, para a moldura ter onde aparecer;
+    /// a escura fica em trinta por cento — lê-se o nome, e lê-se que está
+    /// apagada.
+    /// </summary>
+    const float BrilhoAceso = 0.82f;
+    const float BrilhoEscuro = 0.30f;
+
+    // Os preços que decidem se uma sala tem motivo. Espelham os managers das
+    // salas pelo mesmo motivo do custo da arma: o guia é recalculado a cada
+    // mudança de ouro e não deve acordar sala nenhuma para perguntar um preço.
+    const int PrecoDaBandagem = 90;
+    const int PrecoDoVinho = 55;
+    const int PrecoDeUmFrasco = 70;
+    const int PrecoDeUmaCartaComum = 100;
+    const int CustoMinimoDaForja = 100;
+    const int NivelMaximoDaForja = 3;
+    const float EstresseQueOVinhoAlivia = 30f;
+
     bool inscrito;
+
+    /// <summary>
+    /// A cor de fábrica de cada gráfico das portas. O brilho multiplica a cor
+    /// original em vez de escrever por cima: a cena de cada porta já nasce com
+    /// um véu escuro (GuildArt), e escurecer um véu já escurecido apagaria a
+    /// porta de vez.
+    /// </summary>
+    readonly Dictionary<Graphic, Color> corOriginal = new Dictionary<Graphic, Color>();
 
     void OnEnable()
     {
@@ -81,6 +119,11 @@ public class GuildGuide : MonoBehaviour
         // Os managers nascem com a cena e podem não existir ainda no OnEnable —
         // a guilda é a primeira tela e sobe junto com eles.
         Inscrever();
+
+        // O relógio da partida, no rodapé. É criado daqui porque este componente
+        // já mora na guilda e acorda junto com ela.
+        RelogioDaGuilda.Garantir(transform.parent);
+
         Atualizar();
     }
 
@@ -115,48 +158,151 @@ public class GuildGuide : MonoBehaviour
         inscrito = false;
     }
 
-    /// <summary>Recalcula o conselho e acende a porta correspondente.</summary>
+    /// <summary>Recalcula o conselho e a luz de cada porta.</summary>
     public void Atualizar()
     {
         string sala, texto;
         Decidir(out sala, out texto);
 
-        // A frase não vai mais para a tela: o objeto fica na cena, vazio e
-        // desligado, porque é a referência que o guia guarda e apagar objeto de
-        // cena por ferramenta é irreversível. O texto continua servindo ao
-        // relatório de Play Mode, que confere se o guia aponta para a sala certa.
         if (linha != null && linha.gameObject.activeSelf) linha.text = "";
 
         foreach (var s in salas)
         {
             if (s == null || s.realce == null) continue;
 
-            bool eEsta = s.nome == sala;
-            s.realce.SetActive(eEsta);
-            Recuar(s.realce.transform.parent, eEsta);
+            Luz luz = s.nome == sala ? Luz.Pulsando
+                    : TemMotivo(s.nome) ? Luz.Acesa
+                    : Luz.Escura;
+
+            s.realce.SetActive(luz == Luz.Pulsando);
+            Iluminar(s.realce.transform.parent, luz);
+        }
+    }
+
+    /// <summary>A luz de uma porta, pelo nome do objeto — para o relatório de Play Mode.</summary>
+    public Luz NivelDe(string nome)
+    {
+        Decidir(out string sala, out _);
+        if (nome == sala) return Luz.Pulsando;
+        return TemMotivo(nome) ? Luz.Acesa : Luz.Escura;
+    }
+
+    /// <summary>Todas as portas e a luz de cada uma, na ordem da cena.</summary>
+    public IEnumerable<(string nome, Luz luz)> LuzDasPortas()
+    {
+        foreach (var s in salas)
+            if (s != null && !string.IsNullOrEmpty(s.nome))
+                yield return (s.nome, NivelDe(s.nome));
+    }
+
+    /// <summary>
+    /// Pinta a porta no nível de luz dado.
+    ///
+    /// Mexe no cenário e no rótulo, e <b>não</b> no fundo da porta: o fundo é o
+    /// alvo do Button, e o Button repinta o alvo dele a cada entrada e saída do
+    /// ponteiro — era por isso que o recuo de 72% da versão anterior mal
+    /// aparecia. A moldura fica de fora porque tem a cor dela.
+    /// </summary>
+    void Iluminar(Transform sala, Luz luz)
+    {
+        if (sala == null) return;
+
+        float brilho = luz == Luz.Escura ? BrilhoEscuro
+                     : luz == Luz.Acesa ? BrilhoAceso
+                     : 1f;
+
+        foreach (Graphic g in sala.GetComponentsInChildren<Graphic>(true))
+        {
+            if (g == null || g.transform == sala) continue;
+            if (g.GetComponentInParent<RealcePulsante>() != null) continue;
+
+            if (!corOriginal.TryGetValue(g, out Color cor))
+            {
+                cor = g.color;
+                corOriginal[g] = cor;
+            }
+
+            g.color = new Color(cor.r * brilho, cor.g * brilho, cor.b * brilho, cor.a);
         }
     }
 
     /// <summary>
-    /// A porta sugerida fica em brilho cheio; as outras recuam.
+    /// A sala tem o que oferecer agora?
     ///
-    /// <b>A moldura acesa sozinha não bastava.</b> Sete portas do mesmo tamanho
-    /// e do mesmo brilho, e um contorno dourado de dez pixels no meio delas: na
-    /// captura de 12/09 a Forja estava acesa e era preciso saber onde procurar
-    /// para achar. Escurecer as outras é o que o olho lê de longe — e é sutil o
-    /// bastante (72%) para não parecer porta trancada, que seria mentira: todas
-    /// continuam clicáveis.
+    /// É a pergunta que acende a porta. Cada resposta é o motivo pelo qual um
+    /// jogador entraria: não "a sala funciona", e sim "há algo para você lá
+    /// dentro". Uma Forja com ouro para a primeira arma, um Mercado com alguém
+    /// ferido para tratar, um Cemitério com alguém para enterrar.
     /// </summary>
-    static void Recuar(Transform sala, bool emDestaque)
+    public bool TemMotivo(string nome)
     {
-        if (sala == null) return;
+        GuildManager guilda = GuildManager.Instance;
+        if (guilda == null) return true;
 
-        var img = sala.GetComponent<Image>();
-        if (img == null) return;
+        string chave = Chave(nome);
 
-        float tom = emDestaque ? 1f : 0.72f;
-        Color c = img.color;
-        img.color = new Color(tom, tom, tom, c.a);
+        List<HeroData> vivos = guilda.roster.Where(h => h != null && h.IsAlive).ToList();
+        List<HeroData> aptos = vivos.Where(h => h.IsFitForJourney).ToList();
+        int ouro = guilda.gold;
+        int ciclo = RunManager.Existe ? RunManager.Instance.Cycle : 0;
+
+        if (chave.Contains("jornada") || chave.Contains("journey") || chave.Contains("quest"))
+            return aptos.Count > 0;
+
+        if (chave.Contains("tavern"))
+            return guilda.EmFundacao
+                || (guilda.CanRecruit() && aptos.Count < GrupoConfortavel
+                    && ouro >= HeroFactory.SalaryFor(1));
+
+        if (chave.Contains("forj") || chave.Contains("forge"))
+            return ouro >= CustoMinimoDaForja
+                && aptos.Any(h => h.weaponLevel < NivelMaximoDaForja || h.armorLevel < NivelMaximoDaForja);
+
+        if (chave.Contains("mercado") || chave.Contains("market"))
+            return (vivos.Any(h => h.isInjured) && ouro >= PrecoDaBandagem)
+                || (vivos.Any(h => h.stress >= EstresseQueOVinhoAlivia) && ouro >= PrecoDoVinho)
+                || (ciclo >= 1 && vivos.Count > 0 && ouro >= PrecoDeUmFrasco);
+
+        if (chave.Contains("bibliotec") || chave.Contains("librar"))
+            return Escritos.TotalNaEstante > 0
+                || (ouro >= PrecoDeUmaCartaComum && vivos.Any(BaralhoComVaga));
+
+        if (chave.Contains("cemit") || chave.Contains("cemet"))
+            return guilda.fallenHeroes.Count > 0;
+
+        if (chave.Contains("mapa") || chave.Contains("map"))
+            return RegionMap.Selos > 0
+                || SeloNoQuadro(out _)
+                || AreaCatalog.Todas.Any(a => RegionMap.Mapeamento(AreaCatalog.Aspecto(a)) > 0f);
+
+        return true;
+    }
+
+    /// <summary>O baralho do herói ainda aceita carta — é o que faz a Biblioteca ter motivo.</summary>
+    static bool BaralhoComVaga(HeroData heroi)
+    {
+        DeckData baralho = DeckRepository.GetDeck(heroi);
+        int cartas = baralho != null && baralho.cards != null ? baralho.cards.Count : 0;
+        return cartas < DeckGenerator.LimiteDoBaralho(heroi.level);
+    }
+
+    /// <summary>
+    /// O nome do objeto sem acento e sem caixa. As portas da cena vêm de
+    /// versões diferentes do projeto — "Sala de Mapas", "SalaMapas", "MapRoom" —
+    /// e a mesma tolerância que o GuildArt usa para vesti-las serve aqui para
+    /// reconhecê-las.
+    /// </summary>
+    static string Chave(string nome)
+    {
+        if (string.IsNullOrEmpty(nome)) return "";
+
+        string decomposto = nome.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(decomposto.Length);
+        foreach (char c in decomposto)
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+
+        return sb.ToString().ToLowerInvariant();
     }
 
     /// <summary>
@@ -174,8 +320,18 @@ public class GuildGuide : MonoBehaviour
             return;
         }
 
+        // 0. A guilda ainda não tem gente: é a fundação, e ela acontece na
+        //    Taverna. Vem antes de tudo porque nada mais existe antes disto.
+        if (guilda.EmFundacao)
+        {
+            sala = "Taverna";
+            texto = $"A guilda ainda não tem os {GuildManager.FundadoresDaGuilda} fundadores. Escolha-os na Taverna.";
+            return;
+        }
+
         List<HeroData> vivos = guilda.roster.Where(h => h != null && h.IsAlive).ToList();
         List<HeroData> aptos = vivos.Where(h => h.IsFitForJourney).ToList();
+        int ciclo = RunManager.Existe ? RunManager.Instance.Cycle : 0;
 
         // 1. Sem ninguém para viajar, nada mais importa.
         if (aptos.Count == 0)
@@ -213,8 +369,12 @@ public class GuildGuide : MonoBehaviour
             return;
         }
 
-        // 3. Grupo curto. Não bloqueia a jornada, mas o combate espera quatro.
-        if (aptos.Count < GrupoConfortavel)
+        // 3. Grupo curto. Não bloqueia a jornada, mas o combate espera quatro —
+        //    e só vale apontar depois que a guilda saiu uma vez: no ciclo 0,
+        //    com os dois fundadores e o ouro de fábrica, o conselho é a
+        //    estrada, não a compra.
+        if (aptos.Count < GrupoConfortavel && ciclo >= 1
+            && guilda.CanRecruit() && guilda.gold >= HeroFactory.SalaryFor(1))
         {
             int faltam = GrupoConfortavel - aptos.Count;
             sala = "Taverna";
@@ -264,7 +424,7 @@ public class GuildGuide : MonoBehaviour
 
         // 7. O caminho de sempre: o jogo anda pela Jornada.
         sala = "Jornada";
-        texto = $"{aptos.Count} heróis prontos. Escolha uma missão em Jornada e parta.";
+        texto = $"{aptos.Count} heróis prontos. Escolha um destino no mapa e parta.";
     }
 
     static bool ChefeNoQuadro()

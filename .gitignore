@@ -138,3 +138,6 @@ GDD - Guilda da Corrupcao_doc_*.jpg
 
 # Trava que o LibreOffice cria enquanto um documento esta aberto
 .~lock.*#
+
+# Response file da compilação por fora do Editor (regenerado a cada vez; caminhos absolutos)
+build.rsp

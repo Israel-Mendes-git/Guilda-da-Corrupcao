@@ -188,6 +188,11 @@ public class RunManager : MonoBehaviour
             return;
         }
 
+        // A guilda em fundação está vazia de propósito, e os fundadores não
+        // custam nada: sem heróis e sem ouro não é derrota enquanto a Taverna
+        // ainda os oferece.
+        if (guilda.EmFundacao) return;
+
         bool semHerois = guilda.roster == null || guilda.roster.TrueForAll(h => h == null || h.isDead);
         if (semHerois && guilda.gold < MinGoldToRecruit)
             End(RunState.Lost, RunEndReason.GuildWiped);

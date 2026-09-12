@@ -671,11 +671,15 @@ public class JourneyManager : MonoBehaviour
             return;
         }
 
+        // O encontro no tamanho do grupo que saiu da guilda — o que partiu, e
+        // não o que ainda está de pé: perder gente no caminho não alivia o
+        // caminho.
         List<EnemyData> lineup = EnemyPool.GetLineup(
             currentQuest.biomeType,
             currentEvent.isBossEvent,
             currentDay,
-            journeyMap != null ? journeyMap.LayerCount : totalDays
+            journeyMap != null ? journeyMap.LayerCount : totalDays,
+            currentParty != null && currentParty.Count > 0 ? currentParty.Count : PartyFormation.MaxSlots
         );
 
         CombatManager.Instance.StartCombat(currentParty, currentDeck, lineup, OnCombatFinished, currentOwnership);

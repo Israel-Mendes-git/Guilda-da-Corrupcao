@@ -132,58 +132,23 @@ public class MapManager : MonoBehaviour
     }
 
     /// <summary>
-    /// As salas que o jogador já conhece nesta sessão.
+    /// A porta abre direto, sempre.
     ///
-    /// Toda porta da guilda abria um painel explicando a sala e pedindo
-    /// confirmação — sete telas de "deseja entrar?" que o jogador lê uma vez e
-    /// depois atravessa no piloto automático, um clique a mais por visita e por
-    /// sala. A explicação serve à primeira vez; da segunda em diante ela é
-    /// atrito.
-    ///
-    /// A lista é da sessão e não vai para o save: reabrir o jogo mostrar de novo
-    /// o que cada sala faz é aceitável; guardar isso obrigaria a versionar o
-    /// arquivo de save por causa de um texto de ajuda.
+    /// <b>Até 12/09 a primeira visita a cada sala abria um painel</b> explicando
+    /// a sala e perguntando "deseja entrar?" — uma caixa de texto antes de
+    /// deixar o jogador ver o lugar, que é exatamente o que o autor descartou
+    /// como forma de guiar. A sala explica a si mesma, na própria linha de dica;
+    /// e o que ela tem a oferecer agora está na luz da porta (ver
+    /// <see cref="GuildGuide"/>). O painel continua na cena, desligado, porque
+    /// apagar objeto de cena por ferramenta é irreversível; a descrição fica
+    /// aqui só para quem lê o código saber o que cada porta faz.
     /// </summary>
-    static readonly HashSet<string> salasJaConhecidas = new HashSet<string>();
-
     void ShowLocationInfo(string name, string description, string action)
     {
-        if (locationInfoPanel == null)
-        {
-            Debug.LogError("MapManager: locationInfoPanel não está atribuído!");
-            return;
-        }
-
         currentLocationName = name;
         currentLocationAction = action;
 
-        // Segunda visita em diante: entra direto.
-        if (!salasJaConhecidas.Add(action))
-        {
-            OnEnterButtonClick();
-            return;
-        }
-
-        if (locationNameText != null)
-            locationNameText.text = name;
-        else
-            Debug.LogError("MapManager: locationNameText não está atribuído!");
-
-        if (locationDescText != null)
-            locationDescText.text = description;
-        else
-            Debug.LogError("MapManager: locationDescText não está atribuído!");
-
-        locationInfoPanel.SetActive(true);
-
-        // Sem isto, o painel some atrás do mapa depois da primeira visita a uma
-        // sala. Ordem de irmãos é ordem de desenho na UI do Unity, e o painel de
-        // info é irmão do GuildMap dentro de "Background": toda vez que o jogador
-        // volta de uma sala, ShowGuildScreen manda o mapa para o fim da lista e
-        // ele passa a cobrir — e a engolir os cliques — este painel, que nasceu
-        // num índice anterior. Quem abre vai para a frente, a mesma regra que o
-        // UIManager.SetPanelActive já aplica aos painéis que passam por ele.
-        locationInfoPanel.transform.SetAsLastSibling();
+        OnEnterButtonClick();
     }
 
     void OnEnterButtonClick()

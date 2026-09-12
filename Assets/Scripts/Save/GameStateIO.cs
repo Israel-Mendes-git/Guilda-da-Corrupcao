@@ -148,6 +148,11 @@ public static class GameStateIO
         // heroId, e o herói reconstruído já chega perguntando pelo dele.
         DeckRepository.Importar(dados.decks);
 
+        // Antes de encher: um save feito durante a fundação tem roster vazio, e
+        // sem esta marca o Start do GuildManager tomaria a guilda carregada por
+        // uma guilda nova e poria o ouro de fábrica por cima do salvo.
+        guilda.MarcarComoCarregada();
+
         guilda.roster.Clear();
         guilda.fallenHeroes.Clear();
 

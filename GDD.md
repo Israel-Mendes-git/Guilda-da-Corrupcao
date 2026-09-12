@@ -1,9 +1,9 @@
 # Game Design Document — Guilda da Corrupção
 
-Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.2 — 10/09/2026 (substitui a 2.1, de 08/09)
+Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.3 — 12/09/2026 (substitui a 2.2, de 10/09)
 
-Descreve o jogo como ele está em 10/09/2026, conferido contra o `SmokeTestReport.txt`
-(45 verificações, 0 falhas), o `PlayModeReport.txt` (nenhum erro) e o
+Descreve o jogo como ele está em 12/09/2026, conferido contra o `SmokeTestReport.txt`
+(63 verificações, 0 falhas), o `PlayModeReport.txt` (nenhum erro) e o
 `GameplayReport.txt` (auditoria de jogabilidade). Plano de trabalho em
 [`ROADMAP.md`](ROADMAP.md), inventário de arte em [`ASSETS.md`](ASSETS.md) e
 [`ARTE.md`](ARTE.md).
@@ -50,7 +50,7 @@ dentro do jogo.
 ## 2. Os três loops **[IMPLEMENTADO]**
 
 ```
-PARTIDA      nova guilda → ciclos → a Corrupção enche ou a guilda cai → memórias → nova guilda
+PARTIDA      fundar a guilda (2 fundadores) → ciclos → a Corrupção enche ou a guilda cai → memórias → nova guilda
  └ CICLO     guilda (salas) → preparar expedição → jornada → volta e balanço → +1 ciclo
     └ JORNADA rota ramificada → evento ou combate a cada nó → chefe no fim
 ```
@@ -276,20 +276,27 @@ destino**, sempre.
 
 | Recurso | Início | Papel |
 |---|---|---|
-| Ouro | 500 (+ destrave) | Recrutar, comprar carta, item e melhoria |
+| Ouro | 100 (+ destrave) | Recrutar, comprar carta, item e melhoria |
 | Reputação | 100 (+ destrave) | Zerou, a partida acaba |
-| Roster | 4 heróis, teto 8 (+ destrave) | Quem existe para mandar |
+| Roster | 0 ao fundar; o jogador escolhe 2 fundadores, sem custo; teto 8 (+ destrave) | Quem existe para mandar |
 | Quadro de encomendas | 3 pedidos (+ destrave) | O que a guilda pede — **não** para onde ir |
 
 | Sala | O que faz |
 |---|---|
-| Taverna | 3 recrutas por vez; contratar custa o salário; renovar a lista custa 50 |
+| Taverna | 3 recrutas por vez; contratar custa o salário; renovar a lista custa 50. Na fundação, um candidato por classe, todos Nv.2, e os dois primeiros não custam nada |
 | Biblioteca | Vende cartas por raridade e sobe de nível, liberando raridades melhores; traduz um escrito por ciclo |
 | Mercado | Rações e tochas; tratamento, bandagem e vinho de efeito imediato; frascos e a relíquia do ciclo |
 | Forja | Um herói na bigorna por vez: arma (+1 de dano nas cartas dele) e armadura (+4 de HP), até nível 3 |
 | Cemitério | Lista os caídos; monumento devolve reputação; vigília alivia estresse |
 | Sala de Mapas | Batedores revelam trechos da rota da luta de selo; desvios trocam um evento adiante; conta os selos e diz onde a passagem abriu |
 | Baralhos | Monta o baralho de cada herói dentro do limite do nível dele |
+
+**A fundação [IMPLEMENTADO]:** a guilda nasce vazia, com o ouro de fábrica e
+sem ninguém para mandar. A Taverna é a única porta acesa, e oferece quatro
+candidatos, um por classe jogável, todos de nível 2; os dois primeiros entram
+sem custo e são os fundadores. Depois deles a Taverna volta ao normal. Até
+12/09 a guilda nascia com quatro heróis prontos e sete portas iguais, e o
+primeiro conselho do jogo era uma compra na Forja.
 
 **As salas são lugares [IMPLEMENTADO].** A **Forja** estabeleceu o molde — fila à
 esquerda, um em foco no meio, e à direita o efeito da compra acontecendo — e as
@@ -313,12 +320,22 @@ no mesmo ciclo é recusada. **[PLANEJADO]** o texto de cada página: a tela diz 
 onde ela veio e o que ela segura, e o que aquelas civilizações escreveram é decisão
 do autor.
 
-**O guia da guilda [IMPLEMENTADO]:** uma linha diz o que fazer agora e acende a
-porta que resolve, pela primeira condição que casa — da mais bloqueante à mais
-rotineira. Antes de cair na rotina ele lê três coisas: herói viajando perto do
-limite de estresse, arma nunca forjada e ouro parado acima de três jornadas de
-renda. E cita nomes e números reais — *"A arma de Gromm nunca foi forjada. Há
-3575 de ouro parado, e a Forja é o que se sente no primeiro combate."*
+**A luz das portas [IMPLEMENTADO]:** cada porta diz se há motivo para entrar,
+em três níveis — pulsando (a mais urgente), acesa (há o que fazer lá dentro) e
+escura (nada ainda; continua clicável, e lá dentro a sala mostra que não há o
+que fazer). O motivo é o do jogador: ouro para a primeira arma acende a Forja,
+alguém ferido acende o Mercado, um morto acende o Cemitério, um pedaço de mapa
+acende a Sala de Mapas, um baralho com vaga acende a Biblioteca. A guilda
+recém-fundada abre com duas portas acesas; a de sempre, com quatro ou cinco.
+Não há frase de guia nem painel de "deseja entrar?": a porta abre direto, e a
+sala explica a si mesma na própria linha de dica. A porta que pulsa sai da
+primeira condição que casa, da mais bloqueante à mais rotineira: fundação
+pendente, ninguém apto, selo ou fim no quadro, grupo curto depois da primeira
+saída, herói perto do limite de estresse, arma nunca forjada, ouro parado.
+
+**O relógio no rodapé [IMPLEMENTADO]:** a Corrupção aparece na tela da guilda,
+junto do ouro, numa linha e uma barra. Até 12/09 o relógio da partida só
+aparecia na pausa e, por área, na Sala de Mapas.
 
 **Motivo para voltar [IMPLEMENTADO]:** o estoque de cada sala é uma **função do
 número do ciclo** — a mesma volta mostra sempre a mesma carroça, e a seguinte
@@ -420,19 +437,23 @@ para dizer o que a carta faz.
 
 ## 10. Preparação da expedição **[IMPLEMENTADO]**
 
-1. **Destino — o mapa de regiões.** Substituiu a lista de contratos. As sete
-   regiões aparecem no lugar delas, pintadas pela própria corrupção; onde há
-   contrato o marcador acende e pode ser clicado, onde não há o lugar continua
-   ali, apagado — o jogador precisa ver o mundo inteiro para entender o que está
-   piorando fora do alcance dele.
-2. **Grupo e formação.** Marcar quem vai e **ordenar**: a ordem é a formação, e os
-   dois primeiros são a linha de frente. Sem teto de tamanho, mas acima de 4 cada
-   bloco de 4 soma uma ração por dia e o XP dos extras cai pela metade. Os
-   requisitos de classe da missão são conferidos de verdade.
-3. **Baralho e provisões.** Um herói fornece o deck base e os companheiros
+**O mapa é a preparação.** Apontar um destino no mapa-múndi (§5) preenche o
+resto: quem vai (os aptos na ordem em que rendem, até quatro), a formação, o
+baralho (o de quem lidera a fila, mais três cartas de cada companheiro) e a
+mochila (rações e tochas pelos dias previstos). A ficha do lugar mostra tudo
+isso, e **Partir** fica ao lado dela: o caminho curto é a porta, a área e
+Partir — três cliques. Quem quer mexer usa **Ajustar**, que abre os dois passos
+de sempre:
+
+1. **Grupo e formação.** Marcar quem vai e **ordenar**: a ordem é a formação, e
+   a linha de frente é metade da fila, até duas posições — com dois heróis, um
+   na frente e um atrás. Sem teto de tamanho, mas acima de 4 cada bloco de 4
+   soma uma ração por dia e o XP dos extras cai pela metade. Os requisitos de
+   classe da missão são conferidos de verdade.
+2. **Baralho e provisões.** Um herói fornece o deck base e os companheiros
    emprestam cartas; o jogo guarda de quem é cada uma, e é isso que faz a arma da
-   Forja fortalecer só as cartas daquele herói. Base de 10 rações e 8 tochas, mais
-   o que veio do Mercado.
+   Forja fortalecer só as cartas daquele herói. A mochila base vem dos dias
+   previstos, mais o que veio do Mercado.
 
 O nome do contrato diz o lugar e concorda com ele — "Vila Antiga", não "Vila
 Antigo" —, e não repete a região, que já aparece ao lado em toda tela que o mostra.
@@ -524,7 +545,11 @@ impedir a luta.
   está na mira. Sem isso não dá para decidir se vale gastar o bloqueio, nem em
   quem — que é a decisão inteira do turno num jogo de formação.
 - **A formação importa:** o ataque cai na linha de frente em ~74% das vezes, e a
-  carta rende menos se o dono estiver fora da posição dela.
+  carta rende menos se o dono estiver fora da posição dela. A linha de frente é
+  metade da fila, até duas posições: com dois heróis, um só segura a frente.
+- **O encontro vem no tamanho do grupo que saiu:** dois heróis veem um inimigo
+  até o meio da rota e dois no fim; quatro, a curva de sempre — um, dois, três.
+  Grupo maior não engorda o encontro; o preço dele já é comida e experiência.
 - **O dano nos heróis passa pelas regras da jornada**, então Beira da Morte,
   estresse e morte permanente valem igual dentro e fora do combate.
 - **Recuar** custa moral e estresse e não rende nada. Perder para o chefe encerra
@@ -535,7 +560,8 @@ impedir a luta.
 
 | Parâmetro | Valor |
 |---|---|
-| Ouro / reputação iniciais | 500 / 100 (+ destraves) |
+| Ouro / reputação iniciais | 100 / 100 (+ destraves) |
+| Fundadores · nível · custo | 2 · Nv.2 · 0 |
 | HP · salário do herói | `20 + nível×4` (+10 Guerreiro, −5 Mago) · `20 + nível×10` |
 | Renovar recrutas · melhoria da Biblioteca | 50 · `500 × nível` |
 | Tamanho do deck | 8 a 12 |
@@ -549,15 +575,16 @@ impedir a luta.
 | Luta de selo · jornada final | 7–10 dias, `200 + nível×20` · 10–15 dias, `300 + nível×30` |
 
 **Letalidade alvo** (decisão do autor): 0,33 a 0,67 mortes por jornada com grupo
-de 4. Medido em 29/08, com o simulador rodando o código real em 1000 jornadas:
+de 4. Medido em 12/09, com o simulador rodando o código real em 1000 jornadas:
 
 | Medida | Valor |
 |---|---|
-| Mortes por jornada | **0,54** — chefe 0,22 · encontro do caminho 0,04 · estrada 0,28 |
-| Sobrevivência | 86,4% |
-| Duração média · combates por jornada | 7,0 dias · 2,56 |
+| Mortes por jornada | **0,59** — chefe 0,05 · encontro do caminho 0,39 · estrada 0,16 |
+| Sobrevivência | 85,2% |
+| Duração média · combates por jornada | 10,7 dias · 3,43 |
 | Cartas jogadas na estrada | 2,62 por jornada |
-| Mortes por combate contra chefe (grupo desgastado) | 0,02 (teto 0,40) |
+| Mortes por combate contra chefe (grupo desgastado) | 0,03 (teto 0,40) |
+| Primeira jornada: dois fundadores na Mata | **0,06** mortes · 97% de sobrevivência · 6,9 dias (teto 0,35) |
 
 O KPI do combate é **mortes por combate**, não taxa de vitória: com o grupo
 descansado a party vence quase sempre, e o que se mede é o que a luta cobra em

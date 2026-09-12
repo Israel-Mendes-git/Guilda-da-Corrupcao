@@ -1079,6 +1079,50 @@ como lugar; o que cada lugar *faz* é a fase seguinte.
 
 ---
 
+### Fase 3.14 — A fundação, e o mapa como preparação ✅ *construída em 12/09*
+
+O autor voltou dizendo que a rodada anterior de apresentação (guia calado, porta que respira,
+conceitos medidos) resolveu pouco: *"sinto o mesmo problema ainda — muito conteúdo, pouco
+aproveitamento por parte do jogador, sensação de estar perdido no que fazer"*. O diagnóstico desta
+rodada: o jogo mostrava a gerência antes da coisa gerida. Sete portas iguais; o primeiro conselho da
+guilda nova era uma compra na Forja; a Corrupção não estava na tela principal; a preparação pedia
+quatro conceitos que só a estrada ensina. As decisões são do autor (memória
+`fundacao-da-guilda-decisoes`), tomadas em duas rodadas de opções.
+
+| O que passou a existir | Regra |
+|---|---|
+| **A guilda nasce vazia** | 0 heróis e 100 de ouro (era 500). A Taverna oferece quatro candidatos, um por classe jogável, todos Nv.2; os dois primeiros são os fundadores e não custam nada (`GuildManager.EmFundacao`, `AceitarFundador`) |
+| **A luz das portas** | três níveis: pulsando (a mais urgente), acesa (há motivo), escura (nada ainda — mas abre). O motivo é o do jogador: ouro para a arma, alguém ferido, um morto, um pedaço de mapa, um baralho com vaga (`GuildGuide.TemMotivo`) |
+| **A porta abre direto** | o painel de "deseja entrar?" da primeira visita saiu (`MapManager`): era uma caixa de texto antes da sala |
+| **O relógio no rodapé** | a Corrupção junto do ouro, numa linha e uma barra (`RelogioDaGuilda`, criado em execução pelo guia) |
+| **O mapa é a preparação** | apontar o destino preenche grupo (ordem recomendada, até 4), formação, baralho e mochila; **Partir** ao lado da ficha; **Ajustar** abre os passos 2 e 3 (`QuestSelectionUI.MontarGrupoPadrao`). A ficha perdeu os quatro tópicos de "A rota", iguais para as sete áreas |
+| **Formação de dois** | a linha de frente é metade da fila, até duas posições (`PartyFormation.FrontSlotsFor`): com dois heróis, um na frente e um atrás. Para quatro, nada muda |
+| **O encontro no tamanho do grupo** | dois heróis veem um inimigo até o meio da rota e dois no fim (`EnemyPool.ParaOGrupo`). Grupo maior que quatro não engorda o encontro |
+
+**O que a medição diz** (`SmokeTestReport.txt` e `PlayModeReport.txt` de 12/09, à noite):
+
+| Medida | Antes | Agora |
+|---|---|---|
+| Portas com motivo na primeira volta | 7 de 7, uma pulsando | 1 de 7 antes dos fundadores; 3 de 7 depois |
+| Cliques até partir para a Mata | 5 (porta, área, Próximo, Próximo, Jornada) | 3 (porta, área, Partir) |
+| Conceitos no caminho mínimo | 4, todos na preparação | 6: a Taverna entrou no caminho (estresse, energia, linha de frente) e o rodapé nomeia a corrupção; a preparação caiu de 4 para 1 |
+| Conceitos que o jogo inteiro nomeia | 24, 20 fora do caminho | 21, 15 fora |
+| Letalidade, grupo de 4 | 0,54 | 0,59 (alvo 0,33–0,67) |
+| Primeira jornada, dois fundadores na Mata | — | **0,06** mortes/jornada, 97% de sobrevivência, 6,9 dias (trava nova: teto 0,35) |
+
+**O que os números não decidem:** a primeira jornada saiu muito mais branda que a média — 0,06
+contra 0,59. Se o autor quiser a fundação mais punitiva, os dois números a mexer são o nível dos
+fundadores (`TavernManager.NivelDosFundadores`) e a curva de `EnemyPool.ParaOGrupo`. Com o perfil
+do autor (Cofre nível 2, 340 de ouro) a Forja já pulsa depois da fundação, porque a primeira arma
+custa 120; num perfil novo, com 100, a porta que pulsa é a Jornada.
+
+**Rejeitado nesta rodada, pelo autor:** começar na estrada (a Estrada Velha do *Darkest Dungeon*);
+fundir a Sala de Mapas no mapa-múndi, os Baralhos na Biblioteca, o Cemitério só após a primeira
+morte; a guilda virar o mapa-múndi; trancar sala sem motivo; uma "beira da Mata" curta como
+primeira saída.
+
+---
+
 ### Fase 4 — Dar peso ao que já está escrito
 *Barato, porque os dados já existem e só falta quem os leia.*
 

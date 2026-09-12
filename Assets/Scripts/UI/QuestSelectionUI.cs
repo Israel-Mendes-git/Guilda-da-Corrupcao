@@ -110,6 +110,19 @@ public class QuestSelectionUI : MonoBehaviour
     private int extraTorches;
 
     /// <summary>
+    /// O botão de partir do passo 1. Nasce em execução — ver
+    /// <see cref="GarantirBotaoDePartir"/>.
+    /// </summary>
+    private Button partirButton;
+
+    /// <summary>
+    /// O jogador mexeu no grupo, na ordem ou no baralho nesta preparação.
+    /// Enquanto não mexeu, apontar outro destino refaz o padrão; depois que
+    /// mexeu, o que ele montou fica.
+    /// </summary>
+    private bool grupoAjustado;
+
+    /// <summary>
     /// Card do passo 3 de cada herói, para conseguir marcar o baralho escolhido
     /// sem depender de o jogador ter clicado nele.
     /// </summary>
@@ -171,6 +184,7 @@ public class QuestSelectionUI : MonoBehaviour
             backButton.onClick.AddListener(Close);
 
         SetupProvisionButtons();
+        GarantirBotaoDePartir();
     }
 
     void SetupProvisionButtons()
@@ -284,6 +298,7 @@ public class QuestSelectionUI : MonoBehaviour
         selectedMainHero = null;
         selectedParty.Clear();
         currentSelectedDeckCard = null;
+        grupoAjustado = false;
 
         RefreshQuestList();
         RefreshPartySelection();
@@ -499,16 +514,22 @@ public class QuestSelectionUI : MonoBehaviour
         baseRations = RacoesPara(previstos);
         baseTorches = TochasPara(previstos);
 
+        // O grupo vem preenchido: apontar o destino é a preparação inteira, e
+        // quem quiser mexer tem o Ajustar. Se o jogador já mexeu, o que ele
+        // montou fica.
+        if (!grupoAjustado) MontarGrupoPadrao();
+
         AreaType lugar = AreaCatalog.Da(quest.biomeType);
         var ficha = AreaCatalog.De(lugar);
         bool eSelo = quest.isRegionBoss || quest.isFinalBoss;
 
-        // A ficha da área no lugar do boletim de contrato.
+        // A ficha da área, e embaixo dela quem vai.
         //
-        // O que o jogador precisa para escolher é o que aquele lugar faz com as
-        // regras — a etiqueta de bioma não decide nada, e dizia o mesmo que o
-        // nome logo acima dela.
-        string details = $"<b>{quest.questName}</b>\n\n";
+        // <b>Encurtou em 12/09.</b> A rota em quatro tópicos e a nota sobre
+        // batedores diziam o mesmo para as sete áreas — texto que enche a coluna
+        // sem decidir nada. O que sobrou é o que muda de um lugar para outro, e
+        // o grupo que sai se o jogador só clicar em Partir.
+        string details = $"<b>{quest.questName}</b>\n";
 
         if (ficha != null)
         {
@@ -522,12 +543,11 @@ public class QuestSelectionUI : MonoBehaviour
 
         details += $"⏱️ {quest.minDuration}-{quest.maxDuration} dias";
         if (ficha != null) details += $"  ·  {AreaCatalog.DiasDeIda(lugar) * 2} só de estrada";
-        details += "\n";
-        details += $"💰 {quest.baseReward}+ de espólio\n";
-        details += $"⚠️ Risco: {GetRiskText(quest.risk)}\n";
+        details += $"\n💰 {quest.baseReward}+ de espólio\n";
+        details += ResumoDaRota(quest) + "\n";
 
         if (quest.isCorrupted)
-            details += "\n<color=red>⚠️ LUGAR CORROMPIDO!</color>\n";
+            details += "<color=red>⚠️ LUGAR CORROMPIDO!</color>\n";
 
         if (quest.requirements != null && quest.requirements.Count > 0)
         {
@@ -536,7 +556,7 @@ public class QuestSelectionUI : MonoBehaviour
                 details += $"• {req.minAmount}x {req.requiredClass} (Nv.{req.minLevel}+)\n";
         }
 
-        details += "\n" + BuildRoutePreview(quest);
+        details += QuemVai();
 
         if (questDetailsText != null)
             questDetailsText.text = details;
@@ -547,6 +567,97 @@ public class QuestSelectionUI : MonoBehaviour
 
         if (nextButton1 != null)
             nextButton1.interactable = true;
+
+        UpdateStartButtonStatus();
+    }
+
+    /// <summary>
+    /// O grupo que sai se o jogador não mexer em nada: os aptos na ordem em que
+    /// rendem, até quatro, e o baralho de quem lidera a fila.
+    ///
+    /// <b>É o que faz do mapa a preparação inteira.</b> Antes, apontar o destino
+    /// era o primeiro de três passos, e os outros dois pediam decisões — quem
+    /// vai, em que ordem, com que baralho — que quem nunca partiu não tem como
+    /// tomar. Elas continuam existindo, atrás de Ajustar; o caminho curto é
+    /// apontar e partir.
+    /// </summary>
+    void MontarGrupoPadrao()
+    {
+        selectedParty.Clear();
+        selectedMainHero = null;
+
+        if (GuildManager.Instance == null) return;
+
+        var aptos = GuildManager.Instance.roster.Where(h => h != null && h.IsFitForJourney);
+        selectedParty.AddRange(PartyFormation.OrdemRecomendada(aptos).Take(PartyFormation.MaxSlots));
+        selectedMainHero = selectedParty.FirstOrDefault();
+    }
+
+    /// <summary>Quem sai, em que fileira, com que baralho e com que mochila — a parte da ficha que é do grupo.</summary>
+    string QuemVai()
+    {
+        string texto = "\n<b>Quem vai</b>\n";
+
+        if (selectedParty.Count == 0)
+        {
+            bool fundacao = GuildManager.Instance != null && GuildManager.Instance.EmFundacao;
+            return texto + (fundacao
+                ? "<color=#B04040>Ninguém ainda. Os fundadores esperam na Taverna.</color>"
+                : "<color=#B04040>Ninguém apto para partir.</color>");
+        }
+
+        int frente = PartyFormation.FrontSlotsFor(selectedParty.Count);
+        texto += $"⚔️ {string.Join(", ", selectedParty.Take(frente).Select(NomeNaFila))}";
+        if (selectedParty.Count > frente)
+            texto += $"\n🏹 {string.Join(", ", selectedParty.Skip(frente).Select(NomeNaFila))}";
+
+        if (selectedMainHero != null)
+        {
+            // A conta do baralho híbrido, sem montar o baralho: montá-lo cria um
+            // DeckData a cada clique no mapa.
+            DeckData principal = DeckRepository.GetDeck(selectedMainHero);
+            int cartas = principal != null && principal.cards != null ? principal.cards.Count : 0;
+            foreach (HeroData companheiro in selectedParty)
+            {
+                if (companheiro == selectedMainHero) continue;
+                DeckData dele = DeckRepository.GetDeck(companheiro);
+                int tem = dele != null && dele.cards != null ? dele.cards.Count : 0;
+                cartas += Mathf.Min(JourneyDeckBuilder.DefaultSupportCards, tem);
+            }
+
+            texto += $"\n🃏 baralho de {selectedMainHero.heroName}, {cartas} cartas";
+        }
+
+        texto += $"\n🍖 {baseRations + extraRations + MarketRations}   🔥 {baseTorches + extraTorches + MarketTorches}";
+        texto += "\n<size=15><i>Ajustar troca quem vai, a ordem e o baralho.</i></size>";
+        return texto;
+    }
+
+    string NomeNaFila(HeroData hero)
+    {
+        return PartyFormation.IsWellPlaced(hero, selectedParty)
+            ? hero.heroName
+            : $"<color=#B04040>{hero.heroName}⚠️</color>";
+    }
+
+    /// <summary>
+    /// O que espera na rota, numa linha: quantos combates e o que fecha o
+    /// caminho. Substitui os quatro tópicos de "A rota", que diziam o mesmo para
+    /// todo destino.
+    /// </summary>
+    static string ResumoDaRota(QuestData quest)
+    {
+        bool chefeNoFim = quest.isRegionBoss || quest.isFinalBoss;
+
+        string combates = quest.risk == QuestRisk.Low ? "<color=#4A7A4A>Poucos combates</color>"
+                        : quest.risk == QuestRisk.Medium ? "<color=#D4AF37>Combates frequentes</color>"
+                        : "<color=#B04040>Combates constantes</color>";
+
+        // O chefe deixou de fechar toda jornada em 11/09: prometê-lo numa
+        // expedição comum é prometer uma luta que não vem.
+        string fim = chefeNoFim ? "💀 chefe no fim" : "um encontro forte no fim";
+
+        return $"⚠️ {combates} · {fim}";
     }
 
     #endregion
@@ -658,6 +769,8 @@ public class QuestSelectionUI : MonoBehaviour
             toggle.isOn = selectedParty.Contains(hero);
             toggle.interactable = apto;
             toggle.onValueChanged.AddListener((isOn) => {
+                grupoAjustado = true;
+
                 if (isOn)
                 {
                     if (!hero.IsFitForJourney)
@@ -959,7 +1072,7 @@ public class QuestSelectionUI : MonoBehaviour
             // Cabeçalhos no ponto em que a fileira muda, para a divisão ficar visível.
             if (i == 0)
                 BuildFormationHeader("⚔️ LINHA DE FRENTE", new Color(0.85f, 0.55f, 0.35f));
-            else if (i == PartyFormation.FrontSlots)
+            else if (i == PartyFormation.FrontSlotsFor(selectedParty.Count))
                 BuildFormationHeader("🏹 RETAGUARDA", new Color(0.55f, 0.70f, 0.90f));
 
             BuildFormationRow(selectedParty[i], i);
@@ -1014,7 +1127,7 @@ public class QuestSelectionUI : MonoBehaviour
 
     void BuildFormationRow(HeroData hero, int index)
     {
-        bool front = index < PartyFormation.FrontSlots;
+        bool front = index < PartyFormation.FrontSlotsFor(selectedParty.Count);
         bool bemPosicionado = PartyFormation.IsWellPlaced(hero, selectedParty);
 
         var row = new GameObject($"Slot_{index + 1}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
@@ -1097,6 +1210,7 @@ public class QuestSelectionUI : MonoBehaviour
         int to = from + delta;
         if (to < 0 || to >= selectedParty.Count) return;
 
+        grupoAjustado = true;
         selectedParty[from] = selectedParty[to];
         selectedParty[to] = hero;
 
@@ -1202,7 +1316,11 @@ public class QuestSelectionUI : MonoBehaviour
         if (btn != null)
         {
             btn.onClick.RemoveAllListeners();
-            btn.onClick.AddListener(() => SelectDeck(hero, card));
+            btn.onClick.AddListener(() =>
+            {
+                grupoAjustado = true;
+                SelectDeck(hero, card);
+            });
         }
     }
 
@@ -1384,45 +1502,6 @@ public class QuestSelectionUI : MonoBehaviour
         selectedDeckNameText.text = texto;
     }
 
-    /// <summary>
-    /// Dá ao jogador uma noção do que espera pela frente sem entregar o mapa:
-    /// forma da rota e proporção de perigo, não os eventos exatos.
-    /// </summary>
-    string BuildRoutePreview(QuestData quest)
-    {
-        bool chefeNoFim = quest.isRegionBoss || quest.isFinalBoss;
-
-        var texto = "<b>A rota:</b>\n";
-        texto += $"• {quest.minDuration}-{quest.maxDuration} dias"
-               + (chefeNoFim ? " até o confronto final\n" : " de ida, estrada e volta\n");
-        texto += "• Cada dia oferece 2 ou 3 caminhos\n";
-
-        switch (quest.risk)
-        {
-            case QuestRisk.Low:
-                texto += "• <color=#4A7A4A>Poucos combates esperados</color>\n";
-                break;
-            case QuestRisk.Medium:
-                texto += "• <color=#D4AF37>Combates frequentes</color>\n";
-                break;
-            case QuestRisk.High:
-                texto += "• <color=#B04040>Território hostil — combates constantes</color>\n";
-                break;
-        }
-
-        if (quest.isCorrupted)
-            texto += "• <color=#8A4AA0>A corrupção altera os eventos</color>\n";
-
-        // O chefe deixou de fechar toda jornada em 11/09: prometê-lo numa
-        // expedição comum é prometer uma luta que não vem.
-        texto += chefeNoFim
-            ? "• 💀 Chefe no fim, inevitável\n"
-            : "• ⚔️ Um encontro forte fecha a rota\n";
-        texto += "\n<i>Batedores da Sala de Mapas revelam os caminhos adiante.</i>";
-
-        return texto;
-    }
-
     #endregion
 
     #region Requisitos da missão
@@ -1471,6 +1550,7 @@ public class QuestSelectionUI : MonoBehaviour
         if (formationPanel != null) formationPanel.SetActive(false);
 
         if (nextButton1 != null) nextButton1.interactable = selectedQuest != null;
+        AtualizarPartir();
 
         // Enquanto nada está escolhido, a coluna mostra o que a guilda pede.
         //
@@ -1561,7 +1641,7 @@ public class QuestSelectionUI : MonoBehaviour
             if (!PartyFormation.IsWellPlaced(hero, selectedParty))
                 nome = $"<color=#B04040>{nome}⚠️</color>";
 
-            if (i < PartyFormation.FrontSlots) frente.Add(nome);
+            if (i < PartyFormation.FrontSlotsFor(selectedParty.Count)) frente.Add(nome);
             else retaguarda.Add(nome);
         }
 
@@ -1573,13 +1653,85 @@ public class QuestSelectionUI : MonoBehaviour
 
     void UpdateStartButtonStatus()
     {
-        if (startJourneyButton != null)
-        {
-            bool hasValidDeck = selectedMainHero != null && selectedParty.Contains(selectedMainHero);
-            bool canStart = selectedQuest != null && selectedParty.Count > 0 && hasValidDeck;
+        bool hasValidDeck = selectedMainHero != null && selectedParty.Contains(selectedMainHero);
+        bool canStart = selectedQuest != null && selectedParty.Count > 0 && hasValidDeck;
 
+        if (startJourneyButton != null)
             startJourneyButton.interactable = canStart;
+
+        if (partirButton != null)
+            partirButton.interactable = canStart;
+    }
+
+    void AtualizarPartir()
+    {
+        UpdateStartButtonStatus();
+    }
+
+    /// <summary>
+    /// Partir, no mapa. Nasce em execução ao lado do botão de avançar, que passa
+    /// a se chamar Ajustar.
+    ///
+    /// <b>Desde 12/09 o mapa é a preparação.</b> Quem quer mexer no grupo, na
+    /// ordem ou no baralho atravessa os passos de sempre por Ajustar; quem só
+    /// quer ir, vai daqui — o grupo, a formação e a mochila já vêm preenchidos
+    /// ao apontar o destino. O botão é um clone do de avançar para herdar
+    /// moldura, fonte e tamanho do kit: um botão montado do zero aqui sairia
+    /// com a cara do protótipo na tela mais nova do jogo.
+    /// </summary>
+    void GarantirBotaoDePartir()
+    {
+        if (step1Panel == null) return;
+
+        Transform existente = step1Panel.transform.Find("Btn_Partir");
+        if (existente != null)
+            partirButton = existente.GetComponent<Button>();
+
+        if (partirButton == null && nextButton1 != null)
+        {
+            GameObject go = Instantiate(nextButton1.gameObject, step1Panel.transform);
+            go.name = "Btn_Partir";
+            partirButton = go.GetComponent<Button>();
         }
+
+        if (partirButton == null) return;
+
+        // Último irmão: em UGUI quem nasce depois é desenhado por cima, e o mapa
+        // nasce como primeiro irmão do mesmo painel.
+        partirButton.transform.SetAsLastSibling();
+        partirButton.onClick.RemoveAllListeners();
+        partirButton.onClick.AddListener(StartJourney);
+        Rotular(partirButton, "Partir");
+
+        // Avançar vira Ajustar e cede o canto: Partir é o botão da tela, e o
+        // caminho dos três passos fica à esquerda dele.
+        if (nextButton1 != null)
+        {
+            Rotular(nextButton1, "Ajustar");
+
+            var avancar = nextButton1.GetComponent<RectTransform>();
+            var partir = partirButton.GetComponent<RectTransform>();
+            if (avancar != null && partir != null)
+            {
+                partir.anchorMin = avancar.anchorMin;
+                partir.anchorMax = avancar.anchorMax;
+                partir.pivot = avancar.pivot;
+                partir.sizeDelta = avancar.sizeDelta;
+                partir.anchoredPosition = avancar.anchoredPosition;
+
+                avancar.anchoredPosition = avancar.anchoredPosition - new Vector2(avancar.sizeDelta.x + 20f, 0f);
+            }
+        }
+
+        AtualizarPartir();
+    }
+
+    static void Rotular(Button botao, string rotulo)
+    {
+        if (botao == null) return;
+
+        var texto = botao.GetComponentInChildren<TMP_Text>(true);
+        if (texto != null) texto.text = rotulo;
     }
 
     void StartJourney()

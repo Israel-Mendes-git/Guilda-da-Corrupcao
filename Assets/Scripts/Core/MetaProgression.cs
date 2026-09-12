@@ -131,7 +131,17 @@ public static class MetaProgression
 
     #region O que os destraves valem, na hora de fundar uma guilda
 
-    public const int OuroBasePorRun = 500;
+    /// <summary>
+    /// O ouro com que uma guilda nova nasce.
+    ///
+    /// <b>Era 500, e desde 12/09 é 100.</b> Com 500 a Forja já tinha motivo no
+    /// ciclo 0 — a primeira arma custa 120 —, e o primeiro conselho da guilda
+    /// era uma compra, antes de o jogador ver uma estrada. Cem paga uma
+    /// contratação a mais ou algumas rações de sobra, e a arma vem do que a
+    /// primeira saída render. Os fundadores não custam nada, e a mochila da
+    /// primeira expedição a guilda entrega.
+    /// </summary>
+    public const int OuroBasePorRun = 100;
     public const int ReputacaoBasePorRun = 100;
 
     /// <summary>Ouro extra de partida — o destrave "Cofre da guilda".</summary>

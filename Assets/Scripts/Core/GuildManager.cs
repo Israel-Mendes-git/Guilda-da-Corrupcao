@@ -126,30 +126,57 @@ public class GuildManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Com quantos heróis a guilda é fundada — escolhidos pelo jogador, na
+    /// Taverna, sem custo.
+    ///
+    /// <b>Até 12/09 a guilda nascia com quatro prontos</b>, e quatro prontos é
+    /// um menu que não pede nada de quem chega: o grupo já estava completo, a
+    /// Taverna não tinha motivo, e as sete salas abriam de uma vez sobre um
+    /// jogador que ainda não tinha visto uma estrada. Decisão do autor: o
+    /// jogador escolhe dois, e a guilda cresce pelo que a estrada rende.
+    /// </summary>
+    public const int FundadoresDaGuilda = 2;
+
+    /// <summary>
+    /// A guilda ainda está sendo fundada: ninguém partiu, ninguém morreu e os
+    /// fundadores ainda não estão todos na casa. É o estado em que a Taverna
+    /// oferece os fundadores sem cobrar, e o único em que a guilda existe sem
+    /// gente para mandar.
+    /// </summary>
+    public bool EmFundacao =>
+        roster.Count < FundadoresDaGuilda
+        && fallenHeroes.Count == 0
+        && !(RunManager.Existe && RunManager.Instance.Cycle > 0);
+
+    /// <summary>Quantos fundadores faltam escolher.</summary>
+    public int FundadoresQueFaltam => EmFundacao ? FundadoresDaGuilda - roster.Count : 0;
+
+    /// <summary>
+    /// A guilda desta cena já foi preparada — pelos destraves de uma guilda nova
+    /// ou pelo save de uma partida em andamento.
+    ///
+    /// Antes, roster vazio era o sinal de guilda nova. Desde que a guilda nasce
+    /// vazia de propósito, um save feito antes de escolher os fundadores também
+    /// tem roster vazio, e o Start passaria o ouro carregado por cima com o ouro
+    /// de fábrica.
+    /// </summary>
+    [System.NonSerialized] bool preparada;
+
     void Start()
     {
-        // Roster vazio aqui significa guilda nova: ou a sessão começou sem save,
-        // ou o jogador escolheu "Nova guilda". Quando há save, o SceneFlow já
-        // preencheu o roster no sceneLoaded — antes deste Start, de propósito —
-        // e nada aqui deve passar por cima do que foi carregado.
-        if (roster.Count == 0)
-        {
+        // Guilda nova: a sessão começou sem save, ou o jogador escolheu "Nova
+        // guilda". Quando há save, o SceneFlow já aplicou tudo no sceneLoaded —
+        // antes deste Start, de propósito — e marcou a guilda como preparada.
+        if (!preparada)
             AplicarDestraves();
-            AddStartingHeroes();
-        }
 
         UpdateGoldUI();
         UpdateReputationUI();
     }
 
-    void AddStartingHeroes()
-    {
-        roster.Add(HeroFactory.CreateHero("Gromm", HeroClass.Warrior, 3));
-        roster.Add(HeroFactory.CreateHero("Lyra", HeroClass.Mage, 2));
-        roster.Add(HeroFactory.CreateHero("Finn", HeroClass.Healer, 2));
-        roster.Add(HeroFactory.CreateHero("Sera", HeroClass.Hunter, 1));
-        onRosterChanged?.Invoke();
-    }
+    /// <summary>O save já encheu esta guilda; o Start não deve fundar outra por cima.</summary>
+    public void MarcarComoCarregada() => preparada = true;
 
     /// <summary>
     /// O que as runs anteriores compraram, aplicado à guilda que está nascendo.
@@ -164,6 +191,20 @@ public class GuildManager : MonoBehaviour
         gold = MetaProgression.OuroBasePorRun + MetaProgression.StartingGoldBonus();
         reputation = MetaProgression.ReputacaoBasePorRun + MetaProgression.StartingReputationBonus();
         maxRosterSize = BaseRosterSize + MetaProgression.ExtraRosterSlots();
+        preparada = true;
+    }
+
+    /// <summary>
+    /// Um fundador entra sem custo. Só vale durante a fundação: fora dela, quem
+    /// entra paga o salário pelo <see cref="RecruitHero"/>.
+    /// </summary>
+    public bool AceitarFundador(HeroData hero)
+    {
+        if (hero == null || !EmFundacao || !CanRecruit()) return false;
+
+        roster.Add(hero);
+        onRosterChanged?.Invoke();
+        return true;
     }
 
     /// <summary>Vagas de fábrica, antes dos alojamentos comprados no Santuário.</summary>
@@ -182,8 +223,9 @@ public class GuildManager : MonoBehaviour
         roster.Clear();
         fallenHeroes.Clear();
 
+        // Sem elenco: a guilda nova nasce em fundação, e os fundadores são
+        // escolhidos na Taverna.
         AplicarDestraves();
-        AddStartingHeroes();
 
         NotificarTudoMudou();
     }

@@ -645,7 +645,27 @@ public static class GuildSmokeTest
         // e a trava reprovaria um chefe saudável.
         Expect(s.mortesPorLutaDeSelo >= 0.10f,
             $"o chefe é o clímax e cobra por isso (piso 0,10 por luta de selo): {s.mortesPorLutaDeSelo:F2}");
+
+        // A primeira jornada de uma guilda recém-fundada: dois fundadores, a
+        // Mata. É a jornada que todo jogador faz, e a única que decide se ele
+        // faz a segunda — por isso tem alvo próprio. Dois heróis são metade da
+        // guilda: perder um em uma de cada três saídas já é punitivo.
+        JourneyStats f = RodarJornadas(runs, fundacao: true);
+
+        Info($"a primeira jornada, com dois fundadores na Mata: {f.mortesPorJornada:F2} morte(s) por jornada"
+           + $" | {f.sobrevivencia:P0} de sobrevivência | {f.combates:F2} combates | {f.duracaoMedia:F1} dias"
+           + $" | mortes — encontro: {f.mortesEmCombateComum:F2}, estrada: {f.mortesNaEstrada:F2}");
+
+        Expect(f.mortesPorJornada <= MortesNaFundacaoMax,
+            $"a primeira jornada não dizima a guilda nova (teto {MortesNaFundacaoMax:F2} por jornada): {f.mortesPorJornada:F2}");
     }
+
+    /// <summary>
+    /// Teto de mortes por jornada para os dois fundadores na Mata. Um terço das
+    /// primeiras saídas perdendo alguém já é o Darkest Dungeon que o autor
+    /// pediu; acima disso, a guilda morre antes de existir.
+    /// </summary>
+    const float MortesNaFundacaoMax = 0.35f;
 
     /// <summary>
     /// Varredura de parâmetro: mede a letalidade da jornada para cada valor de
@@ -743,7 +763,9 @@ public static class GuildSmokeTest
         return (mortos / (float)runs, vitorias / (float)runs);
     }
 
-    static JourneyStats RodarJornadas(int runs)
+    /// <param name="fundacao">Mede a primeira jornada da guilda nova: dois
+    /// fundadores, sempre na Mata, sem luta de selo.</param>
+    static JourneyStats RodarJornadas(int runs, bool fundacao = false)
     {
         int totalHerois = 0, sobreviventes = 0, mortos = 0;
         int totalAflicoes = 0;
@@ -769,7 +791,7 @@ public static class GuildSmokeTest
         // 0,51: era a composição do elenco variando, não o jogo. Subir só as
         // jornadas não resolvia, porque o n de verdade era o número de grupos.
         var grupos = new List<SimParty>();
-        for (int i = 0; i < 100; i++) grupos.Add(SimParty.Create());
+        for (int i = 0; i < 100; i++) grupos.Add(SimParty.Create(fundacao));
 
         for (int r = 0; r < runs; r++)
         {
@@ -779,11 +801,17 @@ public static class GuildSmokeTest
             // e a partida real cabe umas três em quinze ciclos. Medir só
             // expedições comuns tiraria o chefe da conta de letalidade — e ele é
             // justamente a morte que o alvo existe para vigiar.
-            bool deSelo = r % 5 == 4;
+            //
+            // Na fundação não há selo: é a primeira saída, e ela vai à Mata.
+            bool deSelo = !fundacao && r % 5 == 4;
             if (deSelo) lutasDeSelo++;
 
             QuestData quest;
-            if (deSelo)
+            if (fundacao)
+            {
+                quest = QuestGenerator.GerarExpedicao(AreaType.Mata, TavernManager.NivelDosFundadores);
+            }
+            else if (deSelo)
             {
                 var area = AreaCatalog.Todas[r % AreaCatalog.Todas.Length];
                 quest = QuestGenerator.GenerateRegionBossQuest(AreaCatalog.Aspecto(area), 3);
@@ -846,7 +874,7 @@ public static class GuildSmokeTest
                 if (ehCombate && !(evitarProximoCombate && !ev.isBossEvent))
                 {
                     // O caminho que o jogo quer premiar: resolver na mesa.
-                    var lineup = EnemyPool.GetLineup(quest.biomeType, ev.isBossEvent, dia, dias + 1);
+                    var lineup = EnemyPool.GetLineup(quest.biomeType, ev.isBossEvent, dia, dias + 1, party.Count);
 
                     int vivosAntes = party.Count(h => h.IsAlive);
                     SimulateOneCombat(party, grupo.ownership, grupo.deck, lineup);
@@ -1185,15 +1213,34 @@ public static class GuildSmokeTest
         public DeckData deck;
         public CardOwnership ownership;
 
-        public static SimParty Create()
+        /// <param name="fundadores">O grupo de uma guilda recém-fundada: dois
+        /// heróis de classes distintas sorteadas entre as jogáveis, no nível com
+        /// que a Taverna os oferece. Sorteadas, e não as duas melhores, porque
+        /// o jogador escolhe às cegas na primeira vez — e a medida é dele.</param>
+        public static SimParty Create(bool fundadores = false)
         {
-            var heroes = new List<HeroData>
+            List<HeroData> heroes;
+
+            if (fundadores)
             {
-                HeroFactory.CreateHero("A", HeroClass.Warrior, 3),
-                HeroFactory.CreateHero("B", HeroClass.Mage, 2),
-                HeroFactory.CreateHero("C", HeroClass.Healer, 2),
-                HeroFactory.CreateHero("D", HeroClass.Hunter, 1)
-            };
+                var classes = HeroFactory.ClassesJogaveis.OrderBy(_ => Random.value).Take(GuildManager.FundadoresDaGuilda).ToList();
+                heroes = new List<HeroData>();
+                for (int i = 0; i < classes.Count; i++)
+                    heroes.Add(HeroFactory.CreateHero(((char)('A' + i)).ToString(), classes[i], TavernManager.NivelDosFundadores));
+
+                // Na ordem em que rendem, como a preparação preenche sozinha.
+                heroes = PartyFormation.OrdemRecomendada(heroes);
+            }
+            else
+            {
+                heroes = new List<HeroData>
+                {
+                    HeroFactory.CreateHero("A", HeroClass.Warrior, 3),
+                    HeroFactory.CreateHero("B", HeroClass.Mage, 2),
+                    HeroFactory.CreateHero("C", HeroClass.Healer, 2),
+                    HeroFactory.CreateHero("D", HeroClass.Hunter, 1)
+                };
+            }
 
             // O grupo que a auditoria de jogabilidade quiser: com a arma forjada,
             // com relíquia, de nível mais alto. Sem isto, medir o que cada compra

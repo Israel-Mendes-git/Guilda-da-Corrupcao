@@ -1536,7 +1536,7 @@ public class CombatManager : MonoBehaviour
             }
             else
             {
-                bool front = position < PartyFormation.FrontSlots;
+                bool front = PartyFormation.IsFront(position, party);
                 string aviso = PartyFormation.IsWellPlaced(hero, party) ? "" : " <color=#B04040>⚠️</color>";
 
                 // Quem está na mira leva a marca no próprio card, e não só na

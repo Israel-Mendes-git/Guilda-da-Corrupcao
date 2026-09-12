@@ -62,7 +62,7 @@ public static class HeroFactory
     ///
     /// Quando as cartas das duas classes existirem, é aqui que elas voltam.
     /// </summary>
-    static readonly HeroClass[] classesJogaveis =
+    public static readonly HeroClass[] ClassesJogaveis =
     {
         HeroClass.Warrior, HeroClass.Mage, HeroClass.Healer, HeroClass.Hunter
     };
@@ -70,9 +70,23 @@ public static class HeroFactory
     public static HeroData CreateRandomHero(int minLevel, int maxLevel)
     {
         int level = Random.Range(minLevel, maxLevel + 1);
-        HeroClass randomClass = classesJogaveis[Random.Range(0, classesJogaveis.Length)];
-        string fullName = firstNames[Random.Range(0, firstNames.Length)] + " " + lastNames[Random.Range(0, lastNames.Length)];
+        HeroClass randomClass = ClassesJogaveis[Random.Range(0, ClassesJogaveis.Length)];
 
-        return CreateHero(fullName, randomClass, level);
+        return CreateHero(NomeSorteado(), randomClass, level);
+    }
+
+    /// <summary>
+    /// Um candidato de classe e nível dados, com nome sorteado — é como a
+    /// Taverna monta os fundadores: um por classe, todos do mesmo nível, para a
+    /// escolha ser de ofício e bagagem, e não de número.
+    /// </summary>
+    public static HeroData CriarCandidato(HeroClass heroClass, int level)
+    {
+        return CreateHero(NomeSorteado(), heroClass, level);
+    }
+
+    static string NomeSorteado()
+    {
+        return firstNames[Random.Range(0, firstNames.Length)] + " " + lastNames[Random.Range(0, lastNames.Length)];
     }
 }

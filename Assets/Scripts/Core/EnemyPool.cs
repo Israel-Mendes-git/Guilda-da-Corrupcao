@@ -38,7 +38,10 @@ public static class EnemyPool
     /// </summary>
     /// <param name="totalDays">Dias previstos para a rota. Zero mantém a régua
     /// antiga, para quem chama sem saber o tamanho da viagem.</param>
-    public static List<EnemyData> GetLineup(BiomeType biome, bool bossFight, int day, int totalDays = 0)
+    /// <param name="partySize">Quantos heróis saíram da guilda. Abaixo de quatro
+    /// o encontro encolhe na mesma proporção; acima, fica como está.</param>
+    public static List<EnemyData> GetLineup(BiomeType biome, bool bossFight, int day, int totalDays = 0,
+                                            int partySize = PartyFormation.MaxSlots)
     {
         Initialize();
 
@@ -49,8 +52,10 @@ public static class EnemyPool
             EnemyData boss = PickBoss(biome);
             if (boss != null) lineup.Add(boss);
 
-            // Um capanga a partir da metade da jornada.
-            if (Progresso(day, totalDays) >= 0.5f)
+            // Um capanga a partir da metade da jornada — para um grupo que tem
+            // gente para dividir a atenção. Dois heróis contra chefe e capanga
+            // é a conta que a Torre faz de propósito, não a de um selo comum.
+            if (Progresso(day, totalDays) >= 0.5f && partySize >= 3)
             {
                 EnemyData minion = PickRegular(biome);
                 if (minion != null) lineup.Add(minion);
@@ -60,7 +65,7 @@ public static class EnemyPool
         }
 
         float p = Progresso(day, totalDays);
-        int count = p >= 0.66f ? 3 : p >= 0.25f ? 2 : 1;
+        int count = ParaOGrupo(p >= 0.66f ? 3 : p >= 0.25f ? 2 : 1, partySize);
         for (int i = 0; i < count; i++)
         {
             EnemyData enemy = PickRegular(biome);
@@ -107,6 +112,22 @@ public static class EnemyPool
         if (bosses.Count > 0) return bosses[Random.Range(0, bosses.Count)];
 
         return null;
+    }
+
+    /// <summary>
+    /// O encontro no tamanho do grupo.
+    ///
+    /// A curva de um, dois e três inimigos foi medida para quatro heróis. Desde
+    /// 12/09 a guilda nasce com dois, e dois contra três no fim da Mata não é
+    /// punição, é aniquilação: o encontro encolhe na proporção do grupo,
+    /// arredondando para cima — dois heróis veem um inimigo até o meio da rota
+    /// e dois no fim. Grupo maior que quatro não engorda o encontro: o preço de
+    /// levar mais gente já é comida e experiência diluída.
+    /// </summary>
+    static int ParaOGrupo(int count, int partySize)
+    {
+        int grupo = Mathf.Clamp(partySize, 1, PartyFormation.MaxSlots);
+        return Mathf.Clamp(Mathf.CeilToInt(count * grupo / (float)PartyFormation.MaxSlots), 1, 3);
     }
 
     /// <summary>
