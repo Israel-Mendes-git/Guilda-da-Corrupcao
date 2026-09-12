@@ -332,8 +332,16 @@ public class LibraryManager : MonoBehaviour
                     linhas.Add($"<color=#D9B85A>◆ {Escritos.Titulo(regiao)}</color>  <size=15>por traduzir</size>");
 
                 foreach (var regiao in Escritos.Lidos())
+                {
+                    // A carta do escrito: com quem está, ou à espera de alguém.
+                    HeroData portador = Escritos.Portador(regiao);
+                    string carta = portador != null
+                        ? $" · 🃏 com {portador.heroName}"
+                        : Escritos.Carta(regiao) != null ? " · <color=#D9B85A>🃏 carta sem dono</color>" : "";
+
                     linhas.Add($"<color=#8A8278>◇ {Escritos.Titulo(regiao)}</color>"
-                             + $"  <size=15>lido · −{Mathf.RoundToInt(Escritos.AtrasoPorEscrito * 100f)}% no avanço</size>");
+                             + $"  <size=15>lido · −{Mathf.RoundToInt(Escritos.AtrasoPorEscrito * 100f)}% no avanço{carta}</size>");
+                }
 
                 writingsText.text = string.Join("\n", linhas);
             }
@@ -343,16 +351,37 @@ public class LibraryManager : MonoBehaviour
 
         bool pode = Escritos.PodeTraduzirNesteCiclo;
 
-        translateButton.interactable = pode;
+        // Um escrito lido cuja carta não está com ninguém vivo — o portador
+        // morreu, ou a página foi lida antes de as cartas existirem — volta a
+        // ser entregue pelo mesmo botão. A carta vai para quem está na mesa.
+        var semDono = Escritos.LidosSemPortador();
+        bool entregar = naEstante == 0 && semDono.Count > 0 && naMesa != null && naMesa.IsAlive;
+
+        translateButton.interactable = pode || entregar;
 
         var rotulo = translateButton.GetComponentInChildren<TMP_Text>();
         if (rotulo != null)
-            rotulo.text = naEstante == 0
-                ? "NADA A TRADUZIR"
-                : pode ? "TRADUZIR" : "JÁ TRADUZIU NESTE CICLO";
+            rotulo.text = entregar
+                ? $"ENTREGAR A CARTA A {naMesa.heroName.ToUpperInvariant()}"
+                : naEstante == 0 ? "NADA A TRADUZIR"
+                : pode ? (naMesa != null ? $"TRADUZIR → CARTA PARA {naMesa.heroName.ToUpperInvariant()}" : "TRADUZIR")
+                       : "JÁ TRADUZIU NESTE CICLO";
 
         translateButton.onClick.RemoveAllListeners();
-        translateButton.onClick.AddListener(TraduzirProximo);
+        if (entregar)
+        {
+            BiomeType regiao = semDono[0];
+            translateButton.onClick.AddListener(() =>
+            {
+                if (Escritos.Entregar(regiao, naMesa))
+                    SetFeedback($"{Escritos.Carta(regiao).cardName} entra no baralho de {naMesa.heroName}.");
+                RefreshLibrary();
+            });
+        }
+        else
+        {
+            translateButton.onClick.AddListener(TraduzirProximo);
+        }
     }
 
     /// <summary>
@@ -375,8 +404,15 @@ public class LibraryManager : MonoBehaviour
             return;
         }
 
+        // O escrito traduzido entra no baralho como carta de contenção — de
+        // quem está na mesa, ou do primeiro vivo. É a única carta que age
+        // sobre o mundo, e o que se leva à luta final (decisão do autor, 09/09).
+        HeroData portador = naMesa != null && naMesa.IsAlive ? naMesa : PrimeiroVivo();
+        bool comCarta = portador != null && Escritos.Entregar(regiao, portador);
+
         SetFeedback($"{Escritos.Titulo(regiao)} traduzido. "
-                  + $"A corrupção passa a avançar {Mathf.RoundToInt(Escritos.Atraso * 100f)}% mais devagar.");
+                  + $"A corrupção passa a avançar {Mathf.RoundToInt(Escritos.Atraso * 100f)}% mais devagar."
+                  + (comCarta ? $" A carta entra no baralho de {portador.heroName}." : ""));
 
         RefreshLibrary();
     }
@@ -693,7 +729,8 @@ public class LibraryManager : MonoBehaviour
         if (Copias(deck, card) >= DeckManager.MaxCopiasPorCarta) return Estado.CopiasDemais;
 
         int preco = GetCardPrice(card.rarity);
-        if (GuildManager.Instance == null || GuildManager.Instance.gold < preco) return Estado.SemOuro;
+        if (GuildManager.Instance == null || GuildManager.Instance.gold < preco)
+            return CardPayment.PodePagar(preco) ? Estado.Pode : Estado.SemOuro;
 
         return Estado.Pode;
     }
@@ -737,11 +774,17 @@ public class LibraryManager : MonoBehaviour
                 return;
         }
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(preco))
-        {
-            SetFeedback("Ouro insuficiente.");
-            return;
-        }
+        HeroData comprador = naMesa;
+        bool pagou = CardPayment.Cobrar(preco, card.cardName, () => EntregarCarta(card, comprador),
+            () => SetFeedback("Ouro insuficiente — e nenhuma carta que valha o preço."));
+
+        if (!pagou) RefreshLibrary();
+    }
+
+    void EntregarCarta(CardData card, HeroData comprador)
+    {
+        if (card == null || comprador == null) return;
+        naMesa = comprador;
 
         // GetDeck devolve o baralho vivo do repositório, e não uma cópia: mexer
         // nesta lista já é mexer no baralho que a jornada vai usar.
@@ -1048,12 +1091,12 @@ public class LibraryManager : MonoBehaviour
 
         int cost = upgradeBaseCost * libraryLevel;
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(cost))
-        {
-            SetFeedback($"Ouro insuficiente: melhorar a sala custa {cost}.");
-            return;
-        }
+        CardPayment.Cobrar(cost, "a melhoria da sala", MelhorarASala,
+            () => SetFeedback($"Ouro insuficiente: melhorar a sala custa {cost} — e nenhuma carta vale isso."));
+    }
 
+    void MelhorarASala()
+    {
         libraryLevel++;
 
         // O nível mudou, então o estoque é sorteado de novo — e é justamente esse

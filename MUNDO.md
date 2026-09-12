@@ -5,9 +5,11 @@
 > aspecto do local no mapa — deixou de ser conceito de design, e não se fala mais dele aqui.
 >
 > **A estrutura entrou no código em 11/09** (ROADMAP, fase 3.13): o plano, a vizinhança, o custo em
-> dias, a ficha de cada área e o quadro virado encomenda. O que cada área *faz* — a regra própria e
-> o ato do selo — segue escrito e não construído. Nomes marcados como *(trabalho)* são descartáveis
-> — o que vale é a função.
+> dias, a ficha de cada área e o quadro virado encomenda. **A regra própria de cada área entrou em
+> 13/09** (fase 3.16, `AreaRules`): o que cada lugar faz na estrada e no combate, e o que o selo
+> cobra em cartas. O **ato** de cada selo — devolver os mortos pelo nome, escolher entre fogo e
+> resgate, acordar o dragão e sair — segue escrito e não construído: hoje todo selo passa por uma
+> luta e queima cartas. Nomes marcados como *(trabalho)* são descartáveis — o que vale é a função.
 
 ## A regra do mapa
 
@@ -151,6 +153,20 @@ metade de uma expedição. O destino é do mapa; o ouro é do quadro.
   sempre**.
 - **Dá:** o único recurso que o mapa não tem — saber antes.
 - **Fecha-se:** perguntando a ela o que ela é. A resposta cobra o preço de sempre.
+
+### O que o código faz com cada regra, desde 13/09
+
+A tabela é o que existe; a ficha acima é o que se quer. Onde as duas divergem, a ficha manda.
+
+| Área | Na estrada e no combate | O selo queima |
+|---|---|---|
+| A Mata | do trecho 60% em diante, ração e tocha em dobro; a caça repõe 2 rações em 35% das paradas | 2 cartas de ataque |
+| A Cripta | um caído por rodada se ergue com um terço da vida, uma vez cada; um morto da guilda sem monumento entra em cada luta; espólio em dobro | 2 de suporte |
+| A Aldeia | depois de cada luta vencida: poupar (+10 de moral, −8 de estresse) ou matar (+30 de ouro, +2 rações, −8 de moral) | 2 de suporte |
+| O Oráculo | perguntar revela a rota inteira e queima uma carta sorteada do baralho, para sempre; uma vez por jornada | 1 de utilidade |
+| A Torre | a cópia de um herói vivo entra em cada luta; derrubá-la custa 15 de estresse ao original e rende, em metade das vezes, uma carta rara ou melhor da classe de alguém do grupo | 2 de ataque |
+| A Forja | forjar uma vez por jornada, sem voltar: +1 na arma, corrompida — +6 de exposição ao portador por luta —, e a luta vem em seguida; exposição ≥ 50 marca com traço, ≥ 80 pode virar (35%) e o herói sai do roster como caído | 2 de defesa |
+| O Covil | cada trecho com tocha soma 1 ao despertar, cada espólio 1, cada relíquia 3; em 10 o dragão desce no lugar do próximo ponto; o escuro cobra 1,5× de estresse; metade das lutas vencidas larga relíquia | 2 de defesa |
 
 **Os sete selos são sete atos**, e só o da Mata é combate limpo: vencer, devolver os mortos,
 escolher entre fogo e resgate, usar o dragão, quebrar o altar, apagar o fogo, e pagar a última

@@ -209,10 +209,13 @@ public static class GuildSceneSetup
         // ── HUD ────────────────────────────────────────────────────────────
         var questName = EnsureText(panel.transform, "Txt_QuestName", "Missão", 26,
             new Vector2(0, 1), new Vector2(0.36f, 1), new Vector2(20, -48), new Vector2(0, -12));
-        var biome = EnsureText(panel.transform, "Txt_Biome", "", 22,
-            new Vector2(0.36f, 1), new Vector2(0.52f, 1), new Vector2(0, -48), new Vector2(0, -12));
+        // A regra da área vive aqui desde 13/09, no lugar do nome do bioma: é
+        // uma frase, e em 300px a 22pt ela quebrava em três linhas por cima dos
+        // contadores do baralho. Mais larga, menor, e com duas linhas de folga.
+        var biome = EnsureText(panel.transform, "Txt_Biome", "", 17,
+            new Vector2(0.30f, 1), new Vector2(0.60f, 1), new Vector2(0, -50), new Vector2(0, -8));
         var day = EnsureText(panel.transform, "Txt_Day", "Dia 0 / 0", 22,
-            new Vector2(0.52f, 1), new Vector2(0.66f, 1), new Vector2(0, -48), new Vector2(0, -12));
+            new Vector2(0.60f, 1), new Vector2(0.70f, 1), new Vector2(0, -48), new Vector2(0, -12));
 
         // Mapa: área livre, pois o JourneyMapUI posiciona nós e arestas por
         // coordenada — um LayoutGroup sobrescreveria tudo.
@@ -335,9 +338,12 @@ public static class GuildSceneSetup
         // Baralho, mão e descarte: num deckbuilder, saber quantas cartas restam é
         // informação de jogo, não enfeite. Os três campos existiam no script e
         // nunca tinham sido criados na cena, então os contadores não apareciam.
-        var deckCount = EnsureText(panel.transform, "Txt_DeckCount", "", 20, new Vector2(0.42f, 1), new Vector2(0.50f, 1), new Vector2(0, -84), new Vector2(0, -54));
-        var handCount = EnsureText(panel.transform, "Txt_HandCount", "", 20, new Vector2(0.50f, 1), new Vector2(0.58f, 1), new Vector2(0, -84), new Vector2(0, -54));
-        var discardCount = EnsureText(panel.transform, "Txt_DiscardCount", "", 20, new Vector2(0.58f, 1), new Vector2(0.66f, 1), new Vector2(0, -84), new Vector2(0, -54));
+        //
+        // Desde 13/09 só aparecem com a mão, na parada, e moram à direita, sob
+        // os botões — a regra da área ocupa o meio do topo.
+        var deckCount = EnsureText(panel.transform, "Txt_DeckCount", "", 20, new Vector2(0.72f, 1), new Vector2(0.80f, 1), new Vector2(0, -84), new Vector2(0, -54));
+        var handCount = EnsureText(panel.transform, "Txt_HandCount", "", 20, new Vector2(0.80f, 1), new Vector2(0.88f, 1), new Vector2(0, -84), new Vector2(0, -54));
+        var discardCount = EnsureText(panel.transform, "Txt_DiscardCount", "", 20, new Vector2(0.88f, 1), new Vector2(0.96f, 1), new Vector2(0, -84), new Vector2(0, -54));
 
         // Botões: canto superior direito, ao lado do que eles afetam. Na base da
         // tela ficavam sob a mão de cartas, que é justamente o que o jogador
@@ -388,6 +394,12 @@ public static class GuildSceneSetup
         jm.detourButton = detour;
         jm.trailRoad = estrada;
         jm.eventBox = eventBox;
+
+        // A descrição do evento sai quase de uma vez. A 0,03s por letra, uma
+        // parada de 150 letras levava 4,5 segundos só para aparecer — e a
+        // queixa do autor é que a estrada é texto demais. Campo serializado:
+        // muda aqui, não no script.
+        jm.textTypeSpeed = 0.008f;
         EditorUtility.SetDirty(jm);
 
         // Mapa da jornada

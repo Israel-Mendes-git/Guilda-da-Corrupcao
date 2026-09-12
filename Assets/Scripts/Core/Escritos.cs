@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -171,6 +172,110 @@ public static class Escritos
     /// <see cref="RunManager.AdvanceCycle"/> multiplica o passo do relógio.
     /// </summary>
     public static float FatorDeAvanco => 1f - Atraso;
+
+    // ---------------------------------------------------------------- a carta
+
+    /// <summary>Onde moram as cartas de escrito, fora de <c>Resources/Cards</c>.</summary>
+    ///
+    /// Pasta própria de propósito: tudo o que carrega "Cards" — o gerador de
+    /// baralhos, a Biblioteca, o editor de baralhos, o smoke test — passaria a
+    /// sortear e vender o escrito como carta comum. Aqui só quem precisa dela
+    /// a encontra: o índice do save e a Biblioteca ao traduzir.
+    public const string PastaDasCartas = "Escritos";
+
+    /// <summary>
+    /// O escrito traduzido <b>entra no baralho</b> como carta de contenção — a
+    /// única que age sobre o mundo, e o que se leva à luta final (decisão do
+    /// autor em 09/09). Um asset por região, em <c>Resources/Escritos</c>.
+    /// Devolve null enquanto o asset não existir.
+    /// </summary>
+    public static CardData Carta(BiomeType regiao)
+    {
+        string nome = NomeDoAsset(regiao);
+        return string.IsNullOrEmpty(nome) ? null : Resources.Load<CardData>($"{PastaDasCartas}/{nome}");
+    }
+
+    /// <summary>Todas as cartas de escrito do projeto — para as travas do smoke test.</summary>
+    public static CardData[] TodasAsCartas() => Resources.LoadAll<CardData>(PastaDasCartas);
+
+    /// <summary>
+    /// O nome do asset da carta daquela região. Estrutural: diz de onde veio.
+    /// Sem acento no nome do arquivo — é caminho de <c>Resources.Load</c>.
+    /// </summary>
+    public static string NomeDoAsset(BiomeType regiao)
+    {
+        switch (AreaCatalog.Da(regiao))
+        {
+            case AreaType.Mata: return "Escrito da Mata";
+            case AreaType.Cripta: return "Escrito da Cripta";
+            case AreaType.Aldeia: return "Escrito da Aldeia";
+            case AreaType.Oraculo: return "Escrito do Oraculo";
+            case AreaType.Torre: return "Escrito da Torre";
+            case AreaType.Forja: return "Escrito da Forja";
+            case AreaType.Covil: return "Escrito do Covil";
+            default: return "";
+        }
+    }
+
+    /// <summary>Esta carta é um escrito? É a única com efeito de conter.</summary>
+    public static bool EhEscrito(CardData carta) =>
+        carta != null && carta.journeyEffect == JourneyEffectType.Conter;
+
+    /// <summary>
+    /// Quem carrega a carta daquele escrito: o herói vivo cujo baralho a tem.
+    /// Derivado do baralho, e não guardado à parte — assim o save não precisa
+    /// de campo novo, e um portador morto (o baralho dele some com ele) deixa
+    /// a carta sem dono para a Biblioteca entregar de novo.
+    /// </summary>
+    public static HeroData Portador(BiomeType regiao)
+    {
+        var guilda = GuildManager.Instance;
+        CardData carta = Carta(regiao);
+        if (guilda == null || carta == null) return null;
+
+        foreach (HeroData heroi in guilda.roster)
+        {
+            if (heroi == null || !heroi.IsAlive) continue;
+
+            DeckData baralho = DeckRepository.GetDeck(heroi);
+            if (baralho?.cards != null && baralho.cards.Contains(carta)) return heroi;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Põe a carta do escrito no baralho do herói. Devolve false se a página não
+    /// foi traduzida, se a carta não existe, ou se alguém vivo já a carrega.
+    /// </summary>
+    public static bool Entregar(BiomeType regiao, HeroData heroi)
+    {
+        GarantirEstado();
+
+        if (heroi == null || !heroi.IsAlive) return false;
+        if (!lidos.Contains(regiao)) return false;
+        if (Portador(regiao) != null) return false;
+
+        CardData carta = Carta(regiao);
+        if (carta == null) return false;
+
+        DeckData baralho = DeckRepository.GetDeck(heroi);
+        if (baralho == null) return false;
+        if (baralho.cards == null) baralho.cards = new List<CardData>();
+
+        // Direto na lista: o escrito entra mesmo com o baralho no limite — é a
+        // única carta que não se compra, e não disputa vaga com as que se compram.
+        baralho.cards.Add(carta);
+        GuildManager.Instance?.onRosterChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Páginas lidas cuja carta não está com ninguém vivo.</summary>
+    public static List<BiomeType> LidosSemPortador()
+    {
+        GarantirEstado();
+        return lidos.Where(r => Carta(r) != null && Portador(r) == null).ToList();
+    }
 
     // ---------------------------------------------------------------- o texto
 

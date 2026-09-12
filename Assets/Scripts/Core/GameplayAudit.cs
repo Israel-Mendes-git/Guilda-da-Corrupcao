@@ -66,6 +66,7 @@ public static class GameplayAudit
         Linha($"  mortes por jornada .......... {baseLine.mortesPorJornada:F2}");
         Linha($"  sobrevivência ............... {baseLine.sobrevivencia:P1}");
         Linha($"  combates por jornada ........ {baseLine.combates:F2}");
+        Linha($"  paradas de texto por jornada  {baseLine.paradasDeTexto:F2}");
         Linha($"  cartas jogadas na estrada ... {baseLine.cartasJogadas:F2}");
         Linha($"  duração média ............... {baseLine.duracaoMedia:F1} dias");
         Linha("");

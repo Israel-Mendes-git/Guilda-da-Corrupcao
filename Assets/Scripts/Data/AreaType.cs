@@ -68,6 +68,23 @@ public static class AreaCatalog
         /// <summary>O ato que fecha a área. Só a Mata é combate limpo.</summary>
         public string selo;
 
+        /// <summary>
+        /// O que o selo cobra em cartas: o papel pedido e quantas.
+        ///
+        /// <b>Fixo por área e sabido desde o começo</b> — decisão do autor em
+        /// 09/09. É o que faz o baralho pesar fora da estrada: quem vai selar a
+        /// Mata leva ataque a mais, porque sabe que o selo queima dois. As
+        /// cartas saem do baralho guardado do dono, sem volta.
+        /// </summary>
+        public CardRole seloPede = CardRole.Ataque;
+        public int seloCobra = 2;
+
+        /// <summary>O preço do selo numa linha, para a ficha do mapa.</summary>
+        public string PrecoDoSelo =>
+            seloCobra == 1
+                ? $"1 carta de {CardRoleUtil.Label(seloPede)}, queimada"
+                : $"{seloCobra} cartas de {CardRoleUtil.Label(seloPede)}, queimadas";
+
         /// <summary>Nome com o símbolo do aspecto na frente, como o resto do jogo escreve.</summary>
         public string NomeComIcone => $"{Simbolo} {nome}";
 
@@ -134,7 +151,8 @@ public static class AreaCatalog
                 regra = "O mato fecha atrás do grupo: quanto mais fundo, mais caro o dia.",
                 oQueDa = "Caça — mantimentos que renovam na estrada.",
                 oQueCobra = "Dias. O caminho serpenteia, e a viagem é mais lenta que a distância.",
-                selo = "Derrubar o que espalha. Combate limpo."
+                selo = "Derrubar o que espalha. Combate limpo.",
+                seloPede = CardRole.Ataque, seloCobra = 2
             }
         },
         {
@@ -150,7 +168,8 @@ public static class AreaCatalog
                       + "Herói enterrado sem tributo levanta contra o grupo.",
                 oQueDa = "Espólio em dobro — foram enterrados com o que tinham.",
                 oQueCobra = "Estresse.",
-                selo = "Consagrar de novo, com os nomes dos seus próprios mortos."
+                selo = "Consagrar de novo, com os nomes dos seus próprios mortos.",
+                seloPede = CardRole.Suporte, seloCobra = 2
             }
         },
         {
@@ -166,7 +185,8 @@ public static class AreaCatalog
                       + "Poupar devolve moral; matar dá recurso e cobra moral.",
                 oQueDa = "Recurso de quem foi morto, ou moral de quem foi poupado.",
                 oQueCobra = "A escolha, um a um.",
-                selo = "Fogo, ou levar embora quem ainda dá para levar. Duas saídas."
+                selo = "Fogo, ou levar embora quem ainda dá para levar. Duas saídas.",
+                seloPede = CardRole.Suporte, seloCobra = 2
             }
         },
         {
@@ -183,7 +203,8 @@ public static class AreaCatalog
                       + "um herói perde uma carta do baralho, para sempre.",
                 oQueDa = "Saber antes — a rota inteira, quem guarda o quê, o que falta para selar.",
                 oQueCobra = "Uma carta, sem volta.",
-                selo = "Perguntar a ela o que ela é. A resposta cobra o preço de sempre."
+                selo = "Perguntar a ela o que ela é. A resposta cobra o preço de sempre.",
+                seloPede = CardRole.Utilidade, seloCobra = 1
             }
         },
         {
@@ -199,7 +220,8 @@ public static class AreaCatalog
                       + "com o baralho e o equipamento dele.",
                 oQueDa = "As cartas que o feiticeiro colecionou — as que a Biblioteca não vende.",
                 oQueCobra = "Estresse em quem derrubou a própria cópia.",
-                selo = "Subir até o alto e quebrar o altar com o livro corrompido."
+                selo = "Subir até o alto e quebrar o altar com o livro corrompido.",
+                seloPede = CardRole.Ataque, seloCobra = 2
             }
         },
         {
@@ -215,7 +237,8 @@ public static class AreaCatalog
                       + "chama o que mora lá.",
                 oQueDa = "Equipamento corrompido: melhor que o da guilda, e apodrece quem o carrega.",
                 oQueCobra = "O que vem quando você bate.",
-                selo = "Apagar o fogo. A área para de forjar para sempre."
+                selo = "Apagar o fogo. A área para de forjar para sempre.",
+                seloPede = CardRole.Defesa, seloCobra = 2
             }
         },
         {
@@ -232,7 +255,8 @@ public static class AreaCatalog
                       + "aproximam o despertar.",
                 oQueDa = "As relíquias — é o único lugar do mundo onde elas se acumulam.",
                 oQueCobra = "Nervo. Atravessar no escuro desgasta mais que qualquer outra área.",
-                selo = "Acordar o dragão de propósito e sair antes. Você não o mata: você o usa."
+                selo = "Acordar o dragão de propósito e sair antes. Você não o mata: você o usa.",
+                seloPede = CardRole.Defesa, seloCobra = 2
             }
         }
     };

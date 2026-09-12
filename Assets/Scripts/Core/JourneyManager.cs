@@ -190,6 +190,39 @@ public class JourneyManager : MonoBehaviour
     private int revealedEvents = 0;
     private int detoursRemaining = 0;
 
+    // ── A regra da área, desde 13/09 (AreaRules) ──────────────────────────
+
+    /// <summary>A área que o grupo atravessa. <c>None</c> fora da jornada.</summary>
+    public AreaType AreaAtual => AreaCatalog.Da(CurrentBiome);
+
+    /// <summary>Quanto da rota já foi andado, de 0 a 1 — a régua da Mata.</summary>
+    float ProgressoDaRota =>
+        Mathf.Clamp01(currentDay / (float)Mathf.Max(1, journeyMap != null ? journeyMap.LayerCount : totalDays));
+
+    /// <summary>O Covil: quanto o dragão já despertou. Chega ao teto, ele vem.</summary>
+    public int Despertar { get; private set; }
+
+    /// <summary>O dragão já desceu nesta jornada — vem uma vez só.</summary>
+    bool dragaoVeio;
+
+    /// <summary>A Forja: uma peça por jornada.</summary>
+    bool forjouNestaJornada;
+
+    /// <summary>O Oráculo: uma pergunta por jornada.</summary>
+    bool perguntouAoOraculo;
+
+    /// <summary>
+    /// A carta de escrito foi jogada: esta travessia não suja a região.
+    /// É o único efeito de carta que age sobre o mundo.
+    /// </summary>
+    public bool CorrupcaoContida { get; private set; }
+
+    /// <summary>Quantas paradas de texto (evento sem luta) esta jornada teve — o relatório lê.</summary>
+    public int ParadasDeTexto { get; private set; }
+
+    /// <summary>O que a regra da área fez nesta jornada, para o relatório e o balanço.</summary>
+    public readonly List<string> DiarioDaArea = new List<string>();
+
     // Card system
     private CardManager cardManager;
     private DeckData currentDeck;
@@ -275,6 +308,18 @@ public class JourneyManager : MonoBehaviour
         avisouDaBifurcacao = false;
         skipNextCombat = false;
         weatherProtectionDays = 0;
+
+        Despertar = 0;
+        dragaoVeio = false;
+        forjouNestaJornada = false;
+        perguntouAoOraculo = false;
+        CorrupcaoContida = false;
+        ParadasDeTexto = 0;
+        DiarioDaArea.Clear();
+        UpkeepTicks = 0;
+        StarvationTicks = 0;
+        StarvationDamage = 0;
+        DarknessTicks = 0;
 
         // O que foi comprado na Sala de Mapas vale para esta jornada.
         revealedEvents = MapRoomManager.Instance != null ? MapRoomManager.Instance.ConsumeScoutingForJourney() : 0;
@@ -488,6 +533,19 @@ public class JourneyManager : MonoBehaviour
         if (handContainer != null && handContainer.gameObject.activeSelf != parado)
             handContainer.gameObject.SetActive(parado);
 
+        // O topo só mostra o que decide alguma coisa. Baralho, mão e descarte
+        // acompanham a mão: fora da parada não há carta a jogar, e três números
+        // sobre cartas que não estão na tela eram três dos onze contadores que
+        // faziam a estrada parecer painel. O desvio só aparece quando há desvio
+        // comprado, e os batedores só quando há batedor.
+        Mostrar(deckCountText, parado);
+        Mostrar(handCountText, parado);
+        Mostrar(discardCountText, parado);
+        Mostrar(detourCountText, detoursRemaining > 0);
+        if (detourButton != null && detourButton.gameObject.activeSelf != (detoursRemaining > 0))
+            detourButton.gameObject.SetActive(detoursRemaining > 0);
+        Mostrar(upcomingEventsText, parado && revealedEvents > 0);
+
         // Quem está andando não descansa nem desvia. O EndTurn já era inócuo
         // fora da parada, mas um botão que aceita clique e não faz nada é pior
         // que um desligado: o jogador conclui que o jogo travou.
@@ -498,6 +556,12 @@ public class JourneyManager : MonoBehaviour
             if (parado) UpdateDetourUI();
             else detourButton.interactable = false;
         }
+    }
+
+    static void Mostrar(Component alvo, bool visivel)
+    {
+        if (alvo != null && alvo.gameObject.activeSelf != visivel)
+            alvo.gameObject.SetActive(visivel);
     }
 
     void EnterNodeInternal()
@@ -512,6 +576,25 @@ public class JourneyManager : MonoBehaviour
             return;
         }
 
+        // O Covil: o despertar chegou ao teto, e o que espera neste ponto é o
+        // dragão — no lugar do que havia. Uma vez por jornada, e nunca por cima
+        // do fim da rota, que já tem dono.
+        if (AreaAtual == AreaType.Covil && !dragaoVeio && Despertar >= AreaRules.CovilDespertarMaximo
+            && journeyMap.Current != null && !journeyMap.Current.isBoss)
+        {
+            dragaoVeio = true;
+            EventData dragao = EventPool.GetFinalEvent(currentQuest.biomeType);
+            if (dragao != null)
+            {
+                journeyMap.ReplaceEvent(journeyMap.Current.id, dragao);
+                currentEvent = dragao;
+                DiarioDaArea.Add($"dia {currentDay}: a luz acordou o dragão");
+                UIManager.Instance?.ShowMessage("🐉 A luz o acordou. O dragão desce.", 3f);
+            }
+        }
+
+        if (!IsCombatEvent(currentEvent)) ParadasDeTexto++;
+
         ShowEvent(currentEvent);
     }
 
@@ -524,6 +607,11 @@ public class JourneyManager : MonoBehaviour
 
         if (dayText != null)
             dayText.text = $"Dia {currentDay} / {(journeyMap != null ? journeyMap.LayerCount : totalDays)}";
+
+        // A regra do lugar no alto, no espaço do nome do bioma — que repetia o
+        // nome da missão. É a única linha do topo que muda com o que a área faz.
+        if (biomeText != null)
+            biomeText.text = AreaRules.Lembrete(AreaAtual, ProgressoDaRota, Despertar);
 
         if (eventTitleText != null)
             eventTitleText.text = eventData.eventTitle;
@@ -576,6 +664,19 @@ public class JourneyManager : MonoBehaviour
         // Eventos de combate ganham a opção de resolver na mesa, e não pela narrativa.
         if (IsCombatEvent(eventData) && CombatManager.Instance != null)
             CreateChoiceButton("⚔️ Enfrentar em combate", StartCombatForCurrentEvent);
+
+        // O que a área oferece nesta parada, além do evento. Uma vez por
+        // jornada cada, e só onde não há luta esperando.
+        if (!IsCombatEvent(eventData))
+        {
+            if (AreaAtual == AreaType.Forja && !forjouNestaJornada && CombatManager.Instance != null)
+                CreateChoiceButton("🔨 Forjar aqui — a peça é melhor, corrompida, e o martelo chama o que mora lá",
+                                   OferecerAForja);
+
+            if (AreaAtual == AreaType.Oraculo && !perguntouAoOraculo)
+                CreateChoiceButton("🔮 Perguntar à cega — a rota inteira, por uma lembrança do baralho",
+                                   PerguntarAoOraculo);
+        }
 
         foreach (var outcome in outcomes)
         {
@@ -671,26 +772,54 @@ public class JourneyManager : MonoBehaviour
             return;
         }
 
+        AbrirCombate(currentEvent.isBossEvent);
+    }
+
+    /// <summary>
+    /// Monta o encontro e abre o combate. A área entra aqui: a Torre e a Cripta
+    /// põem gente a mais do outro lado, e a Cripta ergue os mortos por dentro.
+    /// </summary>
+    void AbrirCombate(bool chefe)
+    {
         // O encontro no tamanho do grupo que saiu da guilda — o que partiu, e
         // não o que ainda está de pé: perder gente no caminho não alivia o
         // caminho.
         List<EnemyData> lineup = EnemyPool.GetLineup(
             currentQuest.biomeType,
-            currentEvent.isBossEvent,
+            chefe,
             currentDay,
             journeyMap != null ? journeyMap.LayerCount : totalDays,
-            currentParty != null && currentParty.Count > 0 ? currentParty.Count : PartyFormation.MaxSlots
+            currentParty != null && currentParty.Count > 0 ? currentParty.Count : PartyFormation.MaxSlots,
+            AreaAtual,
+            currentParty
         );
 
-        CombatManager.Instance.StartCombat(currentParty, currentDeck, lineup, OnCombatFinished, currentOwnership);
+        copiaDaVez = lineup.FirstOrDefault(EnemyPool.EhCopiaDeHeroi);
+
+        CombatManager.Instance.StartCombat(currentParty, currentDeck, lineup, OnCombatFinished,
+                                           currentOwnership, AreaAtual);
     }
+
+    /// <summary>O inimigo montado de um herói neste combate, se houver — a Torre cobra por ele.</summary>
+    EnemyData copiaDaVez;
 
     void OnCombatFinished(bool victory)
     {
         // Espólio das lutas, para o balanço final poder discriminá-lo do
         // pagamento do contrato.
         if (victory && CombatManager.Instance != null)
-            combatGold += CombatManager.Instance.LastCombatReward;
+        {
+            int espolio = CombatManager.Instance.LastCombatReward;
+
+            // A Cripta paga em dobro: foram enterrados com o que tinham.
+            if (AreaAtual == AreaType.Cripta && espolio > 0)
+            {
+                GuildManager.Instance?.AddGold(espolio);
+                espolio *= AreaRules.CriptaEspolio;
+            }
+
+            combatGold += espolio;
+        }
 
         // Quem morreu no combate entra no relatório da jornada.
         foreach (var hero in currentParty)
@@ -698,6 +827,11 @@ public class JourneyManager : MonoBehaviour
             if (hero.isDead && !journeyCasualties.Contains(hero))
                 journeyCasualties.Add(hero);
         }
+
+        // A peça corrompida apodrece quem a carrega, a cada luta.
+        AreaRules.CobrarEquipamentoCorrompido(currentParty);
+
+        if (victory) OQueAAreaCobraEDa();
 
         ConsumeDailyResources();
 
@@ -718,7 +852,222 @@ public class JourneyManager : MonoBehaviour
             return;
         }
 
+        // A Aldeia: depois da luta vencida, poupar ou matar quem ainda é gente.
+        // A escolha é o evento — a estrada para para ela.
+        if (victory && AreaAtual == AreaType.Aldeia)
+        {
+            MostrarEscolhaDaAldeia();
+            return;
+        }
+
         StartCoroutine(DelayedNextEvent());
+    }
+
+    /// <summary>
+    /// O que a área faz depois de uma luta vencida (a Aldeia é à parte, porque
+    /// pede escolha).
+    /// </summary>
+    void OQueAAreaCobraEDa()
+    {
+        switch (AreaAtual)
+        {
+            case AreaType.Torre:
+            {
+                // Derrubar a própria cópia custa ao original.
+                if (copiaDaVez != null)
+                {
+                    string nome = copiaDaVez.enemyName.StartsWith("O reflexo de ")
+                        ? copiaDaVez.enemyName.Substring("O reflexo de ".Length)
+                        : "";
+                    HeroData original = currentParty.FirstOrDefault(h => h.IsAlive && h.heroName == nome);
+                    if (original != null)
+                    {
+                        EventResolver.AddStress(original, AreaRules.TorreEstresseDaCopia, new EventResolver.Resolution());
+                        DiarioDaArea.Add($"dia {currentDay}: {original.heroName} derrubou o próprio reflexo");
+                    }
+                }
+
+                // As cartas que o feiticeiro colecionou — as que a Biblioteca não vende.
+                if (Random.value < AreaRules.TorreChanceDeCarta)
+                {
+                    CardData carta = AreaRules.CartaDaTorre(currentParty, out HeroData quem);
+                    DeckData baralho = quem != null ? DeckRepository.GetDeck(quem) : null;
+                    if (carta != null && baralho?.cards != null)
+                    {
+                        baralho.cards.Add(carta);
+                        DiarioDaArea.Add($"dia {currentDay}: {quem.heroName} levou {carta.cardName} da coleção do feiticeiro");
+                        UIManager.Instance?.ShowMessage($"🃏 {carta.cardName} entra no baralho de {quem.heroName}.", 3f);
+                    }
+                }
+                break;
+            }
+
+            case AreaType.Covil:
+            {
+                // Cada peça levada aproxima o despertar: o espólio da luta conta.
+                Despertar += AreaRules.CovilDespertarPorEspolio;
+
+                // É o único lugar do mundo onde as relíquias se acumulam.
+                if (Random.value < AreaRules.CovilChanceDeReliquia && GuildManager.Instance != null)
+                {
+                    var achado = ItemCatalog.Reliquias[Random.Range(0, ItemCatalog.Reliquias.Count)];
+                    GuildManager.Instance.GuardarReliquia(achado.id);
+                    Despertar += AreaRules.CovilDespertarPorReliquia;
+                    DiarioDaArea.Add($"dia {currentDay}: {achado.nome} no covil — o dragão se mexe");
+                    UIManager.Instance?.ShowMessage($"🏺 {achado.nome} entre os ossos. O dragão se mexe.", 3f);
+                }
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// A Aldeia: poupar ou matar, um a um. Poupar devolve moral e alivia
+    /// estresse; matar dá ouro e comida e cobra moral. Com o grupo inteiro,
+    /// matar é obviamente melhor; com dois à beira da quebra, poupar é a saída.
+    /// </summary>
+    void MostrarEscolhaDaAldeia()
+    {
+        isWaitingForChoice = true;
+        ClearChoices();
+
+        if (eventTitleText != null) eventTitleText.text = "🏚️ Os que ainda são gente";
+        if (eventDescriptionText != null)
+            eventDescriptionText.text = "Parte dos que caíram ainda tem consciência. O grupo decide o que fazer com eles.";
+        if (resolutionLogText != null) resolutionLogText.text = "";
+
+        MostrarParada(true);
+        UpdateCardUI();
+
+        if (choiceContainer == null || choiceButtonPrefab == null)
+        {
+            isWaitingForChoice = false;
+            StartCoroutine(DelayedNextEvent());
+            return;
+        }
+
+        CreateChoiceButton($"🕊️ Poupar — +{AreaRules.AldeiaPouparMoral} de moral, −{AreaRules.AldeiaPouparAlivio:F0} de estresse em todos",
+            () => ResolverAldeia(poupar: true));
+        CreateChoiceButton($"🗡️ Matar — +{AreaRules.AldeiaMatarOuro} de ouro, +{AreaRules.AldeiaMatarRacoes} rações, {AreaRules.AldeiaMatarMoral} de moral",
+            () => ResolverAldeia(poupar: false));
+
+        var rect = choiceContainer as RectTransform;
+        if (rect != null) LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+    }
+
+    void ResolverAldeia(bool poupar)
+    {
+        if (!isWaitingForChoice) return;
+        isWaitingForChoice = false;
+
+        if (poupar)
+        {
+            AreaRules.Poupar(currentParty);
+            DiarioDaArea.Add($"dia {currentDay}: poupou quem ainda era gente");
+            if (resolutionLogText != null) resolutionLogText.text = "🎵 O ânimo do grupo melhora. Ninguém carrega esse peso.";
+        }
+        else
+        {
+            AreaRules.Matar(currentParty);
+            GuildManager.Instance?.AddGold(AreaRules.AldeiaMatarOuro);
+            combatGold += AreaRules.AldeiaMatarOuro;
+            rations += AreaRules.AldeiaMatarRacoes;
+            DiarioDaArea.Add($"dia {currentDay}: matou quem ainda era gente");
+            if (resolutionLogText != null)
+                resolutionLogText.text = $"💰 +{AreaRules.AldeiaMatarOuro} ouro, 🍖 +{AreaRules.AldeiaMatarRacoes} rações. 😞 O ânimo do grupo piora.";
+        }
+
+        ClearChoices();
+        UpdatePartyStatus();
+        UpdateResourceUI();
+        StartCoroutine(DelayedNextEvent());
+    }
+
+    /// <summary>
+    /// A Forja: escolher em quem pôr a peça. A lista de heróis toma o lugar das
+    /// opções do evento; Voltar devolve o evento.
+    /// </summary>
+    void OferecerAForja()
+    {
+        if (!isWaitingForChoice || forjouNestaJornada) return;
+
+        ClearChoices();
+
+        foreach (HeroData h in currentParty.Where(x => x != null && x.IsAlive))
+        {
+            HeroData alvo = h;
+            int nivel = alvo.weaponLevel + AreaRules.ForjaNiveisPorPeca;
+            CreateChoiceButton($"🔨 A arma de {alvo.heroName} → nível {nivel}, corrompida "
+                             + $"(+{AreaRules.ExposicaoPorPecaCorrompida} de exposição por luta)",
+                             () => ForjarNaEstrada(alvo));
+        }
+
+        CreateChoiceButton("↩ Deixar o fogo em paz", () => BuildChoices(currentEvent));
+
+        var rect = choiceContainer as RectTransform;
+        if (rect != null) LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+    }
+
+    void ForjarNaEstrada(HeroData alvo)
+    {
+        if (!isWaitingForChoice || alvo == null || forjouNestaJornada) return;
+
+        forjouNestaJornada = true;
+        alvo.weaponLevel += AreaRules.ForjaNiveisPorPeca;
+        alvo.equipamentoCorrompido++;
+
+        DiarioDaArea.Add($"dia {currentDay}: forjou a arma de {alvo.heroName} na estrada — corrompida");
+        UIManager.Instance?.ShowMessage(
+            $"🔨 A arma de {alvo.heroName} sai melhor do que a guilda faria. O martelo ecoou.", 3f);
+
+        // O martelo é o barulho que atrai: a luta vem no lugar do evento.
+        isWaitingForChoice = false;
+        ClearChoices();
+        AbrirCombate(false);
+    }
+
+    /// <summary>
+    /// O Oráculo: a rota inteira, por uma lembrança. A carta some do baralho da
+    /// jornada e do baralho guardado do dono — sorteada, porque lembrança que
+    /// se perde não se escolhe.
+    /// </summary>
+    void PerguntarAoOraculo()
+    {
+        if (!isWaitingForChoice || perguntouAoOraculo) return;
+
+        var candidatas = cardManager != null
+            ? cardManager.drawPile.Concat(cardManager.hand).Concat(cardManager.discardPile)
+                         .Where(c => c != null && !Escritos.EhEscrito(c)).ToList()
+            : new List<CardData>();
+
+        if (candidatas.Count == 0)
+        {
+            UIManager.Instance?.ShowMessage("Não há lembrança que sirva de pagamento.", 2.5f);
+            return;
+        }
+
+        perguntouAoOraculo = true;
+
+        CardData lembranca = candidatas[Random.Range(0, candidatas.Count)];
+        cardManager.drawPile.Remove(lembranca);
+        cardManager.hand.Remove(lembranca);
+        cardManager.discardPile.Remove(lembranca);
+
+        HeroData dono = currentOwnership != null ? currentOwnership.BestOwner(lembranca, currentParty) : null;
+        if (dono != null) CardPayment.Queimar(dono, lembranca);
+
+        revealedEvents = AreaRules.OraculoRevela;
+        JourneyMapUI.Instance?.Refresh(journeyMap, revealedEvents);
+        UpdateUpcomingEvents();
+
+        string deQuem = dono != null ? $" de {dono.heroName}" : "";
+        DiarioDaArea.Add($"dia {currentDay}: a cega respondeu; {lembranca.cardName}{deQuem} se foi");
+        if (resolutionLogText != null)
+            resolutionLogText.text = $"🔮 A rota inteira está à vista. {lembranca.cardName}{deQuem} não volta.";
+
+        UpdateCardUI();
+        BuildChoices(currentEvent);
+        MostrarParada(true);
     }
 
     /// <summary>Resolve o evento com a opção escolhida e avança o dia.</summary>
@@ -757,6 +1106,14 @@ public class JourneyManager : MonoBehaviour
             Debug.Log($"[Evento] {currentEvent.eventTitle}\n{resolution.ToText()}");
 
         ProcurarAchado();
+
+        // A Mata dá caça: mantimentos que renovam na estrada.
+        if (AreaAtual == AreaType.Mata && Random.value < AreaRules.MataChanceDeCaca)
+        {
+            rations += AreaRules.MataRacoesDaCaca;
+            if (resolutionLogText != null)
+                resolutionLogText.text += $"\n🍖 A caça rendeu: +{AreaRules.MataRacoesDaCaca} rações.";
+        }
 
         ClearChoices();
         UpdatePartyStatus();
@@ -824,6 +1181,9 @@ public class JourneyManager : MonoBehaviour
 
         var achado = ItemCatalog.Pocoes[Random.Range(0, ItemCatalog.Pocoes.Count)];
         guilda.GuardarPocao(achado.id);
+
+        // No Covil, cada peça levada aproxima o despertar.
+        if (AreaAtual == AreaType.Covil) Despertar += AreaRules.CovilDespertarPorEspolio;
 
         if (resolutionLogText != null)
             resolutionLogText.text += $"\n🧪 Entre os destroços: {achado.nome}.";
@@ -1097,6 +1457,15 @@ public class JourneyManager : MonoBehaviour
                 UIManager.Instance?.ShowMessage($"Encontrou rações extras! +5 comida", 2f);
                 break;
 
+            case JourneyEffectType.Conter:
+                // A única carta que age sobre o mundo: esta travessia não suja a
+                // região. Contenção é atraso, nunca reversão — o que já subiu fica.
+                CorrupcaoContida = true;
+                DiarioDaArea.Add($"dia {currentDay}: {card.cardName} conteve a corrupção desta travessia");
+                UIManager.Instance?.ShowMessage(
+                    $"📜 {card.cardName}: a corrupção desta travessia foi contida.", 3f);
+                break;
+
             case JourneyEffectType.Revive:
             {
                 // Prioridade para quem está na Beira da Morte: é lá que a carta
@@ -1274,6 +1643,7 @@ public class JourneyManager : MonoBehaviour
             case JourneyEffectType.RemoveObstacle:
             case JourneyEffectType.ProtectFromWeather:
             case JourneyEffectType.Intimidate:
+            case JourneyEffectType.Conter:
                 return 0.35f;
 
             case JourneyEffectType.Purify:
@@ -1313,6 +1683,13 @@ public class JourneyManager : MonoBehaviour
 
         currentEnergy = Mathf.Min(maxEnergy, currentEnergy + 2);
         cardManager.DrawCard();
+
+        // O descanso cura — é a fogueira do Slay the Spire. Com metade dos
+        // pontos da rota em luta (13/09), uma ida de dezesseis dias tem sete
+        // combates e nenhuma recuperação entre eles; a letalidade das áreas
+        // longas foi a 2,5 mortes por jornada. O preço continua sendo o dia de
+        // mantimentos, e na Mata fechada esse dia custa em dobro.
+        Descansar(currentParty);
         ConsumeDailyResources();
 
         UpdatePartyStatus();
@@ -1325,7 +1702,27 @@ public class JourneyManager : MonoBehaviour
             return;
         }
 
-        UIManager.Instance?.ShowMessage("O grupo descansa: ⚡+2 e uma carta — ao custo de mantimentos.", 2.5f);
+        UIManager.Instance?.ShowMessage(
+            $"O grupo descansa: ❤️ {Mathf.RoundToInt(CuraDoDescanso * 100f)}% de vida, ⚡+2 e uma carta — ao custo de um dia de mantimentos.", 2.5f);
+    }
+
+    /// <summary>Fração da vida máxima que o descanso devolve, e o estresse que alivia.</summary>
+    public const float CuraDoDescanso = 0.20f;
+    public const float AlivioDoDescanso = 8f;
+
+    /// <summary>
+    /// O que o descanso faz com o grupo. Estático e público para o simulador
+    /// descansar pela mesma conta — a regra de sempre deste projeto.
+    /// </summary>
+    public static void Descansar(IEnumerable<HeroData> party)
+    {
+        foreach (HeroData h in party.Where(x => x != null && x.IsAlive).ToList())
+        {
+            int cura = Mathf.Max(1, Mathf.RoundToInt(h.maxHp * CuraDoDescanso));
+            h.currentHp = Mathf.Min(h.maxHp, h.currentHp + cura);
+            if (h.isOnDeathsDoor && h.currentHp > 0) h.isOnDeathsDoor = false;
+            EventResolver.AddStress(h, -AlivioDoDescanso, new EventResolver.Resolution());
+        }
     }
 
     /// <summary>
@@ -1375,7 +1772,16 @@ public class JourneyManager : MonoBehaviour
         bool abrigado = weatherProtectionDays > 0;
         if (abrigado) weatherProtectionDays--;
 
-        rations -= DailyRationCost();
+        // A regra da área na manutenção diária (AreaRules): a Mata cobra em
+        // dobro quando o mato fecha; o Covil conta cada trecho iluminado como um
+        // passo do despertar e escurece pior.
+        AreaType area = AreaAtual;
+        int vezes = AreaRules.ConsumoPorTrecho(area, ProgressoDaRota);
+
+        if (area == AreaType.Covil && torches > 0)
+            Despertar += AreaRules.CovilDespertarPorLuz;
+
+        rations -= DailyRationCost() * vezes;
         if (rations <= 0)
         {
             rations = 0;
@@ -1399,7 +1805,7 @@ public class JourneyManager : MonoBehaviour
             }
         }
 
-        torches--;
+        torches -= vezes;
         if (torches <= 0)
         {
             torches = 0;
@@ -1409,8 +1815,9 @@ public class JourneyManager : MonoBehaviour
             {
                 DarknessTicks++;
 
+                float estresse = AreaRules.EstresseDaEscuridao(area, darknessStress);
                 foreach (var hero in currentParty.Where(h => h.IsAlive))
-                    EventResolver.AddStress(hero, darknessStress, upkeep);
+                    EventResolver.AddStress(hero, estresse, upkeep);
             }
         }
 
@@ -1603,6 +2010,31 @@ public class JourneyManager : MonoBehaviour
                                         new EventResolver.Resolution());
             }
 
+            // A exposição à corrupção finalmente cobra (Fase 4 do ROADMAP, e a
+            // Forja da estrada é quem a acumula de propósito): acima de 50, o
+            // herói volta marcado; acima de 80, pode virar — e vira caído, sem
+            // tributo, que é justamente quem a Cripta levanta contra o grupo.
+            if (hero.corruptionExposure >= AreaRules.ExposicaoQueVira && Random.value < AreaRules.ChanceDeVirar)
+            {
+                linha.morreu = true;
+                linha.nivelDepois = hero.level;
+                linha.estadoMental = "virou";
+                report.herois.Add(linha);
+                report.viraram.Add(hero.heroName);
+                DiarioDaArea.Add($"{hero.heroName} virou: a corrupção que carregava o levou");
+
+                hero.isDead = true;
+                GuildManager.Instance.RegisterDeath(hero);
+                continue;
+            }
+
+            if (hero.corruptionExposure >= AreaRules.ExposicaoQueMarca && hero.trait == Trait.None)
+            {
+                Trait[] marcas = { Trait.Drunkard, Trait.Scarred, Trait.Cursed };
+                hero.trait = marcas[Random.Range(0, marcas.Length)];
+                DiarioDaArea.Add($"{hero.heroName} voltou marcado: {EventResolver.GetTraitLabel(hero.trait)}");
+            }
+
             // A ordem da party é a formação: os quatro primeiros são a expedição
             // de fato, e quem vai além disso divide a experiência com a multidão.
             int xpDoHeroi = i < PartySemPenalidade
@@ -1666,7 +2098,15 @@ public class JourneyManager : MonoBehaviour
                 var regiao = currentQuest.biomeType;
 
                 if (success && currentQuest.isRegionBoss)
+                {
                     report.regiaoSelada = RegionMap.Selar(regiao);
+
+                    // Selar cobra cartas, queimadas sem volta, do tipo que a área
+                    // sempre pede (decisão do autor em 09/09). O balanço é quem
+                    // cobra: as candidatas vão para lá, e a escolha é do jogador.
+                    if (report.regiaoSelada)
+                        report.queima = MontarQueimaDoSelo(AreaCatalog.De(AreaCatalog.Da(regiao)));
+                }
 
                 report.mapaCompletado = RegionMap.Mapear(
                     regiao,
@@ -1684,8 +2124,13 @@ public class JourneyManager : MonoBehaviour
                 // A região atravessada fica pior do que estava. É o que faz o
                 // mapa responder ao que o jogador fez, e não só ao tempo
                 // passando: voltar sempre ao mesmo lugar seguro cobra um preço
-                // visível ali.
-                RegionMap.Corromper(regiao, RegionMap.CorrupcaoPorVisita);
+                // visível ali. A carta de escrito é a única coisa que segura
+                // isto — e só isto.
+                if (!CorrupcaoContida)
+                    RegionMap.Corromper(regiao, RegionMap.CorrupcaoPorVisita);
+
+                report.corrupcaoContida = CorrupcaoContida;
+                report.diarioDaArea.AddRange(DiarioDaArea);
 
                 // O quadro da guilda: quais pedidos esta saída cumpriu.
                 //
@@ -1761,6 +2206,22 @@ public class JourneyManager : MonoBehaviour
 
         OnJourneyComplete?.Invoke(success, reward);
        // LibraryManager.Instance?.ClearAllKnowledges();
+    }
+
+    /// <summary>
+    /// O que o selo cobra em cartas, montado no último instante em que o
+    /// baralho da jornada e os donos ainda existem.
+    ///
+    /// As candidatas são as cartas do papel pedido, entre as do baralho da
+    /// jornada cujo dono está vivo — o jogador escolhe quais no balanço. Se
+    /// faltar carta do papel, o selo completa com as mais raras do baralho:
+    /// ir despreparado não bloqueia, custa caro, que é a regra do jogo para
+    /// requisitos. As cartas de escrito ficam de fora — são o que se leva à
+    /// luta final.
+    /// </summary>
+    JourneyReport.Queima MontarQueimaDoSelo(AreaCatalog.Ficha ficha)
+    {
+        return CardPayment.MontarQueimaDoSelo(ficha, currentDeck, currentOwnership, currentParty);
     }
 
     /// <summary>
@@ -1903,7 +2364,11 @@ public class JourneyManager : MonoBehaviour
     void UpdateQuestInfo()
     {
         if (questNameText != null) questNameText.text = currentQuest.questName;
-        if (biomeText != null) biomeText.text = currentQuest.biome;
+
+        // A regra da área, e não o nome do bioma: o nome da missão já diz o
+        // lugar, e "🌲 Floresta" ao lado de "🌲 A Mata" era o mesmo dado duas
+        // vezes. Desde o primeiro quadro da estrada, antes da primeira parada.
+        if (biomeText != null) biomeText.text = AreaRules.Lembrete(AreaAtual, 0f, Despertar);
         // A região tinha nome e emoji, e mais nada: Pântano e Tundra eram a mesma
         // tela cinza. A arte da missão vem primeiro; o catálogo é o padrão do
         // bioma. Deserto e Vulcão não têm arte em pacote nenhum, e aí a imagem

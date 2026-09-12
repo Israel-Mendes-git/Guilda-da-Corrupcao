@@ -1,20 +1,20 @@
 # Game Design Document — Guilda da Corrupção
 
-Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.3 — 12/09/2026 (substitui a 2.2, de 10/09)
+Unity 2022.3.62f3 · URP · pt-BR · PC · Versão 2.4 — 13/09/2026 (substitui a 2.3, de 12/09)
 
-Descreve o jogo como ele está em 12/09/2026, conferido contra o `SmokeTestReport.txt`
-(63 verificações, 0 falhas), o `PlayModeReport.txt` (nenhum erro) e o
+Descreve o jogo como ele está em 13/09/2026, conferido contra o `SmokeTestReport.txt`
+(71 verificações, 0 falhas), o `PlayModeReport.txt` (nenhum erro) e o
 `GameplayReport.txt` (auditoria de jogabilidade). Plano de trabalho em
 [`ROADMAP.md`](ROADMAP.md), inventário de arte em [`ASSETS.md`](ASSETS.md) e
 [`ARTE.md`](ARTE.md).
 
 **O mundo mudou de rumo em 10/09.** [`MUNDO.md`](MUNDO.md), desenhado com o autor
 e ratificado por ele no mesmo dia, põe **sete áreas com regra própria** num plano
-navegável, e o relógio passa a contar dias em vez de ciclos. **Nada disso está
-construído**, e parte contraria o §5 e o §13 deste documento. Junto com os nove
-pontos que o autor levantou no mesmo dia (`ROADMAP.md`, "O debate que vem antes"),
-é o que precede a próxima fila de trabalho. Até lá, o que está escrito aqui é o
-jogo que existe.
+navegável. O plano entrou em 11/09 e **a regra de cada área entrou em 13/09** (§5);
+o que segue planejado ali é o ato de cada selo e o relógio em dias. Dos nove
+pontos que o autor levantou em 10/09 (`ROADMAP.md`, "O debate que vem antes"),
+a estrada monótona (D4), as cartas secundárias (D3) e o mundo pobre (D8) foram
+atacados em 13/09; o que está escrito aqui é o jogo que existe.
 
 **[IMPLEMENTADO]** existe e funciona · **[PARCIAL]** existe pela metade, ou
 existe e ninguém usa · **[PLANEJADO]** decidido, não construído.
@@ -122,12 +122,18 @@ em que estado está.
   avanço cai de 100% para 92% com uma lida, e o ciclo seguinte soma +5,5 no lugar de
   +6,0. **[PLANEJADO]** o texto das páginas e a leitura em ordem apontando a causa —
   hoje a tela diz de onde a página veio e o que ela segura, e nada mais.
-- **O baralho vale fora da estrada** — **[PLANEJADO]**, e nenhuma das três maneiras
-  existe hoje (é o ponto D3 do debate de 10/09): as salas aceitam carta no
-  lugar de ouro; o escrito traduzido **entra no baralho** como carta de contenção,
-  a única que age sobre o mundo; e **selar cobra cartas**, queimadas sem volta, do
-  tipo que aquela região sempre pede — fixo e sabido desde o começo, para que dê
-  para preparar o baralho para o selo.
+- **O baralho vale fora da estrada** — **[IMPLEMENTADO]** em 13/09, nas três
+  maneiras que o autor escolheu (era o ponto D3 do debate de 10/09). **As salas
+  aceitam carta no lugar de ouro:** quando o ouro não cobre, o botão da compra diz
+  "ou uma carta rara" e o clique abre a escolha; a carta vale o que a Biblioteca
+  cobra por ela (100 · 250 · 500 · 1000), sem troco, e sai do baralho para sempre —
+  nenhum baralho desce de 8 cartas por isso. **O escrito traduzido entra no
+  baralho** como carta de contenção, de quem está na mesa da Biblioteca: na
+  estrada, a travessia não suja a região (o +4 não acontece); em combate, contém
+  o alvo por 3 turnos. Morre com o portador, e a Biblioteca a entrega de novo.
+  **Selar cobra cartas**, queimadas sem volta, do papel que a área sempre pede —
+  fixo, escrito na ficha do mapa desde o ciclo 1, e escolhido pelo jogador no
+  balanço da volta; sem carta do papel, o selo leva as mais raras do baralho.
 - **A jornada final não reabastece** — **[PLANEJADO]**. A jornada já existe no
   quadro (10 a 15 dias, na região do último selo), mas ainda se prepara como
   qualquer outra. O desenho é: o que saiu da guilda é o que se tem; o resto é o que
@@ -185,10 +191,11 @@ para se fechar segue planejado.
   Com três selos, a Sala de Mapas desenha a jornada final.
 - **Cada selo é específico** — **[PARCIAL]**. Não é um contador: é *quais* três, e
   o `RegionMap` já guarda a **ordem** em que as regiões caíram, não um sim/não por
-  região — a ordem é regra do jogo, e o save grava por índice. **[PLANEJADO]** o que
-  cada região entrega: uma verdade sobre a causa, uma regra que entra na luta final
-  e um destino no epílogo — 35 combinações, montadas de peças e não escritas uma a
-  uma.
+  região — a ordem é regra do jogo, e o save grava por índice. **[IMPLEMENTADO]**
+  o que cada selo cobra: cartas do papel que a área pede (§5), queimadas na volta.
+  **[PLANEJADO]** o que cada região entrega: uma verdade sobre a causa, uma regra
+  que entra na luta final e um destino no epílogo — 35 combinações, montadas de
+  peças e não escritas uma a uma.
 - **Voltar cobra** — **[PARCIAL]**. A corrupção que a travessia soma à região (+4,
   §5) já torna a visita seguinte pior, e a luta de selo **herda a corrupção da
   própria região**: demorar a selar encarece o selo. Mapear obriga a voltar, e
@@ -265,9 +272,20 @@ destino**, sempre.
   marcador do mapa** e entrega o escrito que estava nela (§3.2, §6); vencer
   **congela** a corrupção dali. Três selos abrem a passagem, que nasce na área
   selada por último.
-- **[PLANEJADO]** A regra própria de cada área — o mato que fecha, os mortos que se
-  erguem, o dragão que a luz desperta — está escrita em `MUNDO.md` e não construída.
-  Hoje as sete se diferenciam por distância, corrupção, aspecto e o ato do selo.
+- **A regra própria de cada área** — **[IMPLEMENTADO]** em 13/09 (`AreaRules`), e
+  o simulador do smoke test roda as mesmas contas. A linha do alto da estrada diz
+  a regra em vigor. **[PLANEJADO]** o ato de cada selo: hoje todo selo é uma luta
+  seguida da queima de cartas.
+
+  | Área | O que faz | Selar queima |
+  |---|---|---|
+  | 🌲 A Mata | do trecho 60% em diante, ração e tocha em dobro; a caça repõe rações nas paradas | 2 de ataque |
+  | 🏯 A Cripta | um caído por rodada se ergue com um terço da vida, uma vez cada; um morto da guilda sem monumento luta em cada encontro; espólio em dobro | 2 de suporte |
+  | 🏚️ A Aldeia | depois de cada luta vencida, poupar (moral e estresse) ou matar (ouro e rações, moral) | 2 de suporte |
+  | 🏜️ O Oráculo | perguntar revela a rota inteira e queima uma carta sorteada do baralho, para sempre | 1 de utilidade |
+  | ❄️ A Torre | a cópia de um herói vivo entra em cada luta; derrubá-la estressa o original e pode render uma carta rara ou melhor | 2 de ataque |
+  | 🌋 A Forja | forjar uma vez por jornada: +1 na arma, corrompida — exposição a cada luta; a luta vem em seguida. Exposição ≥ 50 marca com traço, ≥ 80 pode virar | 2 de defesa |
+  | ⛰️ O Covil | cada trecho com tocha, cada espólio e cada relíquia aproximam o despertar; em 10 o dragão desce; o escuro cobra mais; as lutas largam relíquia | 2 de defesa |
 - **[PARCIAL]** O plano é desenhado com os símbolos do pacote de mapa sobre
   pergaminho, e as posições são coordenadas de 0 a 1. O mapa ilustrado troca o fundo
   e os números; nada mais depende deles.
@@ -443,6 +461,13 @@ para dizer o que a carta faz.
 - **Toda carta faz alguma coisa nos dois lados, e nenhum efeito sobra sem carta**
   — o smoke test tranca as duas coisas desde que quatro cartas cobravam energia
   sem fazer nada e seis efeitos não tinham dono.
+- **Sete cartas de escrito** (13/09), uma por área, em `Resources/Escritos` — fora
+  do acervo de propósito: nenhuma sala as vende, nenhum baralho as sorteia, e
+  nenhuma paga compra. Entram pela Biblioteca ao traduzir (§3.2), com efeito de
+  conter na estrada e de enfraquecer em combate.
+- **A carta paga compra** (13/09): sem ouro, qualquer sala aceita uma carta que
+  valha o preço — o mesmo preço da Biblioteca, sem troco, e o baralho nunca desce
+  de 8 por isso (§3.2, §6).
 - **[PLANEJADO]** Cartas de Ladino e Bardo. Enquanto não existirem, a **taverna
   não oferece as duas classes** — o recruta entrava com um baralho de emergência
   de oito cópias de um "ataque básico" criado em memória, pelo salário cheio.
@@ -492,6 +517,12 @@ fica limpo; a caixa do evento só aparece quando ele pára.
 | Rações | 10 + compras | −1 por trecho (mais 1 por bloco de 4 heróis extras); ao zerar, 5 de dano por herói |
 | Tochas | 8 + compras | −1 por trecho; sem tocha, estresse |
 | Energia · mão | 5 · 5 cartas | Custo das cartas jogadas na estrada; compra ao encerrar o turno |
+| Descanso | um por parada | +20% de vida, −8 de estresse, ⚡+2 e uma carta, por um dia de mantimentos — a fogueira do *Slay the Spire* (13/09) |
+
+**O alto da tela diz só o que decide (13/09):** dia, rações, tochas, energia e a
+regra da área em vigor — no lugar do nome do bioma, que repetia o da missão.
+Baralho, mão e descarte aparecem com a mão, na parada; o desvio só quando há
+desvio comprado, os batedores só quando há batedor. Eram onze contadores fixos.
 
 **A tocha é a luz da tela [IMPLEMENTADO].** Era um contador e uma punição ao
 chegar a zero; entre o cinco e o zero nada acontecia. Agora a escuridão avança
@@ -503,7 +534,13 @@ aperto é que se vê antes dela.
 
 **25 eventos** — 20 comuns, dos quais 6 levam a combate, e 5 de chefe —, filtrados
 por região, corrupção mínima e dia mínimo, com memória dos 3 últimos para não
-repetir. São paradas curtas com nome e ilustração próprios (*Ponte Quebrada*,
+repetir. **Desde 13/09 o sorteio decide primeiro se o ponto é luta** — metade dos
+pontos da rota — e só depois qual evento: o acervo era 70% texto e a estrada
+saía como ele (a queixa D4 do autor). O mapa mostra o tipo de cada ponto
+alcançável, então escolher a rota é escolher entre lutar e parar. Além do evento,
+a caixa oferece o que a área tem (§5): forjar na Forja, perguntar no Oráculo;
+na Aldeia, a luta vencida abre a escolha de poupar ou matar. São paradas curtas
+com nome e ilustração próprios (*Ponte Quebrada*,
 *Acampamento Noturno*, *O Que Restou da Expedição*, *Névoa Pútrida*), cada uma com
 três opções; o desfecho mexe em ouro, reputação, vida, ferimento, moral, dias e
 corrupção do mundo — passando pelas mesmas regras de Beira da Morte e estresse do
@@ -594,16 +631,19 @@ impedir a luta.
 | Luta de selo · jornada final | 7–10 dias, `200 + nível×20` · 10–15 dias, `300 + nível×30` |
 
 **Letalidade alvo** (decisão do autor): 0,33 a 0,67 mortes por jornada com grupo
-de 4. Medido em 12/09, com o simulador rodando o código real em 1000 jornadas:
+de 4. Medido em 13/09, com o simulador rodando o código real em 1000 jornadas — já
+com metade dos pontos em luta, o descanso que cura e a regra de cada área:
 
 | Medida | Valor |
 |---|---|
-| Mortes por jornada | **0,59** — chefe 0,05 · encontro do caminho 0,39 · estrada 0,16 |
-| Sobrevivência | 85,2% |
-| Duração média · combates por jornada | 10,7 dias · 3,43 |
-| Cartas jogadas na estrada | 2,62 por jornada |
-| Mortes por combate contra chefe (grupo desgastado) | 0,03 (teto 0,40) |
-| Primeira jornada: dois fundadores na Mata | **0,06** mortes · 97% de sobrevivência · 6,9 dias (teto 0,35) |
+| Mortes por jornada | **0,52** — chefe 0,07 · encontro do caminho 0,28 · estrada 0,17 |
+| Sobrevivência | 87,0% |
+| Duração média · combates por jornada | 10,5 dias · 5,87 |
+| Paradas de texto · descansos por jornada | 5,29 · 1,65 |
+| Cartas jogadas na estrada | 3,48 por jornada |
+| Por área | Mata 0,45 · Cripta 0,19 · Aldeia 0,35 · Oráculo 0,35 · Torre 0,73 · Forja 0,24 · Covil 1,29 |
+| O chefe, por luta de selo | 0,37 (piso 0,10) |
+| Primeira jornada: dois fundadores na Mata | **0,14** mortes · 93% de sobrevivência · 7,0 dias (teto 0,35) |
 
 O KPI do combate é **mortes por combate**, não taxa de vitória: com o grupo
 descansado a party vence quase sempre, e o que se mede é o que a luta cobra em
@@ -617,13 +657,14 @@ cada sistema vale em mortes por jornada. Em 12/09 ela passou a contar também o 
 sai, e o catálogo passou a ser o da guilda inteira — a conta antiga somava a Forja
 de um herói só e dizia que tudo custava 2.660.
 
-| Por jornada, grupo de 4 | Valor |
+| Por jornada, grupo de 4 (13/09) | Valor |
 |---|---|
-| Contrato · eventos · quem voltou | 351 · 153 · 87 |
-| Folha (10 dias fora) | −198 |
-| Sobra | 394 |
-| Catálogo da guilda inteira | 13.220, ou 33 jornadas |
-| Ao fim da run (15 ciclos) | 6.011 juntados: 45% do catálogo |
+| Contrato · eventos · quem voltou | 359 · 122 · 87 |
+| Folha (10,6 dias fora) | −203 |
+| Sobra | 365 |
+| Catálogo da guilda inteira | 13.220, ou 36 jornadas |
+| Ao fim da run (15 ciclos) | 5.568 juntados: 42% do catálogo |
+| Forja arma nível 1 · relíquias 2 por herói | −0,17 · −0,37 mortes por jornada (eram −0,04 · −0,27: com mais luta, a compra se sente) |
 
 O que a auditoria acusava e o que se fez: a economia saturava porque nada saía —
 entrou a folha. A armadura valia quase o dobro da arma pelo mesmo preço — passou a

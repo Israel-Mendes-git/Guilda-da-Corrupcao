@@ -192,7 +192,8 @@ public static class GuildSmokeTest
 
         // Efeito sem nenhuma carta é espaço de design vazio, não defeito: fica
         // como aviso para orientar a próxima leva de conteúdo.
-        var comCarta = new HashSet<JourneyEffectType>(cards.Select(c => c.journeyEffect));
+        var comCarta = new HashSet<JourneyEffectType>(cards.Select(c => c.journeyEffect)
+                                                           .Concat(Escritos.TodasAsCartas().Select(c => c.journeyEffect)));
         var semCarta = System.Enum.GetValues(typeof(JourneyEffectType))
                                   .Cast<JourneyEffectType>()
                                   .Where(e => e != JourneyEffectType.None && !comCarta.Contains(e))
@@ -227,6 +228,36 @@ public static class GuildSmokeTest
 
         int comRequisito = events.Count(e => e.outcomes != null && e.outcomes.Any(o => o != null && o.RequiresCard));
         Info($"eventos com caminho que exige carta: {comRequisito} de {events.Length}");
+
+        // As cartas de escrito, fora de Resources/Cards para ninguém sortear
+        // nem vender: uma por área, e todas com efeito nos dois lados — a mesma
+        // régua das outras quarenta.
+        var escritos = Escritos.TodasAsCartas();
+        Check(escritos.Length == AreaCatalog.Todas.Length,
+              $"há uma carta de escrito por área ({escritos.Length} de {AreaCatalog.Todas.Length})");
+
+        int semRegiao = AreaCatalog.Todas.Count(a => Escritos.Carta(AreaCatalog.Aspecto(a)) == null);
+        Check(semRegiao == 0, $"toda região acha a carta do seu escrito pelo nome (sem carta: {semRegiao})");
+
+        int escritosInertes = escritos.Count(c => !implementados.Contains(c.combatEffect)
+                                                 || c.journeyEffect != JourneyEffectType.Conter);
+        Check(escritosInertes == 0,
+              $"toda carta de escrito contém na estrada e faz algo em combate (inertes: {escritosInertes})");
+
+        int escritosAVenda = cards.Count(Escritos.EhEscrito);
+        Check(escritosAVenda == 0, $"nenhuma carta de escrito está no acervo à venda ({escritosAVenda})");
+
+        // O pagamento com carta vale o que a Biblioteca cobra por ela: as duas
+        // tabelas precisam concordar, ou comprar e pagar vira arbitragem.
+        var biblioteca = Object.FindObjectOfType<LibraryManager>(true);
+        if (biblioteca != null)
+        {
+            bool concorda = CardPayment.Valor(CardRarity.Common) == biblioteca.commonCardPrice
+                         && CardPayment.Valor(CardRarity.Rare) == biblioteca.rareCardPrice
+                         && CardPayment.Valor(CardRarity.Epic) == biblioteca.epicCardPrice
+                         && CardPayment.Valor(CardRarity.Legendary) == biblioteca.legendaryCardPrice;
+            Check(concorda, "a carta paga nas salas o que a Biblioteca cobra por ela");
+        }
 
         // Um evento em que TODAS as opções exigem carta pode travar a jornada.
         var semSaidaLivre = events
@@ -305,6 +336,29 @@ public static class GuildSmokeTest
 
         Check(semExpedicao == 0, $"toda área gera expedição (falhas: {semExpedicao})");
         Check(semDias == 0, $"toda expedição tem duração válida (inválidas: {semDias})");
+
+        // Selar cobra cartas, e o preço é fixo e sabido desde o começo.
+        int seloSemPreco = AreaCatalog.Todas.Count(a => AreaCatalog.De(a).seloCobra < 1);
+        Check(seloSemPreco == 0, $"todo selo cobra ao menos uma carta (sem preço: {seloSemPreco})");
+        Info("o que cada selo queima: " + string.Join(" · ",
+            AreaCatalog.Todas.Select(a => $"{AreaCatalog.De(a).nome}: {AreaCatalog.De(a).PrecoDoSelo}")));
+
+        // A conta do selo sobre um baralho de jornada real: as candidatas são
+        // do papel pedido e de dono vivo, e o despreparado paga com as mais raras.
+        var grupoDoSelo = SimParty.Create();
+        var fichaDaMata = AreaCatalog.De(AreaType.Mata);
+        var queima = CardPayment.MontarQueimaDoSelo(fichaDaMata, grupoDoSelo.deck, grupoDoSelo.ownership, grupoDoSelo.heroes);
+        Check(queima != null && queima.candidatas.All(c => CardRoleUtil.Of(c.carta) == fichaDaMata.seloPede
+                                                         && c.dono != null && c.dono.IsAlive),
+              $"o selo da Mata só oferece cartas de {CardRoleUtil.Label(fichaDaMata.seloPede)} de dono vivo "
+              + $"({(queima != null ? queima.candidatas.Count : 0)} candidatas)");
+
+        var fichaDoOraculo = AreaCatalog.De(AreaType.Oraculo);
+        var queimaRara = CardPayment.MontarQueimaDoSelo(fichaDoOraculo, grupoDoSelo.deck, grupoDoSelo.ownership, grupoDoSelo.heroes);
+        Check(queimaRara != null && queimaRara.candidatas.Count + queimaRara.queimadasSemEscolha.Count >= Mathf.Min(1, fichaDoOraculo.seloCobra),
+              $"o selo do Oráculo cobra mesmo sem carta do papel ({queimaRara?.candidatas.Count ?? 0} à escolha, "
+              + $"{queimaRara?.queimadasSemEscolha.Count ?? 0} sem escolha)");
+        grupoDoSelo.Dispose();
 
         // O quadro: pedidos, não destinos.
         Encomendas.Reiniciar();
@@ -594,6 +648,20 @@ public static class GuildSmokeTest
         public float mortesNaEstrada;
         public float cartasJogadas;
         public float combates;
+
+        /// <summary>Paradas sem luta por jornada — a caixa de texto que o autor quer ver menos.</summary>
+        public float paradasDeTexto;
+
+        /// <summary>Quantas vezes o grupo descansou por jornada — cada uma custa um dia de mantimentos.</summary>
+        public float descansos;
+
+        /// <summary>
+        /// Mortes por jornada em cada área. Com regra própria por lugar, o
+        /// número geral esconde qual delas mata: é aqui que se vê.
+        /// </summary>
+        public Dictionary<AreaType, float> mortesPorArea;
+        public Dictionary<AreaType, float> combatesPorArea;
+
         public float sobrevivencia;
         public float duracaoMedia;
         public float aflicoes;
@@ -618,6 +686,8 @@ public static class GuildSmokeTest
         Info($"{runs} jornadas: {s.sobrevivencia:P1} de sobrevivência");
         Info($"duração média: {s.duracaoMedia:F1} dias");
         Info($"combates travados: {s.combates:F2} por jornada"
+           + $" | paradas de texto: {s.paradasDeTexto:F2} por jornada"
+           + $" | descansos: {s.descansos:F2} por jornada"
            + $" | cartas jogadas na estrada: {s.cartasJogadas:F2} por jornada");
         Info($"o chefe cobra {s.mortesPorLutaDeSelo:F2} morte(s) por luta de selo — "
            + "é a única jornada em que ele aparece");
@@ -625,6 +695,12 @@ public static class GuildSmokeTest
            + $" | encontro do caminho: {s.mortesEmCombateComum:F2}"
            + $" | estrada (fome, eventos): {s.mortesNaEstrada:F2}");
         Info($"heróis que sucumbiram ao estresse: {s.aflicoes:P0}");
+
+        if (s.mortesPorArea != null)
+            Info("por área — " + string.Join(" · ", AreaCatalog.Todas
+                .Where(a => s.mortesPorArea.ContainsKey(a))
+                .Select(a => $"{AreaCatalog.De(a).nome}: {s.mortesPorArea[a]:F2} mortes, {s.combatesPorArea[a]:F1} lutas")));
+
         Info($"mortes por jornada: {s.mortesPorJornada:F2} (alvo {MortesPorJornadaMin:F2}–{MortesPorJornadaMax:F2})");
 
         // O KPI é a letalidade, não a sobrevivência: "punitivo" tem piso e teto.
@@ -775,7 +851,7 @@ public static class GuildSmokeTest
     {
         int totalHerois = 0, sobreviventes = 0, mortos = 0;
         int totalAflicoes = 0;
-        int combatesTravados = 0, cartasJogadas = 0;
+        int combatesTravados = 0, cartasJogadas = 0, paradasDeTexto = 0, descansos = 0;
         var duracoes = new List<int>();
 
         // O que a estrada paga, sem o contrato da missão: é o que a auditoria de
@@ -790,6 +866,10 @@ public static class GuildSmokeTest
         // causas pedem correções opostas.
         int mortesEmCombateComum = 0, mortesNoChefe = 0, mortesNaEstrada = 0;
         int lutasDeSelo = 0;
+
+        var jornadasPorArea = new Dictionary<AreaType, int>();
+        var mortosPorArea = new Dictionary<AreaType, int>();
+        var lutasPorArea = new Dictionary<AreaType, int>();
 
         // Grupos reciclados, como em SimulateCombats: recriar a party a cada run
         // geraria milhares de decks e travaria o Editor por minutos.
@@ -821,8 +901,8 @@ public static class GuildSmokeTest
             }
             else if (deSelo)
             {
-                var area = AreaCatalog.Todas[r % AreaCatalog.Todas.Length];
-                quest = QuestGenerator.GenerateRegionBossQuest(AreaCatalog.Aspecto(area), 3);
+                var areaDoSelo = AreaCatalog.Todas[r % AreaCatalog.Todas.Length];
+                quest = QuestGenerator.GenerateRegionBossQuest(AreaCatalog.Aspecto(areaDoSelo), 3);
             }
             else
             {
@@ -858,6 +938,17 @@ public static class GuildSmokeTest
             int protecaoClima = 0;
             bool evitarProximoCombate = false;
 
+            // A regra da área (AreaRules), pelas mesmas funções da estrada: sem
+            // isto a letalidade mediria sete lugares iguais — o jogo de antes
+            // de 13/09.
+            AreaType area = AreaCatalog.Da(quest.biomeType);
+            int despertar = 0;
+            bool dragaoVeio = false;
+
+            jornadasPorArea[area] = (jornadasPorArea.TryGetValue(area, out int jpa) ? jpa : 0) + 1;
+            int mortosAntesDaJornada = mortos;
+            int lutasAntesDaJornada = combatesTravados;
+
             for (int dia = 1; dia <= dias + 1 && party.Any(h => h.IsAlive); dia++)
             {
                 // O fim da rota, pela mesma regra do JourneyMapGenerator: chefe
@@ -876,22 +967,98 @@ public static class GuildSmokeTest
 
                 if (ev == null) continue;
 
+                // O Covil: o despertar no teto põe o dragão no lugar do que havia
+                // — uma vez, e nunca sobre o fim da rota (JourneyManager.EnterNodeInternal).
+                if (area == AreaType.Covil && !dragaoVeio && !ehFimDaRota
+                    && despertar >= AreaRules.CovilDespertarMaximo)
+                {
+                    dragaoVeio = true;
+                    ev = EventPool.GetFinalEvent(quest.biomeType) ?? ev;
+                }
+
                 int diasGastos = 1;
+
+                // O descanso, pela mesma conta do JourneyManager.EndTurn: um por
+                // parada, cura e energia, e um dia a mais de mantimentos. A
+                // política é a de um jogador competente — descansa quando o
+                // grupo está abaixo da metade e a mochila aguenta o dia.
+                var vivosAgora = party.Where(h => h.IsAlive).ToList();
+                if (vivosAgora.Count > 0
+                    && vivosAgora.Average(h => h.currentHp / (float)Mathf.Max(1, h.maxHp)) < 0.5f
+                    && racoes > 2)
+                {
+                    JourneyManager.Descansar(party);
+                    energia = Mathf.Min(EnergiaInicialDaJornada, energia + 2);
+                    mao.Comprar();
+                    diasGastos++;
+                    descansos++;
+                }
 
                 bool ehCombate = ev.eventType == JourneyEventType.Combat || ev.isBossEvent;
                 if (ehCombate && !(evitarProximoCombate && !ev.isBossEvent))
                 {
-                    // O caminho que o jogo quer premiar: resolver na mesa.
-                    var lineup = EnemyPool.GetLineup(quest.biomeType, ev.isBossEvent, dia, dias + 1, party.Count);
+                    // O caminho que o jogo quer premiar: resolver na mesa. A área
+                    // entra no encontro (a Torre copia alguém; a Cripta ergue).
+                    var lineup = EnemyPool.GetLineup(quest.biomeType, ev.isBossEvent, dia, dias + 1,
+                                                     party.Count, area, party);
 
                     int vivosAntes = party.Count(h => h.IsAlive);
-                    SimulateOneCombat(party, grupo.ownership, grupo.deck, lineup);
+                    CombatOutcome luta = SimulateOneCombat(party, grupo.ownership, grupo.deck, lineup, area);
                     int caidos = vivosAntes - party.Count(h => h.IsAlive);
 
                     if (ev.isBossEvent) mortesNoChefe += caidos;
                     else mortesEmCombateComum += caidos;
 
                     combatesTravados++;
+
+                    // A peça corrompida apodrece quem a carrega, a cada luta.
+                    AreaRules.CobrarEquipamentoCorrompido(party);
+
+                    if (luta.vitoria)
+                    {
+                        switch (area)
+                        {
+                            case AreaType.Torre:
+                            {
+                                // Derrubar a própria cópia custa ao original.
+                                EnemyData copia = lineup.FirstOrDefault(EnemyPool.EhCopiaDeHeroi);
+                                if (copia != null)
+                                {
+                                    string nome = copia.enemyName.StartsWith("O reflexo de ")
+                                        ? copia.enemyName.Substring("O reflexo de ".Length) : "";
+                                    HeroData original = party.FirstOrDefault(h => h.IsAlive && h.heroName == nome);
+                                    if (original != null)
+                                        EventResolver.AddStress(original, AreaRules.TorreEstresseDaCopia,
+                                                                new EventResolver.Resolution());
+                                }
+                                break;
+                            }
+
+                            case AreaType.Covil:
+                                despertar += AreaRules.CovilDespertarPorEspolio;
+                                if (Random.value < AreaRules.CovilChanceDeReliquia)
+                                    despertar += AreaRules.CovilDespertarPorReliquia;
+                                break;
+
+                            case AreaType.Aldeia:
+                                // Poupar ou matar, pela política do simulador.
+                                if (AreaRules.SimuladorPoupa(party))
+                                {
+                                    AreaRules.Poupar(party);
+                                }
+                                else
+                                {
+                                    AreaRules.Matar(party);
+                                    racoes += AreaRules.AldeiaMatarRacoes;
+                                    ouroDosEventos += AreaRules.AldeiaMatarOuro;
+                                }
+                                break;
+                        }
+                    }
+
+                    // As cópias são criadas em memória a cada luta e não são assets.
+                    foreach (EnemyData e in lineup)
+                        if (EnemyPool.EhCopiaDeHeroi(e)) Object.DestroyImmediate(e);
                 }
                 else if (ehCombate)
                 {
@@ -901,6 +1068,12 @@ public static class GuildSmokeTest
                 else
                 {
                     if (ev.outcomes == null || ev.outcomes.Length == 0) continue;
+
+                    paradasDeTexto++;
+
+                    // A Mata dá caça: mantimentos que renovam na estrada.
+                    if (area == AreaType.Mata && Random.value < AreaRules.MataChanceDeCaca)
+                        racoes += AreaRules.MataRacoesDaCaca;
 
                     // O jogador prepara o trecho com cartas antes de decidir.
                     float mitigacao = 0f;
@@ -948,11 +1121,18 @@ public static class GuildSmokeTest
                     diasGastos += escolha.extraDays;
                 }
 
-                // Manutenção diária, igual à do JourneyManager.
+                // Manutenção diária, igual à do JourneyManager — com a regra da
+                // área: a Mata cobra em dobro quando o mato fecha, o Covil conta
+                // o trecho iluminado e escurece pior.
+                float progresso = Mathf.Clamp01(dia / (float)(dias + 1));
+                int vezes = AreaRules.ConsumoPorTrecho(area, progresso);
+
                 for (int d = 0; d < diasGastos; d++)
                 {
-                    racoes--;
-                    tochas--;
+                    if (area == AreaType.Covil && tochas > 0) despertar += AreaRules.CovilDespertarPorLuz;
+
+                    racoes -= vezes;
+                    tochas -= vezes;
 
                     if (protecaoClima > 0)
                     {
@@ -972,8 +1152,9 @@ public static class GuildSmokeTest
                     if (tochas <= 0)
                     {
                         tochas = 0;
+                        float escuro = AreaRules.EstresseDaEscuridao(area, DarknessStress);
                         foreach (var h in party.Where(x => x.IsAlive))
-                            EventResolver.AddStress(h, DarknessStress, new EventResolver.Resolution());
+                            EventResolver.AddStress(h, escuro, new EventResolver.Resolution());
                     }
                 }
             }
@@ -985,6 +1166,9 @@ public static class GuildSmokeTest
 
                 if (MentalStateUtil.IsAffliction(h.mentalState)) totalAflicoes++;
             }
+
+            mortosPorArea[area] = (mortosPorArea.TryGetValue(area, out int mpa) ? mpa : 0) + (mortos - mortosAntesDaJornada);
+            lutasPorArea[area] = (lutasPorArea.TryGetValue(area, out int lpa) ? lpa : 0) + (combatesTravados - lutasAntesDaJornada);
 
             // O que a volta paga e o que ela cobra, pelas mesmas contas do
             // JourneyManager: 25 por quem voltou, e a folha de todo mundo vivo
@@ -1009,6 +1193,10 @@ public static class GuildSmokeTest
             mortesNaEstrada = mortesNaEstrada / (float)runs,
             cartasJogadas = cartasJogadas / (float)runs,
             combates = combatesTravados / (float)runs,
+            paradasDeTexto = paradasDeTexto / (float)runs,
+            descansos = descansos / (float)runs,
+            mortesPorArea = jornadasPorArea.ToDictionary(p => p.Key, p => mortosPorArea[p.Key] / (float)p.Value),
+            combatesPorArea = jornadasPorArea.ToDictionary(p => p.Key, p => lutasPorArea[p.Key] / (float)p.Value),
             sobrevivencia = sobreviventes / (float)totalHerois,
             duracaoMedia = (float)duracoes.Average(),
             aflicoes = totalAflicoes / (float)totalHerois,
@@ -1096,6 +1284,14 @@ public static class GuildSmokeTest
         {
             mao.Remove(carta);
         }
+
+        /// <summary>Compra uma carta, como o descanso faz na estrada. Sem reciclar o descarte: a jornada não recicla.</summary>
+        public void Comprar()
+        {
+            if (monte.Count == 0 || mao.Count >= 7) return;
+            mao.Add(monte[0]);
+            monte.RemoveAt(0);
+        }
     }
 
     /// <summary>
@@ -1180,6 +1376,10 @@ public static class GuildSmokeTest
         public int reducaoDeDano;
         public int turnosEnfraquecido;
 
+        /// <summary>A vida cheia e a marca de já ter levantado — a Cripta.</summary>
+        public int hpMax;
+        public bool levantou;
+
         public bool IsAlive => hp > 0;
 
         /// <summary>Dano já descontado o enfraquecimento, como no CombatManager.</summary>
@@ -1192,6 +1392,7 @@ public static class GuildSmokeTest
             {
                 data = e,
                 hp = Mathf.RoundToInt(e.maxHp * k),
+                hpMax = Mathf.RoundToInt(e.maxHp * k),
                 dano = Mathf.RoundToInt(e.attackDamage * k),
                 bloqueio = e.blockAmount,
                 estresse = e.stressDamage
@@ -1410,7 +1611,8 @@ public static class GuildSmokeTest
     /// um combate que o jogo não tem.
     /// </summary>
     static CombatOutcome SimulateOneCombat(List<HeroData> party, CardOwnership ownership,
-                                           DeckData deck, List<EnemyData> lineup)
+                                           DeckData deck, List<EnemyData> lineup,
+                                           AreaType area = AreaType.None)
     {
         // Lidos da cena, não copiados: uma constante aqui divergiria do jogo no
         // primeiro ajuste de balanceamento feito no Inspector, e o simulador
@@ -1515,6 +1717,20 @@ public static class GuildSmokeTest
             }
 
             if (enemies.All(e => !e.IsAlive)) { vitoria = true; break; }
+
+            // A Cripta: um caído que ainda não levantou volta com um terço da
+            // vida — a mesma regra e a mesma ordem do CombatManager.
+            if (area == AreaType.Cripta)
+            {
+                SimEnemy caido = enemies.FirstOrDefault(e => !e.IsAlive && !e.levantou);
+                if (caido != null)
+                {
+                    caido.levantou = true;
+                    caido.hp = Mathf.Max(1, Mathf.RoundToInt(caido.hpMax * AreaRules.CriptaVidaAoErguer));
+                    caido.block = 0;
+                    caido.veneno = 0;
+                }
+            }
 
             foreach (var e in enemies)
             {

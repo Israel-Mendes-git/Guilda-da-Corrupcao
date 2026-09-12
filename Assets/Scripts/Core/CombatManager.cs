@@ -41,6 +41,12 @@ public class EnemyInstance
     /// </summary>
     public HeroData plannedTarget;
 
+    /// <summary>
+    /// Já se ergueu uma vez. Na Cripta os mortos levantam uma vez por luta,
+    /// cada um: sem esta marca a luta não teria fim.
+    /// </summary>
+    public bool levantou;
+
     public bool IsAlive => currentHp > 0;
 
     /// <summary>Dano de ataque já descontado o enfraquecimento em vigor.</summary>
@@ -192,8 +198,13 @@ public class CombatManager : MonoBehaviour
     /// Quem emprestou cada carta, para a formação valer no combate. Nulo faz toda
     /// carta sair inteira — é o que acontece num combate iniciado fora da jornada.
     /// </param>
+    /// <param name="area">
+    /// Onde a luta acontece. A Cripta é a única área que muda o combate por
+    /// dentro — os mortos se erguem (<see cref="ErguerUmMorto"/>); as outras
+    /// agem no bestiário ou na estrada.
+    /// </param>
     public void StartCombat(List<HeroData> heroes, DeckData deck, List<EnemyData> lineup, Action<bool> onComplete,
-                            CardOwnership cardOwnership = null)
+                            CardOwnership cardOwnership = null, AreaType area = AreaType.None)
     {
         if (heroes == null || heroes.Count == 0 || lineup == null || lineup.Count == 0)
         {
@@ -201,6 +212,8 @@ public class CombatManager : MonoBehaviour
             onComplete?.Invoke(true);
             return;
         }
+
+        areaDoCombate = area;
 
         // Chefe tem trilha própria: é o clímax da jornada e precisa soar diferente
         // de um encontro de estrada.
@@ -272,6 +285,34 @@ public class CombatManager : MonoBehaviour
         AddLog("O combate começa!");
 
         BeginPlayerTurn();
+    }
+
+    /// <summary>A área desta luta — a Cripta ergue os mortos.</summary>
+    AreaType areaDoCombate = AreaType.None;
+
+    /// <summary>
+    /// Os mortos se erguem: na Cripta, no fim de cada rodada, um inimigo caído
+    /// volta com um terço da vida — uma vez cada. É a regra da área
+    /// (<c>MUNDO.md</c>): matar um de cada vez não basta; ou se derruba todos
+    /// numa rodada, ou se aguenta a segunda vez de cada um.
+    /// </summary>
+    bool ErguerUmMorto()
+    {
+        if (areaDoCombate != AreaType.Cripta) return false;
+        if (!enemies.Any(e => e.IsAlive)) return false;
+
+        EnemyInstance caido = enemies.FirstOrDefault(e => !e.IsAlive && !e.levantou);
+        if (caido == null) return false;
+
+        caido.levantou = true;
+        caido.currentHp = Mathf.Max(1, Mathf.RoundToInt(caido.data.maxHp * AreaRules.CriptaVidaAoErguer));
+        caido.block = 0;
+        caido.poison = 0;
+
+        AddLog($"💀 {caido.data.enemyName} se ergue de novo ({caido.currentHp}).");
+        if (caido.view != null) CombatFeedback.Get().ShowText(caido.view, "💀 ergue-se", new Color(0.75f, 0.85f, 0.75f));
+        if (battleField != null) battleField.CriaturaLevanta(caido);
+        return true;
     }
 
     /// <summary>
@@ -516,6 +557,15 @@ public class CombatManager : MonoBehaviour
         {
             EndCombat(true);
             yield break;
+        }
+
+        // A Cripta: quem caiu nesta rodada, e ainda não tinha levantado, volta.
+        // Depois do veneno e antes das intenções novas, para o erguido já
+        // anunciar o que vai fazer.
+        if (ErguerUmMorto())
+        {
+            RefreshEnemies();
+            yield return new WaitForSeconds(enemyActionDelay * 0.5f);
         }
 
         // Inimigos perdem o bloqueio, o enfraquecimento envelhece, e a próxima

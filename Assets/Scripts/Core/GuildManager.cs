@@ -30,6 +30,23 @@ public class GuildManager : MonoBehaviour
     public List<HeroData> fallenHeroes = new List<HeroData>();
 
     /// <summary>
+    /// Os mortos que receberam monumento no Cemitério, por id.
+    ///
+    /// Mora aqui, e não no Cemitério, porque deixou de ser coisa da sala: a
+    /// Cripta levanta contra o grupo quem foi enterrado sem tributo
+    /// (<see cref="AreaRules.MortosSemTributo"/>), e o save precisa guardar.
+    /// </summary>
+    public List<string> honrados = new List<string>();
+
+    /// <summary>Este morto já tem monumento?</summary>
+    public bool FoiHonrado(HeroData hero) =>
+        hero != null && honrados != null && honrados.Contains(hero.GetId());
+
+    /// <summary>Os mortos que ninguém honrou — é o que a Cripta cobra.</summary>
+    public List<HeroData> MortosSemTributo() =>
+        fallenHeroes.Where(h => h != null && !FoiHonrado(h)).ToList();
+
+    /// <summary>
     /// O que a guilda tem guardado e ninguém está usando, por id do
     /// <see cref="ItemCatalog"/>.
     ///
@@ -325,6 +342,7 @@ public class GuildManager : MonoBehaviour
     {
         roster.Clear();
         fallenHeroes.Clear();
+        honrados.Clear();
 
         // Sem elenco: a guilda nova nasce em fundação, e os fundadores são
         // escolhidos na Taverna.

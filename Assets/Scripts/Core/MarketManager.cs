@@ -512,8 +512,9 @@ public class MarketManager : MonoBehaviour
         int gold = GuildManager.Instance != null ? GuildManager.Instance.gold : 0;
         bool temAlvo = item.TemAlvo;
         bool paga = gold >= item.cost;
+        bool comCarta = !paga && CardPayment.PodePagar(item.cost);
 
-        buyButton.interactable = temAlvo && paga;
+        buyButton.interactable = temAlvo && (paga || comCarta);
 
         var label = buyButton.GetComponentInChildren<TMP_Text>(true);
         if (label == null) return;
@@ -526,8 +527,9 @@ public class MarketManager : MonoBehaviour
         // frase, não um comando, e em versal ele gritava mais que o "COMPRAR" das
         // compras que o jogador pode fazer.
         label.text = !temAlvo ? item.semAlvo
-                   : !paga ? $"FALTAM {item.cost - gold}💰"
-                   : $"COMPRAR   {item.cost}💰";
+                   : paga ? $"COMPRAR   {item.cost}💰"
+                   : comCarta ? $"<color=#D9B85A>FALTAM {item.cost - gold}💰  <size=70%>{CardPayment.Rotulo(item.cost)}</size></color>"
+                   : $"FALTAM {item.cost - gold}💰";
     }
 
     void ComprarOEmFoco()
@@ -541,14 +543,11 @@ public class MarketManager : MonoBehaviour
             return;
         }
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(item.cost))
+        CardPayment.Cobrar(item.cost, item.nome, () =>
         {
-            SetFeedback("Ouro insuficiente.");
-            return;
-        }
-
-        item.onBought();
-        RefreshMarket();
+            item.onBought();
+            RefreshMarket();
+        }, () => SetFeedback("Ouro insuficiente — e nenhuma carta que valha o preço."));
     }
 
     #endregion

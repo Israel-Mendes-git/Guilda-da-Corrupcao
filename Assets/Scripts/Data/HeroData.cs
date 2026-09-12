@@ -53,6 +53,16 @@ public class HeroData : ScriptableObject
     /// </summary>
     public List<string> potions = new List<string>();
 
+    /// <summary>
+    /// Peças forjadas na Forja Abandonada, na estrada. Cada uma é melhor que a
+    /// da guilda e apodrece o portador: soma exposição à corrupção a cada
+    /// combate (<see cref="AreaRules.ExposicaoPorPecaCorrompida"/>). É o que
+    /// finalmente dá função ao <see cref="corruptionExposure"/>.
+    ///
+    /// Campo no fim da classe, como manda a regra do projeto.
+    /// </summary>
+    public int equipamentoCorrompido;
+
     // Identidade estável para salvar deck/progresso. heroName não serve: a HeroFactory
     // sorteia de listas curtas e dois heróis podem acabar com o mesmo nome.
     [SerializeField] private string heroId;

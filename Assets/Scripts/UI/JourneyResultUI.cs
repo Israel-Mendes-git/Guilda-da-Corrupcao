@@ -105,14 +105,88 @@ public class JourneyResultUI : MonoBehaviour
         PreencherCabecalho(report);
         PreencherHerois(report);
         PreencherRecompensa(report);
-        PreencherEscolhas(report);
+
+        // O selo cobra antes de o despojo ser oferecido: primeiro o que se
+        // perde, depois o que se leva.
+        if (report.queima != null && report.queima.quantas > 0 && report.queima.candidatas.Count > 0)
+            PreencherQueima(report);
+        else
+            PreencherEscolhas(report);
+    }
+
+    /// <summary>
+    /// Selar cobra cartas: um botão por candidata, e a saída travada até o selo
+    /// ter o que pede. Escolher queima a carta do baralho guardado do dono.
+    /// </summary>
+    void PreencherQueima(JourneyReport report)
+    {
+        var queima = report.queima;
+
+        if (rewardContainer != null) UIUtil.ClearChildrenNow(rewardContainer);
+        if (continueButton != null) continueButton.interactable = false;
+
+        int faltam = queima.quantas - queima.queimadas.Count;
+
+        if (rewardPromptText != null)
+        {
+            rewardPromptText.gameObject.SetActive(true);
+
+            string semEscolha = queima.queimadasSemEscolha.Count > 0
+                ? $"\n<size=80%><color=#B04040>Faltou {CardRoleUtil.Label(queima.papel)} no baralho: o selo levou "
+                  + string.Join(", ", queima.queimadasSemEscolha) + ".</color></size>"
+                : "";
+
+            rewardPromptText.text = faltam == 1
+                ? $"<color=#B04040>🔥 O selo queima 1 carta de {CardRoleUtil.Label(queima.papel)}. Escolha qual.</color>{semEscolha}"
+                : $"<color=#B04040>🔥 O selo queima {faltam} cartas de {CardRoleUtil.Label(queima.papel)}. Escolha quais.</color>{semEscolha}";
+        }
+
+        if (faltam <= 0 || rewardContainer == null || rewardButtonPrefab == null)
+        {
+            PreencherEscolhas(report);
+            return;
+        }
+
+        foreach (var candidata in queima.candidatas)
+        {
+            JourneyReport.Queima.Candidata capturada = candidata;
+
+            GameObject item = Instantiate(rewardButtonPrefab, rewardContainer);
+            item.SetActive(true);
+
+            SetText(item, "Title", $"🔥 {capturada.carta.cardName}");
+            SetText(item, "Desc", $"de {capturada.dono.heroName} · {CardPayment.NomeDaRaridade(capturada.carta.rarity)}");
+
+            Button botao = item.GetComponent<Button>() ?? item.GetComponentInChildren<Button>();
+            if (botao == null) continue;
+
+            botao.onClick.RemoveAllListeners();
+            botao.onClick.AddListener(() =>
+            {
+                if (!CardPayment.Queimar(capturada.dono, capturada.carta)) return;
+
+                queima.queimadas.Add($"{capturada.carta.cardName} de {capturada.dono.heroName}");
+                queima.candidatas.Remove(capturada);
+
+                if (queima.queimadas.Count >= queima.quantas || queima.candidatas.Count == 0)
+                {
+                    if (rewardPromptText != null)
+                        rewardPromptText.text = "<color=#D9B85A>O selo levou " + string.Join(", ", queima.queimadas) + ".</color>";
+                    PreencherEscolhas(report, manterPrompt: true);
+                }
+                else
+                {
+                    PreencherQueima(report);
+                }
+            });
+        }
     }
 
     /// <summary>
     /// As opções de despojo. Escolher uma encerra a escolha — é decisão, não
     /// lista de compras: o valor está no que se deixa para trás.
     /// </summary>
-    void PreencherEscolhas(JourneyReport report)
+    void PreencherEscolhas(JourneyReport report, bool manterPrompt = false)
     {
         if (rewardContainer != null) UIUtil.ClearChildrenNow(rewardContainer);
 
@@ -120,8 +194,11 @@ public class JourneyResultUI : MonoBehaviour
 
         if (rewardPromptText != null)
         {
-            rewardPromptText.gameObject.SetActive(temEscolha);
-            rewardPromptText.text = "O que a guilda leva desta viagem?";
+            rewardPromptText.gameObject.SetActive(temEscolha || manterPrompt);
+            if (temEscolha)
+                rewardPromptText.text = manterPrompt
+                    ? rewardPromptText.text + "\nO que a guilda leva desta viagem?"
+                    : "O que a guilda leva desta viagem?";
         }
 
         if (!temEscolha || rewardContainer == null || rewardButtonPrefab == null)
@@ -181,7 +258,20 @@ public class JourneyResultUI : MonoBehaviour
             ? "sem baixas"
             : report.mortos == 1 ? "1 herói não voltou" : $"{report.mortos} heróis não voltaram";
 
-        subtitleText.text = $"{missao} · {dias} de estrada · {baixas}\n{DescreverMapa(report)}";
+        string contida = report.corrupcaoContida
+            ? "\n<color=#D9B85A>📜 A corrupção desta travessia foi contida.</color>"
+            : "";
+
+        string viraram = report.viraram.Count > 0
+            ? $"\n<color=#B04040>🌑 A corrupção levou: {string.Join(", ", report.viraram)}.</color>"
+            : "";
+
+        // O que a regra da área fez — só o que vale contar de volta.
+        string area = report.diarioDaArea.Count > 0
+            ? "\n<size=80%><color=#B8B0A0>" + string.Join(" · ", report.diarioDaArea.Take(3)) + "</color></size>"
+            : "";
+
+        subtitleText.text = $"{missao} · {dias} de estrada · {baixas}\n{DescreverMapa(report)}{contida}{viraram}{area}";
     }
 
     /// <summary>
@@ -405,6 +495,37 @@ public class JourneyReport
 
     /// <summary>Fechar o mapa trouxe a página que estava naquela região.</summary>
     public bool escritoEncontrado;
+
+    /// <summary>A carta de escrito segurou o +4 desta travessia.</summary>
+    public bool corrupcaoContida;
+
+    /// <summary>Quem a corrupção levou na volta — saiu do roster como caído.</summary>
+    public readonly List<string> viraram = new List<string>();
+
+    /// <summary>O que a regra da área fez nesta jornada, linha a linha.</summary>
+    public readonly List<string> diarioDaArea = new List<string>();
+
+    /// <summary>
+    /// O que o selo cobra em cartas. Nulo quando a jornada não selou nada.
+    /// O balanço mostra as candidatas e o jogador escolhe quais queimar; o que
+    /// foi cobrado sem escolha (baralho despreparado) já saiu e é só anunciado.
+    /// </summary>
+    public Queima queima;
+
+    public class Queima
+    {
+        public CardRole papel;
+        public int quantas;
+        public List<Candidata> candidatas = new List<Candidata>();
+        public readonly List<string> queimadasSemEscolha = new List<string>();
+        public readonly List<string> queimadas = new List<string>();
+
+        public class Candidata
+        {
+            public HeroData dono;
+            public CardData carta;
+        }
+    }
 
     /// <summary>
     /// Pedidos do quadro que esta saída cumpriu, já com o ouro de cada um.

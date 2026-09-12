@@ -33,7 +33,8 @@ public static class GameStateIO
                 maxRosterSize = guilda.maxRosterSize,
                 relicStock = new List<string>(guilda.relicStock ?? new List<string>()),
                 potionStock = new List<string>(guilda.potionStock ?? new List<string>()),
-                debt = guilda.divida
+                debt = guilda.divida,
+                honored = new List<string>(guilda.honrados ?? new List<string>())
             };
 
             foreach (var heroi in guilda.roster)
@@ -102,7 +103,8 @@ public static class GameStateIO
         // Cópias, não as listas do herói: o save não pode ficar apontando para
         // dentro de um asset vivo, ou salvar vira uma foto que continua mudando.
         relics = new List<string>(h.relics ?? new List<string>()),
-        potions = new List<string>(h.potions ?? new List<string>())
+        potions = new List<string>(h.potions ?? new List<string>()),
+        corruptedGear = h.equipamentoCorrompido
     };
 
 
@@ -170,6 +172,7 @@ public static class GameStateIO
 
             guilda.relicStock = new List<string>(dados.guild.relicStock ?? new List<string>());
             guilda.potionStock = new List<string>(dados.guild.potionStock ?? new List<string>());
+            guilda.honrados = new List<string>(dados.guild.honored ?? new List<string>());
         }
 
         foreach (var salvo in dados.roster)
@@ -237,6 +240,7 @@ public static class GameStateIO
         // que é o estado certo para quem jogou antes de eles existirem.
         h.relics = new List<string>(s.relics ?? new List<string>());
         h.potions = new List<string>(s.potions ?? new List<string>());
+        h.equipamentoCorrompido = Mathf.Max(0, s.corruptedGear);
 
         h.name = string.IsNullOrEmpty(s.heroName) ? "Herói" : s.heroName;
 

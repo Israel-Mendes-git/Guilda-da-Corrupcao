@@ -810,6 +810,26 @@ public class PlayModeProbe : MonoBehaviour
             if (Escritos.FatorDeAvanco >= fatorAntes)
                 Line("FALHA: o escrito traduzido não atrasou a corrupção.");
 
+            // O escrito traduzido entra no baralho como carta de contenção — a
+            // única que age sobre o mundo. Entregue a um herói vivo, ela precisa
+            // estar no baralho guardado dele, e o escrito precisa saber com quem.
+            HeroData portadorAlvo = GuildManager.Instance?.roster.FirstOrDefault(h => h != null && h.IsAlive);
+            CardData cartaDoEscrito = Escritos.Carta(doEscrito);
+            int baralhoAntes = portadorAlvo != null ? TamanhoDoDeck(portadorAlvo) : -1;
+            bool entregou = Escritos.Entregar(doEscrito, portadorAlvo);
+            bool deNovo = Escritos.Entregar(doEscrito, portadorAlvo);
+            HeroData portador = Escritos.Portador(doEscrito);
+
+            Line($"a carta do escrito: '{cartaDoEscrito?.cardName}' entregue={entregou} repetida={deNovo}"
+               + $" | portador={(portador != null ? portador.heroName : "ninguém")}"
+               + $" | baralho {baralhoAntes} → {(portadorAlvo != null ? TamanhoDoDeck(portadorAlvo) : -1)}"
+               + $" | vale para pagar={(cartaDoEscrito != null && !Escritos.EhEscrito(cartaDoEscrito))}");
+
+            if (cartaDoEscrito == null) Line("FALHA: a região não tem carta de escrito em Resources/Escritos.");
+            if (!entregou) Line("FALHA: o escrito traduzido não entrou no baralho de ninguém.");
+            if (deNovo) Line("FALHA: a mesma carta de escrito foi entregue duas vezes.");
+            if (portador != portadorAlvo) Line("FALHA: o escrito não sabe quem carrega a carta.");
+
             // O atraso vale no relógio, e não só na conta: um ciclo com escrito
             // lido precisa somar menos do que a constante do RunManager.
             float corrupcaoAntes = run.Corruption;
@@ -2305,6 +2325,72 @@ public class PlayModeProbe : MonoBehaviour
         }
 
         yield return Capture("sala_forja_forjada");
+
+        // ── A sala aceita carta no lugar de ouro ────────────────────────────
+        // Sem ouro, o botão precisa dizer que a carta serve; o clique abre o
+        // painel; escolher uma carta paga a compra e tira a carta do baralho.
+        // É o primeiro dos três usos do baralho fora da estrada (09/09), e sem
+        // este bloco ele passaria em silêncio: o resto do teste tem ouro de
+        // sobra e nunca chegaria ao painel.
+        if (GuildManager.Instance != null && forge.weaponButton != null && alvo.weaponLevel < forge.maxUpgradeLevel)
+        {
+            int ouroGuardado = GuildManager.Instance.gold;
+            GuildManager.Instance.gold = 0;
+            forge.RefreshForge();
+            yield return null;
+
+            var rotulo = forge.weaponButton.GetComponentInChildren<TMP_Text>();
+            string texto = rotulo != null ? StripTags(rotulo.text) : "";
+            int custo = forge.WeaponCost(alvo);
+            bool diz = texto.Contains("ou uma carta");
+
+            Line($"sem ouro, o botão da arma ({custo}💰) diz: '{texto}' | interativo={forge.weaponButton.interactable}"
+               + $" | há carta que paga={CardPayment.PodePagar(custo)}");
+
+            if (CardPayment.PodePagar(custo) && !diz)
+                Line("FALHA: há carta que paga e o botão não diz.");
+
+            if (forge.weaponButton.interactable)
+            {
+                int nivelAntes = alvo.weaponLevel;
+                forge.weaponButton.onClick.Invoke();
+                yield return new WaitForSeconds(0.25f);
+
+                Line($"clique sem ouro: painel de pagamento aberto={CardPayment.Aberto}");
+                yield return Capture("pagar_com_carta");
+
+                Canvas canvas = UIUtil.CanvasPrincipal();
+                Transform painel = canvas != null ? canvas.transform.Find("CardPaymentPanel") : null;
+                Button escolha = painel != null
+                    ? painel.GetComponentsInChildren<Button>(true).FirstOrDefault(b => b.name.StartsWith("Btn_") && b.name != "Btn_Voltar")
+                    : null;
+
+                if (escolha == null)
+                {
+                    Line("FALHA: o painel de pagamento não ofereceu carta nenhuma.");
+                }
+                else
+                {
+                    string oferta = StripTags(escolha.GetComponentInChildren<TMP_Text>(true)?.text ?? "");
+                    ReportarAlcancavel(escolha);
+                    escolha.onClick.Invoke();
+                    yield return new WaitForSeconds(0.3f);
+
+                    Line($"pagou com '{oferta}': arma {nivelAntes} → {alvo.weaponLevel}"
+                       + $" | ouro segue {GuildManager.Instance.gold} | painel fechado={!CardPayment.Aberto}"
+                       + $" | {CardPayment.UltimoPagamento}");
+
+                    if (alvo.weaponLevel != nivelAntes + 1)
+                        Line("FALHA: a carta foi escolhida e a arma não subiu.");
+                    if (GuildManager.Instance.gold != 0)
+                        Line("FALHA: pagar com carta mexeu no ouro.");
+                }
+            }
+
+            CardPayment.Fechar();
+            GuildManager.Instance.gold = ouroGuardado;
+            forge.RefreshForge();
+        }
 
         ui.CloseForge();
         yield return new WaitForSeconds(0.2f);
@@ -3889,6 +3975,19 @@ public class PlayModeProbe : MonoBehaviour
 
         Line($"painel de jornada ativo: {jm.journeyPanel.activeSelf}");
 
+        // A regra da área, no alto da tela — no lugar do nome do bioma, que
+        // repetia o da missão. Vazia seria a estrada de antes de 13/09.
+        string lembrete = jm.biomeText != null ? StripTags(jm.biomeText.text) : "";
+        Line($"a regra da área ({AreaCatalog.Nome(jm.AreaAtual)}): '{lembrete}'");
+        if (string.IsNullOrWhiteSpace(lembrete)) Line("FALHA: a estrada não diz a regra da área.");
+
+        // O topo só mostra o que decide: os contadores do baralho ficam com a mão.
+        int contadoresNoTopo = new[] { jm.dayText, jm.rationsText, jm.torchesText, jm.energyText, jm.biomeText,
+                                       jm.questNameText, jm.deckCountText, jm.handCountText, jm.discardCountText,
+                                       jm.detourCountText, jm.upcomingEventsText }
+            .Count(t => t != null && t.gameObject.activeInHierarchy);
+        Line($"contadores visíveis no alto da estrada, entre um ponto e outro: {contadoresNoTopo} (eram 11)");
+
         // Dirige a jornada clicando nos botões reais, como um jogador faria.
         int guard = 0;
         string lastDay = jm.dayText != null ? jm.dayText.text : "";
@@ -4099,6 +4198,11 @@ public class PlayModeProbe : MonoBehaviour
            + $" | cobranças de manutenção: {jm.UpkeepTicks}");
         Line($"trechos com fome: {jm.StarvationTicks} (dano total {jm.StarvationDamage})"
            + $" | trechos no escuro: {jm.DarknessTicks}");
+        Line($"paradas de texto: {jm.ParadasDeTexto} | combates: {combatsFought}"
+           + (jm.AreaAtual == AreaType.Covil ? $" | despertar do dragão: {jm.Despertar}/{AreaRules.CovilDespertarMaximo}" : ""));
+        Line(jm.DiarioDaArea.Count == 0
+            ? "o que a regra da área fez: nada a contar nesta jornada"
+            : $"o que a regra da área fez: {string.Join(" · ", jm.DiarioDaArea)}");
         Line($"painel ainda ativo ao fim: {jm.journeyPanel.activeSelf}"
            + $" (iterações: {guard} | frames de travessia: {framesDeTravessia}"
            + $" | a mais longa: {maiorTravessia})");

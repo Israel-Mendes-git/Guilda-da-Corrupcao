@@ -349,16 +349,20 @@ public class ForgeManager : MonoBehaviour
 
         bool noMaximo = nivel >= maxUpgradeLevel;
         bool temOuro = CanAfford(custo);
+        bool temCarta = !temOuro && CardPayment.PodePagar(custo);
 
-        button.interactable = !noMaximo && temOuro;
+        button.interactable = !noMaximo && (temOuro || temCarta);
 
         var texto = button.GetComponentInChildren<TMP_Text>();
         if (texto != null)
         {
+            // Sem ouro, o botão diz que a carta serve — é a alternativa que o
+            // autor pediu, e ela precisa estar escrita antes do clique.
             texto.text = noMaximo
                 ? "NO MÁXIMO"
                 : temOuro ? $"{rotulo}   {custo}💰"
-                          : $"<color=#B04040>{rotulo}   {custo}💰</color>";
+                : temCarta ? $"<color=#D9B85A>{rotulo}   {custo}💰  <size=70%>{CardPayment.Rotulo(custo)}</size></color>"
+                           : $"<color=#B04040>{rotulo}   {custo}💰</color>";
         }
     }
 
@@ -489,19 +493,21 @@ public class ForgeManager : MonoBehaviour
         }
 
         int cost = WeaponCost(hero);
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(cost))
+
+        // Sem ouro, a compra aceita uma carta (CardPayment): o painel abre e,
+        // paga, volta aqui pelo mesmo caminho.
+        bool pagou = CardPayment.Cobrar(cost, $"a arma de {hero.heroName}", () =>
         {
-            SetFeedback("Ouro insuficiente.");
-            return;
-        }
+            hero.weaponLevel++;
+            SetFeedback($"A arma de {hero.heroName} vai ao nível {hero.weaponLevel}: "
+                      + $"+{WeaponBonus(hero)} de dano nas cartas dele.");
 
-        hero.weaponLevel++;
-        SetFeedback($"A arma de {hero.heroName} vai ao nível {hero.weaponLevel}: "
-                  + $"+{WeaponBonus(hero)} de dano nas cartas dele.");
+            RefreshForge();
+            AnunciarNasCartas($"+{damagePerWeaponLevel}", new Color(0.50f, 0.78f, 0.41f));
+            Sacudir(weaponIcon);
+        }, () => SetFeedback("Ouro insuficiente — e nenhuma carta que valha o preço."));
 
-        RefreshForge();
-        AnunciarNasCartas($"+{damagePerWeaponLevel}", new Color(0.50f, 0.78f, 0.41f));
-        Sacudir(weaponIcon);
+        if (!pagou) RefreshForge();
     }
 
     public void UpgradeArmor(HeroData hero)
@@ -515,12 +521,15 @@ public class ForgeManager : MonoBehaviour
         }
 
         int cost = ArmorCost(hero);
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(cost))
-        {
-            SetFeedback("Ouro insuficiente.");
-            return;
-        }
 
+        bool pagou = CardPayment.Cobrar(cost, $"a armadura de {hero.heroName}", () => ReforcarArmadura(hero),
+            () => SetFeedback("Ouro insuficiente — e nenhuma carta que valha o preço."));
+
+        if (!pagou) RefreshForge();
+    }
+
+    void ReforcarArmadura(HeroData hero)
+    {
         hero.armorLevel++;
 
         // A vida ganha vem cheia: pagar por armadura e continuar ferido soaria

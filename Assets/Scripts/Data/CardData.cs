@@ -72,7 +72,16 @@ public enum JourneyEffectType
     /// contradiz a morte permanente, que é pilar do jogo — o que ela faz é
     /// impedir que a morte aconteça.
     /// </summary>
-    Revive
+    Revive,
+
+    /// <summary>
+    /// Contém a Corrupção: a travessia não suja a região que o grupo atravessa.
+    ///
+    /// É o efeito da carta de escrito — a única que age sobre o mundo, e não só
+    /// sobre o grupo (decisão do autor em 09/09). Contenção é sempre atraso,
+    /// nunca reversão: a carta impede o +4 da visita, não abaixa o que já subiu.
+    /// </summary>
+    Conter
 }
 
 public static class JourneyEffectUtil
@@ -99,6 +108,7 @@ public static class JourneyEffectUtil
             case JourneyEffectType.RestoreMorale: return "levantar o ânimo";
             case JourneyEffectType.ExtraRations: return "estocar mantimentos";
             case JourneyEffectType.Revive: return "trazer de volta";
+            case JourneyEffectType.Conter: return "conter a corrupção";
             default: return "nada";
         }
     }

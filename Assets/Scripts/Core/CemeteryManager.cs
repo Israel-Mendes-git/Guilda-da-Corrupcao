@@ -76,8 +76,12 @@ public class CemeteryManager : MonoBehaviour
     public float vigilStressRelief = 12f;
 
     // Quem já recebeu homenagem, por id de herói — homenagear duas vezes seria
-    // apenas comprar reputação em loop.
-    private readonly HashSet<string> honored = new HashSet<string>();
+    // apenas comprar reputação em loop. A lista mora na guilda desde 13/09:
+    // a Cripta lê quem ficou sem tributo, e o save a guarda.
+    static List<string> honored =>
+        GuildManager.Instance != null ? GuildManager.Instance.honrados : semGuilda;
+
+    static readonly List<string> semGuilda = new List<string>();
 
     /// <summary>A tumba aberta no meio da tela. Nula enquanto ninguém morreu.</summary>
     HeroData naLapide;
@@ -336,7 +340,8 @@ public class CemeteryManager : MonoBehaviour
 
         if (tributeButton != null)
         {
-            tributeButton.interactable = !jaHomenageado && CanAfford(tributeCost);
+            bool comCarta = !CanAfford(tributeCost) && CardPayment.PodePagar(tributeCost);
+            tributeButton.interactable = !jaHomenageado && (CanAfford(tributeCost) || comCarta);
 
             var texto = tributeButton.GetComponentInChildren<TMP_Text>();
             if (texto != null)
@@ -345,6 +350,8 @@ public class CemeteryManager : MonoBehaviour
                     ? "◆ MONUMENTO ERGUIDO"
                     : CanAfford(tributeCost)
                         ? $"ERGUER MONUMENTO   {tributeCost}💰"
+                    : comCarta
+                        ? $"<color=#D9B85A>ERGUER MONUMENTO   {tributeCost}💰  <size=70%>{CardPayment.Rotulo(tributeCost)}</size></color>"
                         : $"<color=#B04040>ERGUER MONUMENTO   {tributeCost}💰</color>";
             }
         }
@@ -504,12 +511,12 @@ public class CemeteryManager : MonoBehaviour
             return;
         }
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(tributeCost))
-        {
-            SetFeedback("Ouro insuficiente para a homenagem.");
-            return;
-        }
+        CardPayment.Cobrar(tributeCost, $"o monumento de {hero.heroName}", () => ErguerMonumento(hero),
+            () => SetFeedback("Ouro insuficiente para a homenagem — e nenhuma carta que valha o preço."));
+    }
 
+    void ErguerMonumento(HeroData hero)
+    {
         honored.Add(hero.GetId());
         GuildManager.Instance.AddReputation(tributeReputation);
 
@@ -707,12 +714,13 @@ public class CemeteryManager : MonoBehaviour
             return;
         }
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(vigilCost))
-        {
-            SetFeedback("Ouro insuficiente para a vigília.");
-            return;
-        }
+        CardPayment.Cobrar(vigilCost, "a vigília", VelarOsMortos,
+            () => SetFeedback("Ouro insuficiente para a vigília — e nenhuma carta que valha o preço."));
+    }
 
+    void VelarOsMortos()
+    {
+        List<HeroData> fallen = Fallen();
         int aliviados = 0;
 
         foreach (var linha in vivos)

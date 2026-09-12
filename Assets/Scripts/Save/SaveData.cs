@@ -80,6 +80,16 @@ public class GuildSave
 
     /// <summary>Salários devidos. Save antigo traz 0, que é o que uma guilda sem dívida tem.</summary>
     public int debt;
+
+    /// <summary>
+    /// Os mortos que receberam monumento, por id de herói.
+    ///
+    /// Morava só no Cemitério, em memória, e sumia ao fechar o jogo — o que
+    /// não importava enquanto o monumento comprava só reputação. Desde que a
+    /// Cripta levanta contra o grupo quem foi enterrado sem tributo, o tributo
+    /// precisa sobreviver ao save. Lista vazia é save antigo: ninguém honrado.
+    /// </summary>
+    public List<string> honored = new List<string>();
 }
 
 [Serializable]
@@ -182,6 +192,9 @@ public class HeroSave
     /// </summary>
     public List<string> relics = new List<string>();
     public List<string> potions = new List<string>();
+
+    /// <summary>Peças forjadas na estrada, que apodrecem o portador. Save antigo traz 0.</summary>
+    public int corruptedGear;
 }
 
 /// <summary>

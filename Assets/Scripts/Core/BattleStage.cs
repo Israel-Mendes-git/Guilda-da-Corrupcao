@@ -386,6 +386,9 @@ public class BattleStage : MonoBehaviour
     public void CriaturaApanha(EnemyInstance inimigo) => TocarNaCriatura(inimigo, EnemyBody.Estado.Apanhou);
     public void CriaturaMorre(EnemyInstance inimigo) => TocarNaCriatura(inimigo, EnemyBody.Estado.Morte);
 
+    /// <summary>A Cripta ergue quem caiu: o corpo volta ao parado.</summary>
+    public void CriaturaLevanta(EnemyInstance inimigo) => TocarNaCriatura(inimigo, EnemyBody.Estado.Idle);
+
     void TocarNoHeroi(HeroData heroi, PlayerState estado)
     {
         if (heroi == null || !herois.TryGetValue(heroi, out Corpo corpo)) return;

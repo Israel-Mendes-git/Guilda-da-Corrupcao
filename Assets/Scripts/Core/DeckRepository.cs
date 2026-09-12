@@ -200,6 +200,14 @@ public static class DeckRepository
             if (card != null && !cardsByName.ContainsKey(card.name))
                 cardsByName[card.name] = card;
         }
+
+        // As cartas de escrito moram fora de "Cards" para ninguém sortear nem
+        // vender; o save, porém, precisa reencontrá-las pelo nome.
+        foreach (var card in Escritos.TodasAsCartas())
+        {
+            if (card != null && !cardsByName.ContainsKey(card.name))
+                cardsByName[card.name] = card;
+        }
     }
 
     /// <summary>

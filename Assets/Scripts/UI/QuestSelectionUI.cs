@@ -536,9 +536,13 @@ public class QuestSelectionUI : MonoBehaviour
             details += $"<i>{ficha.regra}</i>\n\n";
 
             if (eSelo)
-                details += $"<b>O selo:</b> {ficha.selo}\n\n";
+                details += $"<b>O selo:</b> {ficha.selo}\n";
             else
-                details += $"<b>Dá:</b> {ficha.oQueDa}\n<b>Cobra:</b> {ficha.oQueCobra}\n\n";
+                details += $"<b>Dá:</b> {ficha.oQueDa}\n<b>Cobra:</b> {ficha.oQueCobra}\n";
+
+            // O preço do selo, sabido desde o ciclo 1 (decisão do autor em
+            // 09/09): é para o jogador preparar o baralho antes de ir selar.
+            details += $"<b>Selar queima:</b> {ficha.PrecoDoSelo}\n\n";
         }
 
         details += $"⏱️ {quest.minDuration}-{quest.maxDuration} dias";

@@ -246,7 +246,8 @@ public class MapRoomManager : MonoBehaviour
         if (button == null) return;
 
         bool temOuro = GuildManager.Instance != null && GuildManager.Instance.gold >= custo;
-        button.interactable = temVaga && temOuro;
+        bool temCarta = !temOuro && CardPayment.PodePagar(custo);
+        button.interactable = temVaga && (temOuro || temCarta);
 
         var texto = button.GetComponentInChildren<TMP_Text>();
         if (texto == null) return;
@@ -254,7 +255,8 @@ public class MapRoomManager : MonoBehaviour
         texto.text = !temVaga
             ? rotuloCheio
             : temOuro ? $"{rotulo}   {custo}💰"
-                      : $"<color=#B04040>{rotulo}   {custo}💰</color>";
+            : temCarta ? $"<color=#D9B85A>{rotulo}   {custo}💰  <size=70%>{CardPayment.Rotulo(custo)}</size></color>"
+                       : $"<color=#B04040>{rotulo}   {custo}💰</color>";
     }
 
     void SetFeedback(string message)
@@ -901,12 +903,12 @@ public class MapRoomManager : MonoBehaviour
     {
         int cost = GetUpgradeCost();
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(cost))
-        {
-            SetFeedback("Ouro insuficiente.");
-            return;
-        }
+        CardPayment.Cobrar(cost, "a ampliação da sala", AmpliarASala,
+            () => SetFeedback("Ouro insuficiente — e nenhuma carta que valha o preço."));
+    }
 
+    void AmpliarASala()
+    {
         mapRoomLevel++;
         SetFeedback($"A sala vai ao nível {mapRoomLevel}: os batedores chegam a {MaxScouting} dias "
                   + $"e cabem {MaxDetours} desvios.");
@@ -927,12 +929,12 @@ public class MapRoomManager : MonoBehaviour
             return;
         }
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(scoutingCost))
-        {
-            SetFeedback("Ouro insuficiente.");
-            return;
-        }
+        CardPayment.Cobrar(scoutingCost, "o batedor", ContratarBatedor,
+            () => SetFeedback("Ouro insuficiente — e nenhuma carta que valha o preço."));
+    }
 
+    void ContratarBatedor()
+    {
         scoutingCharges++;
 
         // O dia que este batedor abre é o mesmo que o mapa da jornada vai mostrar
@@ -964,12 +966,12 @@ public class MapRoomManager : MonoBehaviour
             return;
         }
 
-        if (GuildManager.Instance == null || !GuildManager.Instance.SpendGold(detourCost))
-        {
-            SetFeedback("Ouro insuficiente.");
-            return;
-        }
+        CardPayment.Cobrar(detourCost, "o desvio", TracarDesvio,
+            () => SetFeedback("Ouro insuficiente — e nenhuma carta que valha o preço."));
+    }
 
+    void TracarDesvio()
+    {
         detourCharges++;
         SetFeedback($"Rota alternativa traçada: {detourCharges} encontro"
                   + $"{(detourCharges == 1 ? " pode" : "s podem")} ser recusado"

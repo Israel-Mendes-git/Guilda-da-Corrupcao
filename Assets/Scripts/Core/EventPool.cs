@@ -37,6 +37,22 @@ public static class EventPool
         recentlyUsed.Clear();
     }
 
+    /// <summary>
+    /// Quantos pontos da rota são combate, desde 13/09.
+    ///
+    /// <b>A queixa do autor, em 10/09:</b> <i>"a jornada está monótona, muito
+    /// texto, combate de vez em quando"</i>. O sorteio era uniforme sobre os 20
+    /// eventos comuns, dos quais 6 levam a luta — 30% dos pontos, e os outros
+    /// 70% eram caixa de texto. No <i>Slay the Spire</i>, que é a referência
+    /// declarada, mais da metade dos nós é luta. O sorteio passa a decidir
+    /// primeiro <i>se</i> o ponto é combate, e só depois qual; o mapa já mostra
+    /// o tipo de cada ponto alcançável, então escolher a rota vira escolher
+    /// entre lutar e parar.
+    ///
+    /// Medido no smoke test, que é quem diz se a letalidade aguenta o número.
+    /// </summary>
+    public static float FracaoDeCombate = 0.5f;
+
     public static EventData GetRandomEvent(BiomeType biome, int corruptionLevel, int currentDay)
     {
         Initialize();
@@ -50,6 +66,12 @@ public static class EventPool
 
         if (valid.Count == 0)
             return GetDefaultEvent();
+
+        // Primeiro se é luta, depois qual. Sem esta separação a proporção de
+        // combate na rota é a proporção do acervo, e o acervo é de texto.
+        bool luta = Random.value < FracaoDeCombate;
+        List<EventData> doTipo = valid.Where(e => (e.eventType == JourneyEventType.Combat) == luta).ToList();
+        if (doTipo.Count > 0) valid = doTipo;
 
         // Sem repetir o que acabou de acontecer, desde que sobre alternativa.
         List<EventData> fresh = valid.Where(e => !recentlyUsed.Contains(e)).ToList();

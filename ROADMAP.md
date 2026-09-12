@@ -969,8 +969,8 @@ qualquer contrato, e depois o derruba de novo na missão de selo.
 
 | # | Passo | Entrega | Prova |
 |---|---|---|---|
-| **1** | **Os escritos e a Biblioteca** | página cai na estrada, a Biblioteca traduz uma por ciclo, cada uma atrasa a corrupção e nenhuma reverte; o traduzido vira carta de contenção no baralho | Play Mode + relatório de telas |
-| **2** | **Selar cobra cartas** | a região pede um tipo fixo, sabido desde o ciclo 1, e queima as cartas sem volta ao aceitar | Play Mode: o preço aparece na Sala de Mapas desde o começo |
+| **1** | ✅ **Os escritos e a Biblioteca** *(10/09; a carta em 13/09)* | página cai na estrada, a Biblioteca traduz uma por ciclo, cada uma atrasa a corrupção e nenhuma reverte; o traduzido vira carta de contenção no baralho | Play Mode: a carta do escrito entra no baralho de quem está na mesa, e o escrito sabe quem a carrega |
+| **2** | ✅ **Selar cobra cartas** *(13/09)* | a área pede um papel fixo, escrito na ficha do mapa desde o ciclo 1, e queima as cartas sem volta no balanço da volta | smoke test: o selo da Mata só oferece ataque de dono vivo; o do Oráculo cobra mesmo sem carta do papel |
 | **3** | ✅ **O chefe sai das jornadas comuns** *(11/09)* | jornada comum termina em encontro forte; o chefe ficou para a luta de selo e para a final | Smoke test: o chefe cobra **0,30 morte por luta de selo** e a letalidade fechou em **0,63** (alvo 0,33–0,67) |
 | **4** | ✅ **A economia para de saturar** *(12/09, fase 3.15)* | a folha vence na volta; armadura 150 por nível; poções 40–50; a semana parada na Taverna | `GameplayReport.txt`: sobra 394 por jornada e 45% do catálogo ao fim da run |
 
@@ -1163,6 +1163,89 @@ como "fora da tela" — e estão, de propósito, porque o mapa se percorre. Cont
 
 ---
 
+### Fase 3.16 — A estrada com luta, as cartas fora do combate e a regra de cada área ✅ *construída em 13/09*
+
+Os três itens que fecharam a sessão de 12/09, na ordem que o autor escolheu (*"no próximo chat
+vamos resolver o 1, 2 e 3"*). Nenhum desenho foi perguntado antes — a regra dele para implementação
+é decidir o escopo e ver na tela —, e por isso **todos os números abaixo são meus e vetáveis**
+(memória `regras-de-area-e-cartas-decisoes-13-09`).
+
+#### 1. A estrada
+
+A queixa de 10/09: *"a jornada está monótona, muito texto, combate de vez em quando"*. Três cortes:
+
+| O que mudou | Regra |
+|---|---|
+| **Metade dos pontos é luta** | o sorteio decide primeiro se o ponto é combate (`EventPool.FracaoDeCombate = 0,5`) e só depois qual evento. O acervo era 70% texto e a rota saía como ele: 30% de luta. O mapa já mostrava o tipo de cada ponto alcançável, então escolher a rota virou escolher entre lutar e parar |
+| **O topo diz só o que decide** | dia, rações, tochas, energia e a regra da área em vigor (no lugar do nome do bioma, que repetia o da missão). Baralho, mão e descarte aparecem com a mão; desvio só com desvio comprado; batedores só com batedor. Eram 11 contadores fixos, são 6 entre um ponto e outro |
+| **O texto sai de uma vez** | 0,008s por letra (era 0,03: uma parada de 150 letras levava 4,5 segundos só para aparecer). Campo serializado, escrito pelo `GuildSceneSetup` |
+| **O descanso cura** | +20% de vida, −8 de estresse, ⚡+2 e uma carta, por um dia de mantimentos — a fogueira do *Slay the Spire*. Não estava no plano: com o dobro de lutas e nenhuma recuperação entre elas, a letalidade foi a **1,52** mortes por jornada (Torre 2,7, Covil 2,5). O botão já existia e já custava o dia; só não curava |
+
+#### 2. As cartas fora do combate — os três usos decididos em 09/09
+
+| Uso | Regra |
+|---|---|
+| **As salas aceitam carta no lugar de ouro** (`CardPayment`) | só quando o ouro não cobre: o botão diz *"faltam 30 · ou uma carta rara"* e o clique abre a escolha. A carta vale o que a Biblioteca cobra por ela (100 · 250 · 500 · 1000), **sem troco** — o que sobra é o preço de não ter o ouro, e sem troco não há arbitragem. Nenhum baralho desce de 8 cartas por isso; cartas de escrito não pagam. Forja, Mercado, Biblioteca, Cemitério e Sala de Mapas |
+| **O escrito traduzido entra no baralho** | sete assets em `Resources/Escritos`, fora de `Cards` para ninguém sortear nem vender. Efeito `Conter` na estrada (a travessia não soma o +4 à região) e `Debuff` de 3 turnos no combate. Entra no baralho de quem está na mesa da Biblioteca; o portador é derivado do baralho, sem campo novo no save — morreu, a Biblioteca entrega de novo |
+| **Selar queima cartas** | por papel (`CardRole`), fixo na ficha e escrito no mapa desde o ciclo 1: Mata ataque ×2 · Cripta suporte ×2 · Aldeia suporte ×2 · Oráculo utilidade ×1 · Torre ataque ×2 · Forja defesa ×2 · Covil defesa ×2. O jogador escolhe quais no balanço da volta, antes do despojo; sem carta do papel, o selo leva as mais raras sem escolha — despreparado não bloqueia, custa caro |
+
+#### 3. A regra própria de cada área (`AreaRules`)
+
+Escrita em `MUNDO.md` em 10/09; o código agora a lê, e o simulador roda as mesmas contas.
+
+| Área | O que faz | Mortes por jornada |
+|---|---|---|
+| A Mata | do trecho 60% em diante, ração e tocha em dobro; a caça repõe 2 rações em 35% das paradas | 0,45 |
+| A Cripta | um caído por rodada se ergue com um terço da vida, uma vez cada; um morto da guilda **sem monumento** entra em cada luta; espólio em dobro | 0,19 |
+| A Aldeia | depois de cada luta vencida, poupar (+10 de moral, −8 de estresse) ou matar (+30 de ouro, +2 rações, −8 de moral) | 0,35 |
+| O Oráculo | perguntar revela a rota inteira e queima uma carta sorteada do baralho, para sempre; uma vez por jornada | 0,35 |
+| A Torre | a cópia de um herói vivo **toma o lugar** de um inimigo comum em cada luta; derrubá-la custa 15 de estresse ao original e rende, em metade das vezes, uma carta rara ou melhor | 0,73 |
+| A Forja | forjar uma vez por jornada: +1 na arma, corrompida (+6 de exposição por luta), e a luta vem em seguida. **A exposição passou a valer:** ≥ 50 marca com traço, ≥ 80 vira em 35% das voltas — sai do roster como caído sem tributo, que é quem a Cripta levanta | 0,24 |
+| O Covil | cada trecho com tocha soma 1 ao despertar, cada espólio 1, cada relíquia 3; em 20 o dragão desce no lugar do próximo ponto; o escuro cobra 1,5×; metade das lutas vencidas larga relíquia | 1,29 |
+
+O tributo do Cemitério saiu da sala e foi para a guilda e para o save (`GuildManager.honrados`):
+deixou de ser reputação comprada e virou a dívida que a Cripta cobra.
+
+**O que a medição diz** (`SmokeTestReport.txt` e `GameplayReport.txt` de 12/09, 20:38):
+
+| Medida | Antes | Agora |
+|---|---|---|
+| Combates por jornada | 3,36 | **5,87** |
+| Paradas de texto por jornada | ~7 | **5,29** |
+| Cartas jogadas na estrada | 2,61 | **3,48** (o descanso compra carta e devolve energia) |
+| Letalidade (alvo 0,33–0,67) | 0,47 | **0,52** — chefe 0,07 · caminho 0,28 · estrada 0,17 |
+| O chefe, por luta de selo | 0,16 | 0,37 |
+| Primeira jornada, dois fundadores | 0,08 | 0,14 (teto 0,35) |
+| Descansos por jornada | 0 | 1,65 |
+| Forja arma nível 1 · relíquias 2 por herói (Δ mortes) | −0,04 · −0,27 | **−0,17 · −0,37** — com mais luta, o que a guilda vende passou a se sentir |
+| Entra · sobra por jornada · catálogo ao fim | 592 · 394 · 45% | 567 · 365 · 42% |
+
+**O caminho até 0,52.** A primeira medição deu 1,52, e a média escondia a causa: a Torre somava a
+cópia do herói a cada encontro (2,7 mortes por jornada) e o dragão do Covil descia no sétimo dia
+de toda ida (2,5). A cópia passou a tomar o lugar de um inimigo comum, o despertar subiu de 10
+para 20 — e ainda assim as expedições longas, com sete lutas e nenhuma recuperação, ficavam em
+1,9. O descanso que cura foi o que trouxe tudo de volta à faixa; o terceiro inimigo a partir de 80%
+da rota (em vez de 66%) também cabia, com 0,42, e ficou como régua varrível
+(`EnemyPool.TerceiroInimigoAPartirDe`) sem mudar de valor.
+
+**Travas novas no smoke test** (71, contra 63): uma carta de escrito por área, cada uma achada
+pelo nome, com efeito nos dois lados e fora do acervo à venda; a carta paga o que a Biblioteca cobra;
+todo selo cobra ao menos uma carta; o selo da Mata só oferece ataque de dono vivo; o do Oráculo
+cobra mesmo sem carta do papel. O simulador passou a separar **mortes por área** — sem isso, a
+média de 1,52 não dizia onde estava o problema.
+
+**Provas no Play Mode:** sem ouro, o botão da Forja diz *"ou uma carta rara"*, o clique abre o
+painel e a Purificação de Finn paga a arma; a carta do escrito entra no baralho de Gromm e o
+escrito sabe com quem está; a jornada à Aldeia mostra a regra no alto e escolhe poupar ou matar
+depois de cada luta; 6 contadores no topo entre um ponto e outro.
+
+**O que ficou de fora, de propósito:** os **atos dos selos** (devolver os mortos pelo nome,
+escolher entre fogo e resgate, acordar o dragão e sair) — o autor não decidiu quantos passam por
+uma luta antes do ato, e hoje todo selo é a luta seguida da queima de cartas. E as cartas de
+escrito têm nome estrutural ("Escrito da Mata") e nenhum texto: o world building é dele.
+
+---
+
 ### Fase 4 — Dar peso ao que já está escrito
 *Barato, porque os dados já existem e só falta quem os leia.*
 
@@ -1192,8 +1275,9 @@ como "fora da tela" — e estão, de propósito, porque o mapa se percorre. Cont
   O terceiro caminho — separar o baralho da estrada do de combate — foi **rejeitado**: o deck híbrido
   é decisão de design anterior, e o que faltava era a contrapartida, não a separação.
 
-- **`corruptionExposure`**: acima de 50, o herói ganha traço negativo ao voltar; acima de 80, risco de
-  "virar" e sair do roster. Já acumula, ninguém lê.
+- ~~**`corruptionExposure`**: acima de 50, o herói ganha traço negativo ao voltar; acima de 80, risco de
+  "virar" e sair do roster. Já acumula, ninguém lê.~~ ✅ *13/09, fase 3.16 — a Forja da estrada é quem
+  acumula de propósito.*
 - **Traços sem efeito**: `Drunkard` (gasta ouro extra ao voltar, ou começa a jornada com estresse),
   `Scarred` (resiste a estresse, apanha mais).
 - **Personalidades sem efeito**: `Ambitious` (exige mais salário/recompensa), `Stubborn` (recusa

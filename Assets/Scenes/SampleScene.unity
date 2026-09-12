@@ -1841,8 +1841,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 112539447}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.52, y: 1}
-  m_AnchorMax: {x: 0.66, y: 1}
+  m_AnchorMin: {x: 0.6, y: 1}
+  m_AnchorMax: {x: 0.7, y: 1}
   m_AnchoredPosition: {x: 0, y: -30}
   m_SizeDelta: {x: 0, y: 36}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -14092,8 +14092,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 112539447}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.58, y: 1}
-  m_AnchorMax: {x: 0.66, y: 1}
+  m_AnchorMin: {x: 0.88, y: 1}
+  m_AnchorMax: {x: 0.96, y: 1}
   m_AnchoredPosition: {x: 0, y: -69}
   m_SizeDelta: {x: 0, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -16241,8 +16241,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 112539447}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.58, y: 1}
+  m_AnchorMin: {x: 0.8, y: 1}
+  m_AnchorMax: {x: 0.88, y: 1}
   m_AnchoredPosition: {x: 0, y: -69}
   m_SizeDelta: {x: 0, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -31241,8 +31241,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 112539447}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.42, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchorMin: {x: 0.72, y: 1}
+  m_AnchorMax: {x: 0.8, y: 1}
   m_AnchoredPosition: {x: 0, y: -69}
   m_SizeDelta: {x: 0, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -35213,10 +35213,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 112539447}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.36, y: 1}
-  m_AnchorMax: {x: 0.52, y: 1}
-  m_AnchoredPosition: {x: 0, y: -30}
-  m_SizeDelta: {x: 0, y: 36}
+  m_AnchorMin: {x: 0.3, y: 1}
+  m_AnchorMax: {x: 0.6, y: 1}
+  m_AnchoredPosition: {x: 0, y: -29}
+  m_SizeDelta: {x: 0, y: 42}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1117902988
 MonoBehaviour:
@@ -47074,6 +47074,7 @@ MonoBehaviour:
   roster: []
   maxRosterSize: 8
   fallenHeroes: []
+  honrados: []
   relicStock: []
   potionStock: []
 --- !u!1 &1484897923
@@ -65035,7 +65036,7 @@ MonoBehaviour:
   upcomingEventsText: {fileID: 1916330854}
   abortButton: {fileID: 876546022}
   endTurnButton: {fileID: 2137753175}
-  textTypeSpeed: 0.03
+  textTypeSpeed: 0.008
   eventTransitionDelay: 0.5
   rations: 10
   torches: 5

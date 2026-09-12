@@ -133,6 +133,7 @@ public class BattleFieldUI : MonoBehaviour
     public void CriaturaAtaca(EnemyInstance e) { if (palco != null) palco.CriaturaAtaca(e); }
     public void CriaturaApanha(EnemyInstance e) { if (palco != null) palco.CriaturaApanha(e); }
     public void CriaturaMorre(EnemyInstance e) { if (palco != null) palco.CriaturaMorre(e); }
+    public void CriaturaLevanta(EnemyInstance e) { if (palco != null) palco.CriaturaLevanta(e); }
 
     public void AtualizarPresenca() { if (palco != null) palco.AtualizarPresenca(); }
 
