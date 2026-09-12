@@ -279,11 +279,12 @@ destino**, sempre.
 | Ouro | 100 (+ destrave) | Recrutar, comprar carta, item e melhoria |
 | Reputação | 100 (+ destrave) | Zerou, a partida acaba |
 | Roster | 0 ao fundar; o jogador escolhe 2 fundadores, sem custo; teto 8 (+ destrave) | Quem existe para mandar |
+| Folha | salário de cada herói vivo ÷ 7, por dia fora | Vence na volta de toda jornada; o que não dá para pagar vira dívida, e o ouro seguinte a abate primeiro |
 | Quadro de encomendas | 3 pedidos (+ destrave) | O que a guilda pede — **não** para onde ir |
 
 | Sala | O que faz |
 |---|---|
-| Taverna | 3 recrutas por vez; contratar custa o salário; renovar a lista custa 50. Na fundação, um candidato por classe, todos Nv.2, e os dois primeiros não custam nada |
+| Taverna | 3 recrutas por vez; contratar custa o salário; renovar a lista custa 50. Na fundação, um candidato por classe, todos Nv.2, e os dois primeiros não custam nada. Com a guilda vazia, o primeiro da leva é sempre de nível 1. **Passar a semana**: todos descansam, a folha de sete dias vence e a Corrupção avança um ciclo |
 | Biblioteca | Vende cartas por raridade e sobe de nível, liberando raridades melhores; traduz um escrito por ciclo |
 | Mercado | Rações e tochas; tratamento, bandagem e vinho de efeito imediato; frascos e a relíquia do ciclo |
 | Forja | Um herói na bigorna por vez: arma (+1 de dano nas cartas dele) e armadura (+4 de HP), até nível 3 |
@@ -297,6 +298,20 @@ candidatos, um por classe jogável, todos de nível 2; os dois primeiros entram
 sem custo e são os fundadores. Depois deles a Taverna volta ao normal. Até
 12/09 a guilda nascia com quatro heróis prontos e sete portas iguais, e o
 primeiro conselho do jogo era uma compra na Forja.
+
+**A folha [IMPLEMENTADO]:** toda volta paga o salário de quem está vivo pelos
+dias fora — o salário semanal dividido por sete, de quem foi e de quem ficou.
+É o custo recorrente que a economia não tinha: até 12/09 o ouro só entrava, e
+a auditoria mostrava a guilda rica sem ter o que comprar. O balanço da jornada
+discrimina a folha, e o que não dá para pagar vira dívida ao lado do ouro no
+rodapé. Medido: com o grupo de quatro, entram cerca de 590 por jornada, saem
+cerca de 200 de folha, e ao fim da run a guilda comprou 45% do catálogo.
+
+**A semana que passa [IMPLEMENTADO]:** na Taverna, a guilda pode deixar a
+semana correr sem sair: todos descansam como quem fica em casa, a folha de sete
+dias vence e a Corrupção avança um ciclo. É a válvula do beco em que todos os
+heróis estão esgotados e não há ouro para vinho — antes, nem partia, nem
+ganhava, nem descansava.
 
 **As salas são lugares [IMPLEMENTADO].** A **Forja** estabeleceu o molde — fila à
 esquerda, um em foco no meio, e à direita o efeito da compra acontecendo — e as
@@ -442,8 +457,9 @@ resto: quem vai (os aptos na ordem em que rendem, até quatro), a formação, o
 baralho (o de quem lidera a fila, mais três cartas de cada companheiro) e a
 mochila (rações e tochas pelos dias previstos). A ficha do lugar mostra tudo
 isso, e **Partir** fica ao lado dela: o caminho curto é a porta, a área e
-Partir — três cliques. Quem quer mexer usa **Ajustar**, que abre os dois passos
-de sempre:
+Partir — três cliques. **Voltar** devolve à guilda sem partir. Quem quer mexer
+usa **Ajustar**, que abre os dois passos de sempre, cada um com Voltar e avançar
+à vista:
 
 1. **Grupo e formação.** Marcar quem vai e **ordenar**: a ordem é a formação, e
    a linha de frente é metade da fila, até duas posições — com dois heróis, um
@@ -562,6 +578,9 @@ impedir a luta.
 |---|---|
 | Ouro / reputação iniciais | 100 / 100 (+ destraves) |
 | Fundadores · nível · custo | 2 · Nv.2 · 0 |
+| Folha | salário ÷ 7 por dia fora, de cada herói vivo; a semana parada custa 7 dias |
+| Forja: arma · armadura | `120 × nível` · `150 × nível`, até 3 |
+| Poções | 40 a 50 (era 50 a 70) |
 | HP · salário do herói | `20 + nível×4` (+10 Guerreiro, −5 Mago) · `20 + nível×10` |
 | Renovar recrutas · melhoria da Biblioteca | 50 · `500 × nível` |
 | Tamanho do deck | 8 a 12 |
@@ -591,18 +610,26 @@ descansado a party vence quase sempre, e o que se mede é o que a luta cobra em
 gente. O número oscilava entre execuções por causa do *n* efetivo, não das
 jornadas: com 100 grupos sorteados a dispersão fica em ±0,03.
 
-### 13.1 O que a auditoria acusa **[PLANEJADO]**
+### 13.1 A economia, medida **[IMPLEMENTADO]**
 
 A auditoria roda a mesma simulação com uma coisa mudada de cada vez, e diz quanto
-cada sistema vale em mortes por jornada. Três decisões em aberto:
+cada sistema vale em mortes por jornada. Em 12/09 ela passou a contar também o que
+sai, e o catálogo passou a ser o da guilda inteira — a conta antiga somava a Forja
+de um herói só e dizia que tudo custava 2.660.
 
-- **A economia satura.** Entram ~395 de ouro por jornada e tudo o que as salas
-  vendem soma ~2.660: por volta do 7º ciclo o jogador tem mais ouro do que o jogo
-  tem o que vender, e ainda faltam 8 ciclos. O salário de um recruta nível 3 é 50.
-- **A armadura vale quase o dobro da arma** (−0,38 contra −0,22 no nível 3) pelo
-  mesmo lugar na Forja, e o primeiro nível já entrega a maior parte do ganho.
-- **A poção é a compra mais fraca** (−0,11) e a relíquia, a mais forte (−0,22) —
-  os preços não dizem isso.
+| Por jornada, grupo de 4 | Valor |
+|---|---|
+| Contrato · eventos · quem voltou | 351 · 153 · 87 |
+| Folha (10 dias fora) | −198 |
+| Sobra | 394 |
+| Catálogo da guilda inteira | 13.220, ou 33 jornadas |
+| Ao fim da run (15 ciclos) | 6.011 juntados: 45% do catálogo |
+
+O que a auditoria acusava e o que se fez: a economia saturava porque nada saía —
+entrou a folha. A armadura valia quase o dobro da arma pelo mesmo preço — passou a
+custar 150 por nível contra 120. A poção era a compra mais fraca a 50–70 — caiu
+para 40–50. Segue em aberto: o primeiro nível da Forja entrega a maior parte do
+ganho, e os níveis 2 e 3 custam o dobro e o triplo por um acréscimo menor.
 
 ## 14. Apresentação
 

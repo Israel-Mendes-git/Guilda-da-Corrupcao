@@ -159,16 +159,25 @@ public static class GameplayAudit
     /// Quanto entra por jornada contra o que a guilda cobra. Responde se o jogador
     /// fica rico sem ter o que comprar, ou pobre demais para usar as salas.
     /// </summary>
+    /// <summary>O que sobra por jornada depois da folha — a régua de todo preço abaixo.</summary>
+    static float SobraPorJornada =>
+        baseLine.ouroDosContratos + baseLine.ouroDosEventos + baseLine.ouroDosSobreviventes
+        - baseLine.ouroDeSalarios;
+
     static void Economia()
     {
-        Titulo("ECONOMIA: O QUE ENTRA E O QUE AS SALAS COBRAM");
+        Titulo("ECONOMIA: O QUE ENTRA, O QUE SAI E O QUE AS SALAS COBRAM");
 
-        float porJornada = baseLine.ouroDosContratos + baseLine.ouroDosEventos;
+        float entra = baseLine.ouroDosContratos + baseLine.ouroDosEventos + baseLine.ouroDosSobreviventes;
+        float sobra = SobraPorJornada;
 
         Linha($"  contrato médio da missão ......... {baseLine.ouroDosContratos:F0}");
         Linha($"  ouro dos eventos da estrada ...... {baseLine.ouroDosEventos:F0}");
+        Linha($"  quem voltou (25 por cabeça) ...... {baseLine.ouroDosSobreviventes:F0}");
+        Linha($"  salários da volta ................ −{baseLine.ouroDeSalarios:F0}   "
+            + $"(salário por dia fora, {baseLine.duracaoMedia:F1} dias, o grupo inteiro)");
         Linha($"  ────────────────────────────────────────");
-        Linha($"  entra por jornada ................ {porJornada:F0}   (fora o espólio dos combates)");
+        Linha($"  entra {entra:F0}, sobra por jornada ...... {sobra:F0}   (fora o espólio dos combates)");
         Linha("");
         Linha("  o que a guilda vende            preço   jornadas para pagar");
         Linha("  ──────────────────────────────────────────────────────────");
@@ -176,32 +185,64 @@ public static class GameplayAudit
         var forja = Object.FindObjectOfType<ForgeManager>(true);
         var mercado = Object.FindObjectOfType<MarketManager>(true);
         var biblioteca = Object.FindObjectOfType<LibraryManager>(true);
+        var mapas = Object.FindObjectOfType<MapRoomManager>(true);
+        var cemiterio = Object.FindObjectOfType<CemeteryManager>(true);
+        var taverna = Object.FindObjectOfType<TavernManager>(true);
 
         if (forja != null)
         {
             var alvo = HeroFactory.CreateHero("Teste", HeroClass.Warrior, 3);
-            Preco("Forja: arma nível 1", forja.WeaponCost(alvo), porJornada);
+            Preco("Forja: arma nível 1", forja.WeaponCost(alvo), sobra);
+            Preco("Forja: armadura nível 1", forja.ArmorCost(alvo), sobra);
             alvo.weaponLevel = 2;
-            Preco("Forja: arma nível 3", forja.WeaponCost(alvo), porJornada);
+            alvo.armorLevel = 2;
+            Preco("Forja: arma nível 3", forja.WeaponCost(alvo), sobra);
+            Preco("Forja: armadura nível 3", forja.ArmorCost(alvo), sobra);
             Object.DestroyImmediate(alvo);
         }
 
         if (mercado != null)
         {
-            Preco("Mercado: ração", mercado.rationCost, porJornada);
-            Preco("Mercado: tratamento", mercado.potionCost, porJornada);
-            Preco("Mercado: bandagem", mercado.bandageCost, porJornada);
-            Preco("Mercado: vinho", mercado.wineCost, porJornada);
+            Preco("Mercado: ração", mercado.rationCost, sobra);
+            Preco("Mercado: tratamento", mercado.potionCost, sobra);
+            Preco("Mercado: bandagem", mercado.bandageCost, sobra);
+            Preco("Mercado: vinho", mercado.wineCost, sobra);
         }
 
+        foreach (PotionDef p in ItemCatalog.Pocoes)
+            Preco($"Mercado: {p.nome}", p.preco, sobra);
+
         foreach (RelicDef r in ItemCatalog.Reliquias)
-            Preco($"Mercado: {r.nome}", r.preco, porJornada);
+            Preco($"Mercado: {r.nome}", r.preco, sobra);
 
         if (biblioteca != null)
-            Preco("Biblioteca: melhorar a sala", biblioteca.upgradeBaseCost, porJornada);
+        {
+            Preco("Biblioteca: carta épica", biblioteca.epicCardPrice, sobra);
+            Preco("Biblioteca: melhorar a sala", biblioteca.upgradeBaseCost, sobra);
+        }
+
+        if (mapas != null)
+        {
+            Preco("Sala de Mapas: batedor", mapas.scoutingCost, sobra);
+            Preco("Sala de Mapas: desvio", mapas.detourCost, sobra);
+            Preco("Sala de Mapas: ampliar", mapas.upgradeBaseCost, sobra);
+        }
+
+        if (cemiterio != null)
+        {
+            Preco("Cemitério: monumento", cemiterio.tributeCost, sobra);
+            Preco("Cemitério: vigília", cemiterio.vigilCost, sobra);
+        }
+
+        Preco("Taverna: recruta nível 1", HeroFactory.SalaryFor(1), sobra);
+        Preco("Taverna: recruta nível 3", HeroFactory.SalaryFor(3), sobra);
+        if (taverna != null)
+            Preco("Taverna: renovar a leva", taverna.refreshCost, sobra);
 
         Linha("");
-        Linha("  Um recruta de nível 3 custa " + HeroFactory.SalaryFor(3) + " de salário na taverna.");
+        Linha("  A folha: cada herói custa o salário dele por semana fora (nível 1: "
+            + $"{HeroFactory.SalaryFor(1)}, nível 3: {HeroFactory.SalaryFor(3)}, nível 5: {HeroFactory.SalaryFor(5)}).");
+        Linha("  Uma semana parada na Taverna custa a mesma folha e um ciclo de Corrupção.");
         Linha("");
     }
 
@@ -223,30 +264,41 @@ public static class GameplayAudit
     {
         Titulo("O RITMO DA RUN");
 
-        float porJornada = baseLine.ouroDosContratos + baseLine.ouroDosEventos;
+        float sobra = SobraPorJornada;
 
-        // O catálogo inteiro do que existe para comprar, uma vez cada.
+        // O catálogo do que existe para comprar, para a guilda inteira: as
+        // relíquias uma vez cada, a Forja para os quatro do grupo, e as salas
+        // que sobem de nível até o teto. Até 12/09 a conta somava a Forja de um
+        // herói só, e dizia que tudo custava 2.660 — era por isso que a economia
+        // parecia saturar no sétimo ciclo.
+        const int Herois = PartyFormation.MaxSlots;
         int tudoQueExiste = ItemCatalog.Reliquias.Sum(r => r.preco);
 
         var forja = Object.FindObjectOfType<ForgeManager>(true);
         if (forja != null)
         {
             var alvo = HeroFactory.CreateHero("Teste", HeroClass.Warrior, 3);
-            for (int nivel = 0; nivel < 3; nivel++)
+            int porHeroi = 0;
+            for (int nivel = 0; nivel < forja.maxUpgradeLevel; nivel++)
             {
                 alvo.weaponLevel = nivel;
                 alvo.armorLevel = nivel;
-                tudoQueExiste += forja.WeaponCost(alvo) + forja.ArmorCost(alvo);
+                porHeroi += forja.WeaponCost(alvo) + forja.ArmorCost(alvo);
             }
             Object.DestroyImmediate(alvo);
-
-            // Quatro heróis, e é a guilda inteira que se equipa.
-            tudoQueExiste *= 1;
+            tudoQueExiste += porHeroi * Herois;
         }
 
-        Linha("  ciclo   corrupção   o que acontece                          ouro acumulado");
-        Linha("  ────────────────────────────────────────────────────────────────────────");
+        var biblioteca = Object.FindObjectOfType<LibraryManager>(true);
+        if (biblioteca != null) tudoQueExiste += biblioteca.upgradeBaseCost * (1 + 2 + 3);
 
+        var mapas = Object.FindObjectOfType<MapRoomManager>(true);
+        if (mapas != null) tudoQueExiste += mapas.upgradeBaseCost * (1 + 2 + 3);
+
+        Linha("  ciclo   corrupção   o que acontece                          ouro acumulado   do catálogo");
+        Linha("  ────────────────────────────────────────────────────────────────────────────────────");
+
+        float ouro = MetaProgression.OuroBasePorRun;
         for (int ciclo = 1; ciclo <= 15; ciclo++)
         {
             float corrupcao = Mathf.Min(RunManager.CorruptionMax,
@@ -258,16 +310,19 @@ public static class GameplayAudit
             else if (corrupcao >= RunManager.CorruptionMax)
                 marco = "o mundo é consumido — fim de run";
 
-            float ouro = MetaProgression.OuroBasePorRun + ciclo * porJornada;
+            ouro += sobra;
+            float fracao = tudoQueExiste > 0 ? ouro / tudoQueExiste : 0f;
 
-            Linha($"  {ciclo,5}   {corrupcao,8:F0}   {marco,-38}   {ouro,10:F0}");
+            Linha($"  {ciclo,5}   {corrupcao,8:F0}   {marco,-38}   {ouro,10:F0}   {fracao,8:P0}");
 
             if (corrupcao >= RunManager.CorruptionMax) break;
         }
 
         Linha("");
-        Linha($"  A guilda inteira equipada — as 6 relíquias e a Forja no nível 3 — custa cerca de");
-        Linha($"  {tudoQueExiste} de ouro, ou {tudoQueExiste / Mathf.Max(1f, porJornada):F1} jornadas.");
+        Linha($"  A guilda inteira equipada — as {ItemCatalog.Reliquias.Count} relíquias, a Forja no nível "
+            + $"{(forja != null ? forja.maxUpgradeLevel : 3)} para {Herois} heróis, Biblioteca e Sala de");
+        Linha($"  Mapas no teto — custa cerca de {tudoQueExiste} de ouro, ou {tudoQueExiste / Mathf.Max(1f, sobra):F1} jornadas.");
+        Linha($"  Ao fim da run a guilda juntou {ouro:F0}: {(tudoQueExiste > 0 ? ouro / tudoQueExiste : 0f):P0} do catálogo, sem contar cartas nem consumíveis.");
         Linha($"  O jogador tem {Mathf.CeilToInt((RunManager.CorruptionMax - RunManager.CorruptionStart) / RunManager.CorruptionPerCycle)} ciclos antes de o mundo acabar.");
         Linha("");
     }

@@ -309,6 +309,15 @@ public class JourneyResultUI : MonoBehaviour
         if (report.recompensaBonus > 0)
             linhas.Add($"Biblioteca: +{report.recompensaBonus}");
 
+        // A folha, na mesma lista que o contrato: o jogador precisa ver que a
+        // viagem de doze dias com seis heróis custou o que custou.
+        if (report.salarios > 0)
+        {
+            string dias = report.diasDeSalario == 1 ? "1 dia" : $"{report.diasDeSalario} dias";
+            string herois = report.heroisNaFolha == 1 ? "1 herói" : $"{report.heroisNaFolha} heróis";
+            linhas.Add($"<color=#B04040>Salários ({dias}, {herois}): −{report.salarios}</color>");
+        }
+
         string detalhe = linhas.Count > 0 ? string.Join("\n", linhas) + "\n" : "";
 
         string reputacao = report.reputacao == 0 ? ""
@@ -316,7 +325,13 @@ public class JourneyResultUI : MonoBehaviour
                 ? $"\n<color=#60A060>⭐ +{report.reputacao} de reputação</color>"
                 : $"\n<color=#B04040>⭐ {report.reputacao} de reputação</color>";
 
-        rewardText.text = $"{detalhe}<size=130%><color=#D9B85A>💰 {report.recompensaTotal} de ouro</color></size>{reputacao}";
+        string devido = report.salariosDevidos > 0
+            ? $"\n<color=#B04040>A guilda fica devendo {report.salariosDevidos}: o próximo ouro paga isso primeiro.</color>"
+            : "";
+
+        // O número grande é o que sobrou, não o que entrou.
+        int liquido = report.recompensaTotal - report.salarios;
+        rewardText.text = $"{detalhe}<size=130%><color=#D9B85A>💰 {liquido} de ouro</color></size>{devido}{reputacao}";
     }
 
     void Fechar()
@@ -364,6 +379,12 @@ public class JourneyReport
     public int recompensaBonus;
     public int recompensaTotal;
     public int reputacao;
+
+    /// <summary>A folha da volta: salário por dia fora, de todo mundo vivo.</summary>
+    public int salarios;
+    public int salariosDevidos;
+    public int diasDeSalario;
+    public int heroisNaFolha;
 
     public readonly List<HeroLine> herois = new List<HeroLine>();
 

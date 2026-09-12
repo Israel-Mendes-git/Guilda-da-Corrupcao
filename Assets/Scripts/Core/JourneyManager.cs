@@ -1525,6 +1525,11 @@ public class JourneyManager : MonoBehaviour
         GuildManager.Instance.AddGold(reward);
         GuildManager.Instance.AddReputation(success ? 10 : -5);
 
+        // A folha vence na volta: salário por dia fora, de todo mundo vivo. É o
+        // custo recorrente que a economia não tinha (ver GuildManager.CobrarSalarios).
+        // Cobrada depois de o contrato entrar, para o contrato pagar a folha.
+        GuildManager.Cobranca folha = GuildManager.Instance.CobrarSalarios(currentDay);
+
         int xpDaJornada = CalcularXpDaJornada(success);
         var promovidos = new List<string>();
 
@@ -1542,6 +1547,10 @@ public class JourneyManager : MonoBehaviour
             recompensaCombates = combatGold,
             recompensaBonus = bonusBiblioteca,
             recompensaTotal = reward + combatGold,
+            salarios = folha.total,
+            salariosDevidos = folha.devido,
+            diasDeSalario = folha.dias,
+            heroisNaFolha = folha.herois,
             reputacao = success ? 10 : -5
         };
 
@@ -1852,19 +1861,12 @@ public class JourneyManager : MonoBehaviour
     {
         if (GuildManager.Instance == null) return;
 
-        foreach (var hero in GuildManager.Instance.roster)
-        {
-            if (hero == null || hero.isDead) continue;
-            if (currentParty != null && currentParty.Contains(hero)) continue;
+        // A regra do descanso mora na guilda: é a mesma que a semana passada na
+        // Taverna aplica a todo mundo.
+        var emCasa = GuildManager.Instance.roster
+            .Where(h => h != null && !h.isDead && (currentParty == null || !currentParty.Contains(h)));
 
-            hero.stress = Mathf.Max(0f, hero.stress - descansoNaGuilda);
-            hero.morale = Mathf.Min(100f, hero.morale + 5f);
-
-            // Ferimento tratado com tempo, não com sorte: só cicatriza quem
-            // passou uma jornada inteira fora da estrada.
-            if (hero.isInjured && hero.stress < 40f && Random.value < 0.5f)
-                hero.isInjured = false;
-        }
+        GuildManager.Instance.Descansar(emCasa, descansoNaGuilda);
     }
 
     /// <summary>

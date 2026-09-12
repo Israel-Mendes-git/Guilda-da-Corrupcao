@@ -1398,6 +1398,11 @@ public static class GuildSceneSetup
         Undo.RecordObject(forge, "Montar Cena");
         forge.goldText = gold;
         forge.hintText = hint;
+
+        // Campo público é serializado: o valor novo do script não chega à cena
+        // sozinho. A armadura vale quase o dobro da arma (auditoria de 12/09) e
+        // passa a custar mais que ela.
+        forge.armorBaseCost = 150;
         forge.heroContainer = list.transform;
         forge.feedbackText = feedback;
         forge.closeButton = close;
@@ -2198,10 +2203,18 @@ public static class GuildSceneSetup
             new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(18, -44), new Vector2(-8, -8));
         Restyle(root, "PartySelectionContainer/Panel_Requirements/Txt_PartyCount", null, 20,
             new Vector2(0.5f, 1), new Vector2(1, 1), new Vector2(8, -44), new Vector2(-18, -8));
+        // <b>Dentro do container, e não abaixo dele.</b> Os dois botões ficavam
+        // em y de −88 a −24 — o que era "logo abaixo" quando o container era uma
+        // coluna no meio da tela. Desde que ele passou a ocupar o painel inteiro
+        // (12/09, para a grade de heróis caber), "abaixo do container" virou
+        // abaixo da janela: o passo de ajustar a equipe ficou sem Voltar e sem
+        // Próximo à vista, e o probe não acusou porque aciona botões por código.
+        // A grade começa 88px acima da borda de baixo, e é nessa faixa que eles
+        // moram agora.
         Reposition(root, "PartySelectionContainer/Button_Back2",
-            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-460, -88), new Vector2(-240, -24));
+            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-460, 16), new Vector2(-240, 60));
         Reposition(root, "PartySelectionContainer/Button_Next2",
-            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-220, -88), new Vector2(0, -24));
+            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-220, 16), new Vector2(0, 60));
 
         // ── Passo 3: deck principal ────────────────────────────────────────
         // Os dois textos do topo cabiam em 200px de largura com corpo 36; o nome

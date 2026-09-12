@@ -332,6 +332,9 @@ public class PlayModeProbe : MonoBehaviour
         Section("O QUE CADA TELA OFERECE");
         yield return AuditarTelas();
 
+        Section("BOTOES FORA DA TELA");
+        yield return BotoesForaDaTela();
+
         Section("CUSTO DE CADA ACAO, EM CLIQUES");
         yield return CustoDasAcoes();
 
@@ -564,6 +567,42 @@ public class PlayModeProbe : MonoBehaviour
         }
 
         yield return Capture("sala_taverna");
+
+        // ── A semana que passa ──
+        //
+        // A válvula do beco em que todo herói está esgotado e não há ouro para
+        // vinho: todos descansam, a folha de sete dias vence e o ciclo anda.
+        if (tav.semanaButton == null || !tav.semanaButton.gameObject.activeInHierarchy)
+        {
+            Line("FALHA: a Taverna não oferece passar a semana.");
+        }
+        else
+        {
+            var guilda = GuildManager.Instance;
+            HeroData cansado = guilda.roster.FirstOrDefault(h => h != null && h.IsAlive);
+            if (cansado != null) cansado.stress = 50f;
+
+            int cicloAntes = RunManager.Existe ? RunManager.Instance.Cycle : -1;
+            int ouroAntes = guilda.gold;
+            int folha = guilda.SalarioSemanal;
+
+            ReportarAlcancavel(tav.semanaButton);
+            tav.semanaButton.onClick.Invoke();
+            yield return new WaitForSeconds(0.3f);
+
+            int cicloDepois = RunManager.Existe ? RunManager.Instance.Cycle : -1;
+            Line($"passar a semana: ciclo {cicloAntes} → {cicloDepois} | ouro {ouroAntes} → {guilda.gold} (folha {folha})"
+               + (cansado != null ? $" | estresse de {cansado.heroName}: 50 → {Mathf.RoundToInt(cansado.stress)}" : "")
+               + (guilda.divida > 0 ? $" | devendo {guilda.divida}" : ""));
+
+            if (cicloDepois != cicloAntes + 1) Line("FALHA: passar a semana não avançou o ciclo.");
+            if (cansado != null && cansado.stress >= 50f) Line("FALHA: passar a semana não descansou ninguém.");
+
+            // Com o ouro do teste a folha sai inteira do cofre; se não saiu, ou
+            // não cobrou ou cobrou outro valor.
+            if (guilda.gold != ouroAntes - folha)
+                Line($"FALHA: a folha da semana deveria custar {folha}, e o cofre foi de {ouroAntes} a {guilda.gold}.");
+        }
 
         ui.CloseTavern();
         yield return new WaitForSeconds(0.2f);
@@ -1440,8 +1479,208 @@ public class PlayModeProbe : MonoBehaviour
 
         yield return Capture("fundacao_mapa");
 
-        ui.CloseQuestSelection();
+        // ── Ajustar, e voltar: o caminho que o autor achou sem botões ──
+        //
+        // O Voltar e o Próximo do passo de ajustar a equipe existiam na cena e
+        // respondiam ao Invoke — só não cabiam na janela. A régua aqui é a do
+        // jogador: o centro do botão dentro da tela.
+        if (qs != null && qs.nextButton1 != null && qs.nextButton1.interactable)
+        {
+            qs.nextButton1.onClick.Invoke();
+            yield return new WaitForSeconds(0.35f);
+
+            bool passo2 = qs.step2Panel != null && qs.step2Panel.activeInHierarchy;
+            Line($"Ajustar: passo 2 visível={passo2}"
+               + $" | Voltar: {DescreverBotao(qs.backButton2)} | Próximo: {DescreverBotao(qs.nextButton2)}");
+
+            if (ForaDaTela(qs.backButton2) || ForaDaTela(qs.nextButton2))
+                Line("FALHA: o passo de ajustar a equipe tem Voltar ou Próximo fora da tela.");
+
+            if (qs.backButton2 != null) ReportarAlcancavel(qs.backButton2);
+            yield return Capture("fundacao_ajustar");
+
+            if (qs.nextButton2 != null && qs.nextButton2.interactable)
+            {
+                qs.nextButton2.onClick.Invoke();
+                yield return new WaitForSeconds(0.35f);
+
+                Line($"Próximo: passo 3 visível={qs.step3Panel != null && qs.step3Panel.activeInHierarchy}"
+                   + $" | Voltar: {DescreverBotao(qs.backButton3)} | Jornada: {DescreverBotao(qs.startJourneyButton)}");
+
+                if (ForaDaTela(qs.backButton3) || ForaDaTela(qs.startJourneyButton))
+                    Line("FALHA: o passo do baralho tem Voltar ou Jornada fora da tela.");
+
+                if (qs.backButton3 != null) qs.backButton3.onClick.Invoke();
+                yield return new WaitForSeconds(0.25f);
+            }
+
+            if (qs.backButton2 != null) qs.backButton2.onClick.Invoke();
+            yield return new WaitForSeconds(0.3f);
+
+            bool noPasso1 = qs.step1Panel != null && qs.step1Panel.activeInHierarchy;
+            Line($"Voltar, duas vezes: passo 1 visível={noPasso1} | Voltar à guilda: {DescreverBotao(qs.backButton)}");
+
+            if (ForaDaTela(qs.backButton))
+                Line("FALHA: o Voltar do mapa está fora da tela — o jogador entra no mapa e não sai.");
+
+            if (qs.backButton != null && qs.backButton.gameObject.activeInHierarchy)
+            {
+                ReportarAlcancavel(qs.backButton);
+                qs.backButton.onClick.Invoke();
+                yield return new WaitForSeconds(0.35f);
+
+                bool naGuilda = ui.guildPanel != null && ui.guildPanel.activeInHierarchy;
+                Line($"Voltar do mapa: guilda visível={naGuilda}");
+                if (!naGuilda) Line("FALHA: o Voltar do mapa não devolveu à guilda.");
+            }
+            else
+            {
+                Line("FALHA: o mapa não tem Voltar visível.");
+                ui.CloseQuestSelection();
+            }
+        }
+        else
+        {
+            ui.CloseQuestSelection();
+        }
+
         yield return new WaitForSeconds(0.2f);
+    }
+
+    /// <summary>Ligado, interativo e onde está — para o relatório dizer por que um botão não serve.</summary>
+    static string DescreverBotao(Button b)
+    {
+        if (b == null) return "ausente";
+        if (!b.gameObject.activeInHierarchy) return "desligado";
+
+        string estado = b.interactable ? "ativo" : "apagado";
+        return ForaDaTela(b) ? $"{estado}, FORA DA TELA" : $"{estado}, na tela";
+    }
+
+    /// <summary>
+    /// O centro do botão está fora da janela?
+    ///
+    /// O probe aciona botões por <c>onClick.Invoke()</c>, e um botão ancorado
+    /// abaixo da borda responde ao Invoke como qualquer outro — foi assim que o
+    /// Voltar e o Próximo do passo de ajustar a equipe ficaram fora da janela sem
+    /// nenhuma FALHA no relatório, até o autor sentir falta deles.
+    /// </summary>
+    static bool ForaDaTela(Button b)
+    {
+        if (b == null) return false;
+        return ForaDaTela(b.GetComponent<RectTransform>());
+    }
+
+    static bool ForaDaTela(RectTransform rt)
+    {
+        if (rt == null) return false;
+
+        var canvas = rt.GetComponentInParent<Canvas>();
+        Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? canvas.worldCamera
+            : null;
+
+        var cantos = new Vector3[4];
+        rt.GetWorldCorners(cantos);
+
+        Vector2 centro = Vector2.zero;
+        foreach (Vector3 c in cantos)
+            centro += RectTransformUtility.WorldToScreenPoint(cam, c);
+        centro /= 4f;
+
+        return centro.x < 0f || centro.x > Screen.width || centro.y < 0f || centro.y > Screen.height;
+    }
+
+    /// <summary>
+    /// Botões que existem, estão ligados e não cabem na janela, tela por tela —
+    /// incluindo os três passos da preparação, que a auditoria de telas não
+    /// abre. É a régua que teria pego o passo 2 meses antes.
+    /// </summary>
+    IEnumerator BotoesForaDaTela()
+    {
+        var ui = UIManager.Instance;
+        var qs = QuestSelectionUI.Instance;
+        if (ui == null)
+        {
+            Line("pulada: UIManager ausente");
+            yield break;
+        }
+
+        System.Action abrirPreparacao = () =>
+        {
+            ui.ShowQuestSelection();
+            if (qs != null)
+            {
+                qs.gameObject.SetActive(true);
+                qs.RefreshAllData();
+            }
+        };
+
+        System.Action apontarMata = () =>
+        {
+            Button area = qs != null && qs.step1Panel != null
+                ? FirstEnabledButton(qs.step1Panel.transform, $"Area_{AreaType.Mata}")
+                : null;
+            if (area != null) area.onClick.Invoke();
+        };
+
+        var telas = new (string nome, GameObject painel, System.Action abrir, System.Action fechar)[]
+        {
+            ("Guilda",              ui.guildPanel,          () => ui.ShowGuildScreen(),  null),
+            ("Taverna",             ui.tavernPanel,         () => ui.ShowTavern(),       () => ui.CloseTavern()),
+            ("Biblioteca",          ui.libraryPanel,        () => ui.ShowLibrary(),      () => ui.CloseLibrary()),
+            ("Forja",               ui.forgePanel,          () => ui.ShowForge(),        () => ui.CloseForge()),
+            ("Mercado",             ui.marketPanel,         () => ui.ShowMarket(),       () => ui.CloseMarket()),
+            ("Cemitério",           ui.cemeteryPanel,       () => ui.ShowCemetery(),     () => ui.CloseCemetery()),
+            ("Sala de Mapas",       ui.mapRoomPanel,        () => ui.ShowMapRoom(),      () => ui.CloseMapRoom()),
+            ("Baralhos",            ui.deckManagerPanel,    () => ui.ShowDeckManager(),  () => ui.CloseDeckManager()),
+            ("Preparação, passo 1", ui.questSelectionPanel, () => { abrirPreparacao(); apontarMata(); },
+                                                            () => ui.CloseQuestSelection()),
+            ("Preparação, passo 2", ui.questSelectionPanel, () => { abrirPreparacao(); apontarMata(); qs?.nextButton1?.onClick.Invoke(); },
+                                                            () => ui.CloseQuestSelection()),
+            ("Preparação, passo 3", ui.questSelectionPanel, () => { abrirPreparacao(); apontarMata(); qs?.nextButton1?.onClick.Invoke(); qs?.nextButton2?.onClick.Invoke(); },
+                                                            () => ui.CloseQuestSelection())
+        };
+
+        int total = 0;
+
+        foreach (var tela in telas)
+        {
+            if (tela.painel == null) continue;
+
+            tela.abrir();
+            yield return new WaitForSeconds(0.3f);
+
+            var fora = new List<string>();
+            foreach (Button b in tela.painel.GetComponentsInChildren<Button>(true))
+            {
+                if (!b.gameObject.activeInHierarchy) continue;
+
+                // O que mora dentro de uma janela rolável — o mapa-múndi, uma
+                // lista — existe fora da vista de propósito: o jogador arrasta
+                // até lá. A régua é para botão ancorado fora da janela, não para
+                // conteúdo que se percorre.
+                if (b.GetComponentInParent<RectMask2D>() != null
+                    || b.GetComponentInParent<ScrollRect>() != null
+                    || b.GetComponentInParent<Mask>() != null)
+                    continue;
+
+                if (ForaDaTela(b)) fora.Add(b.gameObject.name);
+            }
+
+            total += fora.Count;
+            Line($"  {tela.nome,-22} {fora.Count,2} fora da tela"
+               + (fora.Count > 0 ? $"  ·  {string.Join(", ", fora.Take(6))}" : ""));
+
+            tela.fechar?.Invoke();
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.2f);
+
+        if (total > 0)
+            Line($"FALHA: {total} botão(ões) ligado(s) fora da janela — existem para o código e não para o jogador.");
     }
 
     /// <summary>O que cada porta da guilda diz agora: pulsando, acesa ou escura.</summary>

@@ -1551,6 +1551,7 @@ public class QuestSelectionUI : MonoBehaviour
 
         if (nextButton1 != null) nextButton1.interactable = selectedQuest != null;
         AtualizarPartir();
+        MostrarVoltarDoMapa(true);
 
         // Enquanto nada está escolhido, a coluna mostra o que a guilda pede.
         //
@@ -1600,6 +1601,7 @@ public class QuestSelectionUI : MonoBehaviour
         if (step2Panel != null) step2Panel.SetActive(true);
         if (step3Panel != null) step3Panel.SetActive(false);
         if (formationPanel != null) formationPanel.SetActive(true);
+        MostrarVoltarDoMapa(false);
         RefreshPartySelection();
     }
 
@@ -1609,6 +1611,7 @@ public class QuestSelectionUI : MonoBehaviour
         if (step2Panel != null) step2Panel.SetActive(false);
         if (step3Panel != null) step3Panel.SetActive(true);
         if (formationPanel != null) formationPanel.SetActive(false);
+        MostrarVoltarDoMapa(false);
 
         // Mostra apenas os decks dos heróis selecionados
         RefreshDeckSelection();
@@ -1723,7 +1726,43 @@ public class QuestSelectionUI : MonoBehaviour
             }
         }
 
+        GarantirVoltarDoMapa();
         AtualizarPartir();
+    }
+
+    /// <summary>
+    /// O Voltar da preparação, visível.
+    ///
+    /// Ele existia na cena, ancorado no meio da direita — e desde que o mapa
+    /// tomou a tela (11/09) e a ficha do lugar flutua sobre aquele canto, ficou
+    /// escondido atrás dela: o jogador entrava no mapa e não tinha como voltar à
+    /// guilda sem partir. Vai para o canto de baixo à esquerda, por cima de tudo,
+    /// e só no passo 1: nos outros passos o Voltar é o do próprio passo.
+    /// </summary>
+    void GarantirVoltarDoMapa()
+    {
+        if (backButton == null) return;
+
+        GameObject raiz = ResolveSelectionRoot();
+        if (raiz == null || backButton.transform.parent != raiz.transform) return;
+
+        var rt = backButton.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            rt.anchorMin = rt.anchorMax = new Vector2(0f, 0f);
+            rt.pivot = new Vector2(0f, 0f);
+            rt.anchoredPosition = new Vector2(20f, 16f);
+            rt.sizeDelta = new Vector2(200f, 44f);
+        }
+
+        backButton.transform.SetAsLastSibling();
+        Rotular(backButton, "Voltar");
+    }
+
+    /// <summary>O Voltar da raiz só aparece no passo do mapa.</summary>
+    void MostrarVoltarDoMapa(bool mostrar)
+    {
+        if (backButton != null) backButton.gameObject.SetActive(mostrar);
     }
 
     static void Rotular(Button botao, string rotulo)

@@ -32,7 +32,8 @@ public static class GameStateIO
                 reputation = guilda.reputation,
                 maxRosterSize = guilda.maxRosterSize,
                 relicStock = new List<string>(guilda.relicStock ?? new List<string>()),
-                potionStock = new List<string>(guilda.potionStock ?? new List<string>())
+                potionStock = new List<string>(guilda.potionStock ?? new List<string>()),
+                debt = guilda.divida
             };
 
             foreach (var heroi in guilda.roster)
@@ -160,6 +161,7 @@ public static class GameStateIO
         {
             guilda.gold = dados.guild.gold;
             guilda.reputation = dados.guild.reputation;
+            guilda.divida = Mathf.Max(0, dados.guild.debt);
 
             // Um save feito antes de os alojamentos existirem traz 0 aqui; nesse
             // caso vale o que o Inspector diz, não um roster de tamanho zero.

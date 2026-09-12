@@ -109,6 +109,13 @@ public class TavernManager : MonoBehaviour
 
     bool EmFundacao => GuildManager.Instance != null && GuildManager.Instance.EmFundacao;
 
+    /// <summary>
+    /// O botão de deixar a semana passar. Nasce em execução — ver
+    /// <see cref="GarantirBotaoDaSemana"/>. Público para o relatório de Play
+    /// Mode o acionar.
+    /// </summary>
+    public Button semanaButton;
+
     void Awake()
     {
         if (Instance == null)
@@ -137,8 +144,84 @@ public class TavernManager : MonoBehaviour
             hireButton.onClick.AddListener(ContratarQuemEstaNaMesa);
         }
 
+        GarantirBotaoDaSemana();
         AtualizarSala();
     }
+
+    #region A semana que passa
+
+    /// <summary>
+    /// Cria o botão de passar a semana, clone do Voltar para herdar o kit, no
+    /// canto de baixo à direita da sala.
+    ///
+    /// Mora na Taverna porque é onde a guilda descansa sem sair: todos aliviam
+    /// o estresse, a folha de sete dias vence e o mundo apodrece um ciclo. É a
+    /// válvula do beco em que todo herói está esgotado e não há ouro para vinho
+    /// (ver <see cref="GuildManager.PassarASemana"/>).
+    /// </summary>
+    void GarantirBotaoDaSemana()
+    {
+        if (semanaButton != null || closeButton == null) return;
+
+        Transform pai = closeButton.transform.parent;
+        if (pai == null) return;
+
+        Transform existente = pai.Find("Btn_Semana");
+        GameObject go = existente != null
+            ? existente.gameObject
+            : Instantiate(closeButton.gameObject, pai);
+        go.name = "Btn_Semana";
+
+        semanaButton = go.GetComponent<Button>();
+        if (semanaButton == null) return;
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(1f, 0f);
+        rt.pivot = new Vector2(1f, 0f);
+        rt.anchoredPosition = new Vector2(-20f, 20f);
+        rt.sizeDelta = new Vector2(400f, 44f);
+        go.transform.SetAsLastSibling();
+
+        semanaButton.onClick.RemoveAllListeners();
+        semanaButton.onClick.AddListener(PassarASemana);
+    }
+
+    void AtualizarBotaoDaSemana()
+    {
+        if (semanaButton == null) return;
+
+        GuildManager guilda = GuildManager.Instance;
+        bool temAlguem = guilda != null && guilda.roster.Any(h => h != null && h.IsAlive);
+        bool mostrar = temAlguem && !EmFundacao;
+
+        semanaButton.gameObject.SetActive(mostrar);
+        if (!mostrar) return;
+
+        var texto = semanaButton.GetComponentInChildren<TMP_Text>(true);
+        if (texto != null)
+            texto.text = $"🌙 PASSAR A SEMANA   −{guilda.SalarioSemanal}💰";
+    }
+
+    void PassarASemana()
+    {
+        GuildManager guilda = GuildManager.Instance;
+        if (guilda == null || EmFundacao) return;
+
+        float alivio = JourneyManager.Instance != null ? JourneyManager.Instance.descansoNaGuilda : 20f;
+        GuildManager.Cobranca folha = guilda.PassarASemana(alivio);
+
+        int corrupcao = RunManager.Existe ? Mathf.RoundToInt(RunManager.Instance.Corruption) : 0;
+
+        SetFeedback($"A semana passa. Todos descansam (−{alivio:0} de estresse)   ·   "
+                  + $"salários: −{folha.total}💰"
+                  + (folha.devido > 0 ? $" ({folha.devido} ficam devendo)" : "")
+                  + $"   ·   a Corrupção sobe para {corrupcao}%.");
+
+        // A leva também muda com a semana: quem esperava na porta foi embora.
+        RefreshRecruits();
+    }
+
+    #endregion
 
     void OnEnable()
     {
@@ -202,7 +285,14 @@ public class TavernManager : MonoBehaviour
 
         for (int i = 0; i < TamanhoDaLeva; i++)
         {
-            HeroData novo = HeroFactory.CreateRandomHero(minLevel, maxLevel);
+            // Guilda sem ninguém: o primeiro da leva é de nível 1, o mais barato.
+            // O RunManager só encerra a run abaixo de 30 de ouro porque presume
+            // que há alguém a 30 na porta; uma leva de nível 2 e 3 com 35 no
+            // cofre era um beco — sem herói, sem contratar, sem renovar.
+            bool guildaVazia = GuildManager.Instance != null && GuildManager.Instance.roster.Count == 0;
+            HeroData novo = i == 0 && guildaVazia
+                ? HeroFactory.CreateRandomHero(1, 1)
+                : HeroFactory.CreateRandomHero(minLevel, maxLevel);
             currentRecruits.Add(novo);
 
             // Sorteado aqui, e não na contratação: é este baralho que a
@@ -325,6 +415,7 @@ public class TavernManager : MonoBehaviour
         MontarFila();
         AtualizarMesa();
         AtualizarBotaoDeRenovar();
+        AtualizarBotaoDaSemana();
     }
 
     void AtualizarBotaoDeRenovar()

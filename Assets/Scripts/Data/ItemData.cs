@@ -143,16 +143,20 @@ public static class ItemCatalog
 
     static readonly List<PotionDef> pocoes = new List<PotionDef>
     {
-        new PotionDef("pocao_de_cura", "Poção de Cura", PotionEffect.Cura, 12, 60,
+        // Preços de 12/09: a auditoria mediu o frasco como a compra mais fraca
+        // da guilda (−0,11 morte por jornada com um por herói, contra −0,22 da
+        // relíquia), e ele custava quase um terço de uma relíquia. Baixou um
+        // quarto; o efeito ficou.
+        new PotionDef("pocao_de_cura", "Poção de Cura", PotionEffect.Cura, 12, 45,
                       "Restaura 12 de vida."),
 
-        new PotionDef("pocao_de_pedra", "Poção de Pedra", PotionEffect.Bloqueio, 10, 55,
+        new PotionDef("pocao_de_pedra", "Poção de Pedra", PotionEffect.Bloqueio, 10, 40,
                       "Concede 10 de bloqueio."),
 
-        new PotionDef("pocao_de_furia", "Poção de Fúria", PotionEffect.ForcaNaProximaCarta, 50, 70,
+        new PotionDef("pocao_de_furia", "Poção de Fúria", PotionEffect.ForcaNaProximaCarta, 50, 50,
                       "A próxima carta sai com +50% de dano."),
 
-        new PotionDef("pocao_de_sonho", "Poção de Sonho", PotionEffect.Calma, 25, 50,
+        new PotionDef("pocao_de_sonho", "Poção de Sonho", PotionEffect.Calma, 25, 40,
                       "Alivia 25 de estresse."),
     };
 

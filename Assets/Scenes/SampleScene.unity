@@ -24767,7 +24767,7 @@ MonoBehaviour:
   cardPrefab: {fileID: 1630225832203868920, guid: 513e502d7d878dc49b996b8974baea1a, type: 3}
   cardShelfTitle: {fileID: 870774886}
   weaponBaseCost: 120
-  armorBaseCost: 100
+  armorBaseCost: 150
   maxUpgradeLevel: 3
   hpPerArmorLevel: 4
   damagePerWeaponLevel: 1
@@ -29043,8 +29043,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -350, y: -56}
-  m_SizeDelta: {x: 220, y: 64.000015}
+  m_AnchoredPosition: {x: -350, y: 38}
+  m_SizeDelta: {x: 220, y: 44.000008}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &937917094
 MonoBehaviour:
@@ -45308,8 +45308,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -110, y: -56}
-  m_SizeDelta: {x: 220, y: 63.999985}
+  m_AnchoredPosition: {x: -110, y: 38}
+  m_SizeDelta: {x: 220, y: 44}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1417641735
 MonoBehaviour:
@@ -47068,6 +47068,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gold: 100
   reputation: 100
+  divida: 0
   goldtxt: {fileID: 435773223}
   reputationtxt: {fileID: 0}
   roster: []
@@ -52346,6 +52347,7 @@ MonoBehaviour:
   refreshCost: 50
   minLevel: 1
   maxLevel: 3
+  semanaButton: {fileID: 0}
 --- !u!4 &1676264859
 Transform:
   m_ObjectHideFlags: 0

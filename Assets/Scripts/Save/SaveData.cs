@@ -77,6 +77,9 @@ public class GuildSave
     /// </summary>
     public List<string> relicStock = new List<string>();
     public List<string> potionStock = new List<string>();
+
+    /// <summary>Salários devidos. Save antigo traz 0, que é o que uma guilda sem dívida tem.</summary>
+    public int debt;
 }
 
 [Serializable]

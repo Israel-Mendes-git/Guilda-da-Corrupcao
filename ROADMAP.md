@@ -972,7 +972,7 @@ qualquer contrato, e depois o derruba de novo na missão de selo.
 | **1** | **Os escritos e a Biblioteca** | página cai na estrada, a Biblioteca traduz uma por ciclo, cada uma atrasa a corrupção e nenhuma reverte; o traduzido vira carta de contenção no baralho | Play Mode + relatório de telas |
 | **2** | **Selar cobra cartas** | a região pede um tipo fixo, sabido desde o ciclo 1, e queima as cartas sem volta ao aceitar | Play Mode: o preço aparece na Sala de Mapas desde o começo |
 | **3** | ✅ **O chefe sai das jornadas comuns** *(11/09)* | jornada comum termina em encontro forte; o chefe ficou para a luta de selo e para a final | Smoke test: o chefe cobra **0,30 morte por luta de selo** e a letalidade fechou em **0,63** (alvo 0,33–0,67) |
-| **4** | **A economia para de saturar** | recalibrar depois que os passos 1 e 2 criarem um custo que não é ouro | `GameplayReport.txt` |
+| **4** | ✅ **A economia para de saturar** *(12/09, fase 3.15)* | a folha vence na volta; armadura 150 por nível; poções 40–50; a semana parada na Taverna | `GameplayReport.txt`: sobra 394 por jornada e 45% do catálogo ao fim da run |
 
 A Biblioteca vem primeiro porque é a sala mais quebrada do jogo — **10 botões desligados contra 7
 ativos** — e porque os escritos independem dos outros três passos.
@@ -1120,6 +1120,46 @@ custa 120; num perfil novo, com 100, a porta que pulsa é a Jornada.
 fundir a Sala de Mapas no mapa-múndi, os Baralhos na Biblioteca, o Cemitério só após a primeira
 morte; a guilda virar o mapa-múndi; trancar sala sem motivo; uma "beira da Mata" curta como
 primeira saída.
+
+---
+
+### Fase 3.15 — A economia para de saturar, e os becos da jogatina ✅ *construída em 12/09*
+
+Pedido do autor na mesma noite: *"conserte a economia e veja pontos de quebra da jogatina, por
+exemplo: não tem botão de avançar ou voltar na parte de ajustar a equipe"*.
+
+**A economia.** O diagnóstico da auditoria era que nada saía: sem custo recorrente, o ouro só
+acumulava, e a conta do catálogo somava a Forja de um herói só (2.660). O dreno é o que o
+`MUNDO.md` já desenhava para o relógio: **a folha vence pelo tempo fora**.
+
+| O que mudou | Regra |
+|---|---|
+| **A folha** | na volta de toda jornada, cada herói vivo custa o salário ÷ 7 por dia fora — quem foi e quem ficou (`GuildManager.CobrarSalarios`). O balanço discrimina; o que falta vira **dívida**, mostrada ao lado do ouro, e o ouro seguinte a abate (`AddGold`) |
+| **A semana que passa** | botão na Taverna: todos descansam (−20 de estresse), a folha de sete dias vence, a Corrupção avança um ciclo (`GuildManager.PassarASemana`). É a válvula do beco em que todos estão esgotados e não há ouro para vinho |
+| **Armadura 150 por nível** (era 100) | a auditoria media a armadura valendo quase o dobro da arma pelo mesmo preço. Campo serializado: o `GuildSceneSetup` escreve o valor na cena |
+| **Poções 40–50** (eram 50–70) | a compra mais fraca da guilda custava um terço de uma relíquia |
+| **A auditoria conta o que sai** | `GameplayReport.txt` mostra entrada, folha e sobra por jornada, o catálogo da guilda inteira (Forja para quatro, salas no teto) e a fração comprada ao fim da run |
+
+| Medida (grupo de 4) | Antes | Agora |
+|---|---|---|
+| Entra por jornada | 509 (sem contar quem voltou) | 592 |
+| Sai por jornada | 0 | 198 de folha |
+| Catálogo | 2.660 (um herói) | 13.220 (a guilda) |
+| Ao fim da run | 7.733 juntados, o catálogo inteiro no 5º ciclo | 6.011 juntados, **45% do catálogo** |
+| Letalidade | 0,59 | 0,47 (alvo 0,33–0,67; a folha não mexe na estrada) |
+
+**Os becos.** Quatro encontrados, quatro fechados:
+
+| O beco | A causa | O que ficou |
+|---|---|---|
+| Ajustar a equipe não tinha Voltar nem Próximo | os dois botões estavam ancorados 24 a 88px **abaixo** do container, que passou a ocupar o painel inteiro em 12/09; o probe não acusava porque aciona botões por código | dentro do container (`GuildSceneSetup`), e uma régua nova no relatório: **"BOTOES FORA DA TELA"**, que abre cada tela e os três passos da preparação e conta botão ligado com o centro fora da janela |
+| O mapa não tinha Voltar | o `BackBtn` existia no meio da direita e a ficha do lugar, que flutua sobre aquele canto, o cobria: o jogador entrava no mapa e só saía partindo | canto de baixo à esquerda, por cima de tudo, só no passo 1 (`QuestSelectionUI.GarantirVoltarDoMapa`) |
+| Todos esgotados e sem ouro para vinho | herói acima de 85 de estresse recusa partir, e o único descanso de graça vinha quando os outros viajavam | a semana que passa, na Taverna |
+| Guilda vazia com 30 a 39 de ouro | a run só encerra abaixo de 30 porque presume alguém a 30 na porta; a leva sorteava níveis 2 e 3 (40 e 50) | com a guilda vazia, o primeiro da leva é sempre nível 1 (`TavernManager.GenerateRecruits`) |
+
+**O que a régua nova ensinou no primeiro uso:** ela acusou as três áreas do fundo do mapa-múndi
+como "fora da tela" — e estão, de propósito, porque o mapa se percorre. Conteúdo dentro de
+`RectMask2D`, `ScrollRect` ou `Mask` ficou fora da conta.
 
 ---
 

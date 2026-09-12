@@ -1,4 +1,4 @@
-# Handoff — Guilda da Corrupção: a fundação (2026-09-12, noite)
+# Handoff — Guilda da Corrupção: a fundação, a folha e os becos (2026-09-12, noite)
 
 ## Objetivo
 
@@ -7,7 +7,7 @@ guilda, mistura declarada de *Darkest Dungeon* com *Slay the Spire*.
 
 Projeto: `C:\Users\Israel\Documents\GitHub\Guilda-da-Corrupcao`.
 
-Plano e histórico em **[`ROADMAP.md`](ROADMAP.md)** (fase 3.14 é esta sessão), design em
+Plano e histórico em **[`ROADMAP.md`](ROADMAP.md)** (fases 3.14 e 3.15 são esta sessão), design em
 **[`GDD.md`](GDD.md)** (versão 2.3), o mundo em **[`MUNDO.md`](MUNDO.md)**, arte pendente em
 **[`ARTE.md`](ARTE.md)**. Leia os quatro — este handoff só cobre o que eles não contam.
 
@@ -15,16 +15,19 @@ Plano e histórico em **[`ROADMAP.md`](ROADMAP.md)** (fase 3.14 é esta sessão)
 
 ## Estado atual
 
-**Tudo commitado e verificado.** Um commit nesta sessão: *a guilda nasce vazia, as portas acendem
-por motivo e o mapa é a preparação*. Ele fecha a rodada de apresentação pedida pelo autor em 12/09.
+**Tudo commitado e verificado.** Dois commits nesta sessão: *a guilda nasce vazia, as portas
+acendem por motivo e o mapa é a preparação* (`bfc8f38`, fase 3.14) e *a folha vence na volta, a
+semana passa na Taverna e os becos fecham* (fase 3.15). Os dois atendem ao pedido do autor de 12/09:
+reestruturar a apresentação, consertar a economia e caçar pontos de quebra.
 
 **Provas, todas verdes:**
 
 | Prova | Resultado |
 |---|---|
-| `SmokeTestReport.txt` (12/09 18:51) | **63 verificações, 0 falhas** · letalidade **0,59** (alvo 0,33–0,67) · primeira jornada com dois fundadores **0,06** (teto 0,35) |
-| `PlayModeReport.txt` (12/09 18:53) | **PLAY MODE OK — nenhum erro capturado** · seção nova "A FUNDACAO" sem FALHA · partir pelo mapa em 3 cliques |
-| `Assets/Screenshots/fundacao_*.png` | a guilda escura com a Taverna pulsando; a Taverna com os quatro fundadores; a guilda fundada com três portas acesas; o mapa com Partir |
+| `SmokeTestReport.txt` (12/09 19:19) | **63 verificações, 0 falhas** · letalidade **0,47** (alvo 0,33–0,67) · primeira jornada com dois fundadores **0,08** (teto 0,35) |
+| `GameplayReport.txt` (12/09 19:19) | entra 592, folha −198, **sobra 394** por jornada · catálogo da guilda 13.220 · ao fim da run **45% do catálogo** |
+| `PlayModeReport.txt` (12/09 19:27) | **PLAY MODE OK — nenhum erro capturado** · "A FUNDACAO" e "BOTOES FORA DA TELA" sem FALHA · Ajustar → Voltar → Voltar à guilda funciona · a semana passa na Taverna |
+| `Assets/Screenshots/fundacao_*.png` | a guilda escura com a Taverna pulsando; a Taverna com os quatro fundadores; a guilda fundada; o mapa com Partir; o passo de ajustar **com Voltar e Próximo** |
 
 **Não commitado:** nada. O `Assets/Fonts/SegoeUIEmoji SDF.asset` volta a mudar a cada Play Mode
 (4 MB de diff); reverta antes de qualquer commit: `git checkout -- "Assets/Fonts/SegoeUIEmoji SDF.asset"`.
@@ -56,19 +59,39 @@ até 2 (conta o grupo inteiro, mortos inclusive, para o grupo de 4 não mudar). 
 recebe o tamanho do grupo e encolhe o encontro na proporção (`ParaOGrupo`); `JourneyManager` e o
 simulador passam `party.Count`.
 
+**A folha vence na volta** (fase 3.15). `GuildManager.CobrarSalarios(dias)`: cada herói vivo custa
+o salário ÷ 7 por dia fora, quem foi e quem ficou; `JourneyManager` cobra logo depois de pagar o
+contrato, o balanço discrimina a linha em vermelho e mostra o líquido como número grande. O que não
+dá para pagar vira `GuildManager.divida`, que aparece ao lado do ouro no rodapé e é abatida pelo
+primeiro ouro que entrar (`AddGold`). Vai para o save como `GuildSave.debt`.
+
+**A semana passa na Taverna.** `GuildManager.PassarASemana(alivio)`: todos descansam (a mesma
+regra de quem fica em casa, agora em `GuildManager.Descansar`), a folha de 7 dias vence e
+`RunManager.AdvanceCycle` corre. O botão nasce em execução (`TavernManager.GarantirBotaoDaSemana`),
+some durante a fundação, e diz o custo no rótulo.
+
+**Preços.** Armadura 150 por nível (`ForgeManager.armorBaseCost`, **campo serializado**: o
+`GuildSceneSetup` escreve o valor na cena, e a cena foi remontada e salva). Poções 40–50
+(`ItemData`). A auditoria passou a contar o que sai e o catálogo da guilda inteira.
+
+**Os becos fechados.** Voltar e Próximo do passo 2 dentro do container (`GuildSceneSetup`); o
+Voltar do mapa no canto de baixo à esquerda, só no passo 1 (`QuestSelectionUI.GarantirVoltarDoMapa`);
+a semana que passa; e a leva da Taverna sempre com um nível 1 quando a guilda está vazia.
+
 ---
 
 ## Próximos passos
 
-1. **O autor jogar a fundação** e dizer duas coisas: se a primeira jornada está branda demais
-   (0,06 mortes por jornada, contra 0,59 da média — os números a mexer são
-   `TavernManager.NivelDosFundadores` e `EnemyPool.ParaOGrupo`), e se a luz das portas lê bem na
-   tela dele (escura em 30%, acesa em 82%, pulsando em 100%: `GuildGuide.BrilhoEscuro/BrilhoAceso`).
+1. **O autor jogar a fundação e a primeira volta** e dizer três coisas: se a primeira jornada está
+   branda demais (0,08 mortes por jornada, contra 0,47 da média — os números a mexer são
+   `TavernManager.NivelDosFundadores` e `EnemyPool.ParaOGrupo`); se a folha está na medida (sobra
+   394 por jornada com quatro heróis; 45% do catálogo ao fim da run — se apertar, o salário por dia
+   é `salary / 7` em `CobrarSalarios`); e se a luz das portas lê bem na tela dele
+   (`GuildGuide.BrilhoEscuro/BrilhoAceso`).
 
-2. **Fase 3.12, passo 4 — a economia para de saturar.** Ganhou urgência: com 100 de ouro inicial a
-   curva de entrada mudou, e a auditoria (`RunGameplayAudit.trigger` → `GameplayReport.txt`) ainda
-   não foi rodada com o número novo. Os números a mexer seguem sendo o espólio da expedição
-   (`QuestGenerator.GerarExpedicao`) e o prêmio das encomendas (`Encomendas.Sortear`).
+2. **A curva da Forja.** A auditoria continua acusando que o primeiro nível entrega a maior parte
+   do ganho e os níveis 2 e 3 custam o dobro e o triplo por um acréscimo menor. É decisão de design,
+   não de preço.
 
 3. **A regra própria de cada área** (`MUNDO.md`): segue escrita e não construída.
 
@@ -90,10 +113,25 @@ está na memória `fundacao-da-guilda-decisoes`.
 - **Nenhuma sala se funde** (*"somente aperfeiçoamento em cada uma delas"*), e **a tela da guilda
   continua a guilda** — nem vira o mapa-múndi, nem a porta da Jornada vira mapa em miniatura.
 - **A Corrupção no rodapé** estava na base proposta e não foi objetada.
+- **A folha por dia fora e a dívida** não foram perguntadas: são o desenho do `MUNDO.md` ("O
+  relógio": salário a cada 7 dias, acumula como dívida), decidido em 10/09. O que é meu, e ele pode
+  vetar, é a **semana que passa na Taverna** — a válvula do beco de todos esgotados sem ouro — e os
+  dois preços (armadura 150, poções 40–50), que respondem ao que a auditoria acusava.
 
 ---
 
 ## Pegadinhas / lições desta sessão
+
+### Botão fora da janela passa em todo teste que usa Invoke
+
+O Voltar e o Próximo do passo de ajustar a equipe estavam ancorados de −88 a −24px **abaixo** do
+container — "logo abaixo" quando ele era uma coluna, "abaixo da janela" desde que ele passou a
+ocupar o painel inteiro. O probe atravessava o passo por `onClick.Invoke()` e nunca acusou; o autor
+sentiu falta. O Voltar do mapa era o mesmo caso com outra causa: ancorado no meio da direita, sob a
+ficha do lugar. Régua nova no relatório: **"BOTOES FORA DA TELA"** (`PlayModeProbe.ForaDaTela`), que
+abre cada tela e os três passos da preparação. No primeiro uso ela acusou as três áreas do fundo do
+mapa-múndi — que ficam fora da vista de propósito —, e conteúdo dentro de `RectMask2D`, `ScrollRect`
+ou `Mask` saiu da conta. Memória `botao-fora-da-tela-invoke-esconde`.
 
 ### O Button repinta o alvo dele, e o recuo de 72% nunca apareceu
 
@@ -163,6 +201,9 @@ PRIMEIRO CONTATO" mudou de lugar**: vem depois de "SAVE E MENUS", porque a últi
 | `Assets/Scripts/Core/PartyFormation.cs` | `FrontSlotsFor`, `IsFront`, `OrdemRecomendada` |
 | `Assets/Scripts/Core/EnemyPool.cs` | `GetLineup(…, partySize)`, `ParaOGrupo` |
 | `Assets/Scripts/Core/MetaProgression.cs` | `OuroBasePorRun = 100` |
+| `Assets/Scripts/Core/GuildManager.cs` (folha) | `CobrarSalarios`, `divida`, `Descansar`, `PassarASemana`, `SalarioSemanal` |
+| `Assets/Scripts/UI/JourneyResultUI.cs` | a linha de salários e o líquido no balanço (`JourneyReport.salarios`) |
+| `Assets/Scripts/Core/GameplayAudit.cs` | `Economia` e `RitmoDaRun` com o que sai e o catálogo inteiro |
 
 ### Gatilhos (arquivo vazio na raiz, consumido pelo Editor ao ganhar foco)
 
@@ -172,11 +213,11 @@ PRIMEIRO CONTATO" mudou de lugar**: vem depois de "SAVE E MENUS", porque a últi
 `RunUiSkinPrefabs` · `RunHeroPanelSkin` · `RunPartyCardSkin` · `RunCardFrameSkin` · `RunAudioCatalog`
 — todos `.trigger`, todos no `.gitignore`.
 
-**Depois de mexer em código** (não foi preciso `RunSceneSetup` nesta sessão: tudo o que a tela
-ganhou nasce em execução):
+**Depois de mexer em código** (`RunSceneSetup` só quando o `GuildSceneSetup` mudou — foi o caso da
+fase 3.15, pelos botões do passo 2 e pelo preço da armadura; o gatilho salva a cena sozinho):
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& './unity-run.ps1' -Triggers @('RunSmokeTest.trigger','RunPlayModeTest.trigger')"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& './unity-run.ps1' -Triggers @('RunSceneSetup.trigger','RunSmokeTest.trigger','RunGameplayAudit.trigger','RunPlayModeTest.trigger')"
 ```
 
 **Se o `unity-run.ps1` falhar** (título da janela ou timeout de foco), use o MCP: `refresh_unity`
@@ -190,7 +231,7 @@ então `touch RunPlayModeTest.trigger`.
 |---|---|---|
 | `SmokeTestReport.txt` | `RunSmokeTest` | O jogo está de pé? 63 travas + letalidade em 1000 jornadas, e a primeira jornada dos fundadores |
 | `PlayModeReport.txt` | `RunPlayModeTest` | As telas funcionam? Console limpo, **a fundação**, diário da partida, o primeiro contato em conceitos |
-| `GameplayReport.txt` | `RunGameplayAudit` | O jogo é um jogo? Impacto de cada sistema, economia, ritmo — **desatualizado** desde o ouro inicial 100 |
+| `GameplayReport.txt` | `RunGameplayAudit` | O jogo é um jogo? Impacto de cada sistema, o que entra e o que sai por jornada, a fração do catálogo ao fim da run |
 | `Assets/Screenshots/*.png` | `RunPlayModeTest` | O que o jogador vê — a única prova que pega "dado certo, exibição ausente" |
 
 ### Compilar sem abrir o Editor (segundos)
@@ -209,7 +250,9 @@ guilda como carregada para o `Start` não pôr o ouro de fábrica por cima.
 
 ## Pendências que dependem do autor
 
-- **A primeira jornada está branda demais?** 0,06 mortes por jornada, 97% de sobrevivência.
+- **A primeira jornada está branda demais?** 0,08 mortes por jornada, 96% de sobrevivência.
+- **A folha está na medida?** Sobra 394 por jornada com quatro heróis; 45% do catálogo ao fim.
+- **A semana que passa na Taverna** é válvula minha para o beco de todos esgotados; ele pode vetar.
 - **Push** — os commits seguem só no repositório local.
 - **Os nomes das sete áreas** são de trabalho (`MUNDO.md` os marca como descartáveis).
 - **O nome do chefe do Covil**: hoje é "O Gigante de Pedra", herdado da Montanha, e o Covil é de um

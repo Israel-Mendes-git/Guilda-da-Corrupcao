@@ -62,7 +62,14 @@ public class ForgeManager : MonoBehaviour
 
     [Header("Preços")]
     public int weaponBaseCost = 120;
-    public int armorBaseCost = 100;
+
+    /// <summary>
+    /// Era 100, abaixo da arma. A auditoria mediu a armadura valendo quase o
+    /// dobro da arma no nível 3 (−0,38 contra −0,22 mortes por jornada) pelo
+    /// mesmo lugar na bigorna — o preço passou a dizer isso. Campo serializado:
+    /// o <c>GuildSceneSetup</c> escreve o mesmo valor na cena.
+    /// </summary>
+    public int armorBaseCost = 150;
 
     [Header("Limites e efeitos")]
     public int maxUpgradeLevel = 3;

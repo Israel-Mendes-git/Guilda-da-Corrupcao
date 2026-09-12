@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.UI;
 using TMPro;
 
@@ -10,6 +11,14 @@ public class GuildManager : MonoBehaviour
     [Header("Recursos")]
     public int gold = 500;
     public int reputation = 100;
+
+    /// <summary>
+    /// Salários que a guilda não conseguiu pagar. É o desenho do
+    /// <c>MUNDO.md</c> ("O relógio"): o salário vence pelo tempo fora e acumula
+    /// como dívida. O ouro que entra paga a dívida antes de encher o cofre —
+    /// ver <see cref="AddGold"/>.
+    /// </summary>
+    public int divida;
     [SerializeField] private TMP_Text goldtxt;
     [SerializeField] private TMP_Text reputationtxt;
 
@@ -191,8 +200,102 @@ public class GuildManager : MonoBehaviour
         gold = MetaProgression.OuroBasePorRun + MetaProgression.StartingGoldBonus();
         reputation = MetaProgression.ReputacaoBasePorRun + MetaProgression.StartingReputationBonus();
         maxRosterSize = BaseRosterSize + MetaProgression.ExtraRosterSlots();
+        divida = 0;
         preparada = true;
     }
+
+    #region A folha
+
+    /// <summary>O que a guilda deve por semana de estrada: o salário de todo mundo vivo.</summary>
+    public int SalarioSemanal => roster.Where(h => h != null && h.IsAlive).Sum(h => h.salary);
+
+    /// <summary>O resultado de uma cobrança de salários.</summary>
+    public struct Cobranca
+    {
+        public int total;
+        public int pago;
+        public int devido;
+        public int herois;
+        public int dias;
+    }
+
+    /// <summary>
+    /// Cobra os salários de tantos dias fora, de todo mundo vivo — quem foi e
+    /// quem ficou, porque os dois estão na folha.
+    ///
+    /// <b>É o dreno que a economia não tinha.</b> Até 12/09 o ouro só entrava:
+    /// nenhum custo recorrente, e a auditoria mostrava a guilda com mais ouro do
+    /// que coisas para comprar por volta do sétimo ciclo. O salário por dia de
+    /// estrada (o salário semanal dividido por sete, como o <c>MUNDO.md</c>
+    /// desenhou) faz cada herói a mais e cada nível a mais custar de verdade, e
+    /// faz a viagem longa cobrar em ouro além de em dias. O que não dá para
+    /// pagar vira <see cref="divida"/>, e o ouro seguinte a abate primeiro.
+    /// </summary>
+    public Cobranca CobrarSalarios(int dias)
+    {
+        dias = Mathf.Max(1, dias);
+
+        List<HeroData> vivos = roster.Where(h => h != null && h.IsAlive).ToList();
+        int total = vivos.Sum(h => Mathf.RoundToInt(h.salary * dias / 7f));
+        int pago = Mathf.Min(gold, total);
+
+        gold -= pago;
+        divida += total - pago;
+
+        UpdateGoldUI();
+        onGoldChanged?.Invoke();
+
+        return new Cobranca { total = total, pago = pago, devido = total - pago, herois = vivos.Count, dias = dias };
+    }
+
+    /// <summary>
+    /// Alívio de quem passou um tempo em casa. Descansar em casa cura menos que
+    /// o cuidado pago do Mercado ou a vigília do Cemitério — a diferença é que é
+    /// de graça e sempre acontece.
+    /// </summary>
+    public void Descansar(IEnumerable<HeroData> quem, float alivio)
+    {
+        if (quem == null) return;
+
+        foreach (HeroData hero in quem)
+        {
+            if (hero == null || hero.isDead) continue;
+
+            hero.stress = Mathf.Max(0f, hero.stress - alivio);
+            hero.morale = Mathf.Min(100f, hero.morale + 5f);
+
+            // Ferimento tratado com tempo, não com sorte: só cicatriza quem
+            // passou uma semana inteira fora da estrada.
+            if (hero.isInjured && hero.stress < 40f && Random.value < 0.5f)
+                hero.isInjured = false;
+        }
+    }
+
+    /// <summary>
+    /// A semana passa sem ninguém sair: todos descansam, os salários de sete
+    /// dias vencem e o mundo apodrece um ciclo.
+    ///
+    /// <b>É a válvula do beco sem saída.</b> Um herói acima do limite de
+    /// estresse recusa partir, e o único descanso de graça acontecia quando os
+    /// outros viajavam. Com todo mundo esgotado e sem ouro para vinho, a guilda
+    /// travava: nem partia, nem ganhava, nem descansava. A semana custa o que
+    /// uma jornada custaria em relógio e em folha, e rende só o descanso — é a
+    /// semana que passa no vilarejo do <i>Darkest Dungeon</i> quando ninguém
+    /// embarca.
+    /// </summary>
+    public Cobranca PassarASemana(float alivio)
+    {
+        Descansar(roster, alivio);
+        Cobranca folha = CobrarSalarios(7);
+
+        RunManager run = RunManager.Instance;
+        if (run != null) run.AdvanceCycle();
+
+        onRosterChanged?.Invoke();
+        return folha;
+    }
+
+    #endregion
 
     /// <summary>
     /// Um fundador entra sem custo. Só vale durante a fundação: fora dela, quem
@@ -305,6 +408,15 @@ public class GuildManager : MonoBehaviour
 
     public void AddGold(int amount)
     {
+        // A dívida come primeiro: ouro que entra numa guilda devendo salário
+        // paga o salário antes de virar cofre.
+        if (amount > 0 && divida > 0)
+        {
+            int abate = Mathf.Min(amount, divida);
+            divida -= abate;
+            amount -= abate;
+        }
+
         gold += amount;
         UpdateGoldUI();
         onGoldChanged?.Invoke();
@@ -331,8 +443,13 @@ public class GuildManager : MonoBehaviour
 
     void UpdateGoldUI()
     {
-        if (goldtxt != null)
-            goldtxt.text = gold.ToString();
+        if (goldtxt == null) return;
+
+        // A dívida fica ao lado do ouro, em vermelho e menor: é o número que o
+        // próximo contrato vai pagar antes de render qualquer coisa.
+        goldtxt.text = divida > 0
+            ? $"{gold}  <size=60%><color=#B04040>deve {divida}</color></size>"
+            : gold.ToString();
     }
 
     void UpdateReputationUI()

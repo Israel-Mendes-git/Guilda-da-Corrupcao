@@ -603,6 +603,12 @@ public static class GuildSmokeTest
 
         /// <summary>O contrato médio das missões sorteadas.</summary>
         public float ouroDosContratos;
+
+        /// <summary>O que quem voltou rende por jornada (25 por cabeça).</summary>
+        public float ouroDosSobreviventes;
+
+        /// <summary>A folha por jornada: salário por dia fora, de todo o grupo vivo.</summary>
+        public float ouroDeSalarios;
     }
 
     static void SimulateJourneys(int runs)
@@ -776,6 +782,8 @@ public static class GuildSmokeTest
         // jogabilidade compara com o preço das coisas da guilda.
         int ouroDosEventos = 0;
         int ouroDosContratos = 0;
+        int ouroDosSobreviventes = 0;
+        int ouroDeSalarios = 0;
 
         // De onde vêm as mortes. Sem separar, "2,40 mortes por jornada" não diz
         // se o culpado é o chefe, o encontro do caminho ou a fome — e as três
@@ -978,6 +986,13 @@ public static class GuildSmokeTest
                 if (MentalStateUtil.IsAffliction(h.mentalState)) totalAflicoes++;
             }
 
+            // O que a volta paga e o que ela cobra, pelas mesmas contas do
+            // JourneyManager: 25 por quem voltou, e a folha de todo mundo vivo
+            // pelos dias fora (GuildManager.CobrarSalarios).
+            ouroDosSobreviventes += party.Count(h => h.IsAlive) * 25;
+            ouroDeSalarios += party.Where(h => h.IsAlive)
+                                   .Sum(h => Mathf.RoundToInt(h.salary * Mathf.Max(1, dias) / 7f));
+
             Object.DestroyImmediate(quest);
         }
 
@@ -998,7 +1013,9 @@ public static class GuildSmokeTest
             duracaoMedia = (float)duracoes.Average(),
             aflicoes = totalAflicoes / (float)totalHerois,
             ouroDosEventos = ouroDosEventos / (float)runs,
-            ouroDosContratos = ouroDosContratos / (float)runs
+            ouroDosContratos = ouroDosContratos / (float)runs,
+            ouroDosSobreviventes = ouroDosSobreviventes / (float)runs,
+            ouroDeSalarios = ouroDeSalarios / (float)runs
         };
     }
 
