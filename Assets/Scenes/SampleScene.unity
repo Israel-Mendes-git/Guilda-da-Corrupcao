@@ -7192,6 +7192,7 @@ GameObject:
   - component: {fileID: 256266161}
   - component: {fileID: 256266163}
   - component: {fileID: 256266162}
+  - component: {fileID: 256266164}
   m_Layer: 0
   m_Name: Realce
   m_TagString: Untagged
@@ -7216,7 +7217,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &256266162
 MonoBehaviour:
@@ -7256,6 +7257,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 256266160}
   m_CullTransparentMesh: 1
+--- !u!114 &256266164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 256266160}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31eb934bf00bc4441abaea5e2cc353f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &257438809
 GameObject:
   m_ObjectHideFlags: 0
@@ -11779,6 +11792,7 @@ GameObject:
   - component: {fileID: 371297876}
   - component: {fileID: 371297878}
   - component: {fileID: 371297877}
+  - component: {fileID: 371297879}
   m_Layer: 0
   m_Name: Realce
   m_TagString: Untagged
@@ -11803,7 +11817,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &371297877
 MonoBehaviour:
@@ -11843,6 +11857,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 371297875}
   m_CullTransparentMesh: 1
+--- !u!114 &371297879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371297875}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31eb934bf00bc4441abaea5e2cc353f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &373799692
 GameObject:
   m_ObjectHideFlags: 0
@@ -14711,6 +14737,7 @@ GameObject:
   - component: {fileID: 472846014}
   - component: {fileID: 472846016}
   - component: {fileID: 472846015}
+  - component: {fileID: 472846017}
   m_Layer: 0
   m_Name: Realce
   m_TagString: Untagged
@@ -14735,7 +14762,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &472846015
 MonoBehaviour:
@@ -14775,6 +14802,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 472846013}
   m_CullTransparentMesh: 1
+--- !u!114 &472846017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 472846013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31eb934bf00bc4441abaea5e2cc353f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &479780547
 GameObject:
   m_ObjectHideFlags: 0
@@ -16991,7 +17030,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.27, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -2, y: -1}
+  m_AnchoredPosition: {x: -2, y: -0.9999962}
   m_SizeDelta: {x: -20, y: -178.00003}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &552629483
@@ -19944,6 +19983,7 @@ GameObject:
   - component: {fileID: 653677765}
   - component: {fileID: 653677767}
   - component: {fileID: 653677766}
+  - component: {fileID: 653677768}
   m_Layer: 0
   m_Name: Realce
   m_TagString: Untagged
@@ -19968,7 +20008,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &653677766
 MonoBehaviour:
@@ -20008,6 +20048,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 653677764}
   m_CullTransparentMesh: 1
+--- !u!114 &653677768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 653677764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31eb934bf00bc4441abaea5e2cc353f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &654087184
 GameObject:
   m_ObjectHideFlags: 0
@@ -33346,7 +33398,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1078905393
 RectTransform:
   m_ObjectHideFlags: 0
@@ -34588,6 +34640,7 @@ GameObject:
   - component: {fileID: 1112076503}
   - component: {fileID: 1112076505}
   - component: {fileID: 1112076504}
+  - component: {fileID: 1112076506}
   m_Layer: 0
   m_Name: Realce
   m_TagString: Untagged
@@ -34612,7 +34665,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1112076504
 MonoBehaviour:
@@ -34652,6 +34705,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1112076502}
   m_CullTransparentMesh: 1
+--- !u!114 &1112076506
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1112076502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31eb934bf00bc4441abaea5e2cc353f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1112440057
 GameObject:
   m_ObjectHideFlags: 0
@@ -47021,6 +47086,7 @@ GameObject:
   - component: {fileID: 1484897924}
   - component: {fileID: 1484897926}
   - component: {fileID: 1484897925}
+  - component: {fileID: 1484897927}
   m_Layer: 0
   m_Name: Realce
   m_TagString: Untagged
@@ -47045,7 +47111,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1484897925
 MonoBehaviour:
@@ -47085,6 +47151,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1484897923}
   m_CullTransparentMesh: 1
+--- !u!114 &1484897927
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1484897923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31eb934bf00bc4441abaea5e2cc353f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1487870131
 GameObject:
   m_ObjectHideFlags: 0
@@ -56355,7 +56433,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -24.000061, y: -24}
+  m_SizeDelta: {x: -24, y: -24}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1785385190
 GameObject:
@@ -58697,6 +58775,7 @@ GameObject:
   - component: {fileID: 1856562733}
   - component: {fileID: 1856562735}
   - component: {fileID: 1856562734}
+  - component: {fileID: 1856562736}
   m_Layer: 0
   m_Name: Realce
   m_TagString: Untagged
@@ -58721,7 +58800,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1856562734
 MonoBehaviour:
@@ -58761,6 +58840,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1856562732}
   m_CullTransparentMesh: 1
+--- !u!114 &1856562736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1856562732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31eb934bf00bc4441abaea5e2cc353f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1857072993
 GameObject:
   m_ObjectHideFlags: 0

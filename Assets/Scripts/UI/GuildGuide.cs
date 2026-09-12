@@ -5,7 +5,13 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Diz ao jogador o que fazer agora, e acende a sala que resolve.
+/// Acende a sala que resolve o que o jogador tem pela frente.
+///
+/// <b>Desde 12/09 ele não escreve mais nada.</b> A frase no alto da guilda era
+/// uma caixa de texto explicando o jogo, e o autor descartou as duas coisas como
+/// forma de guiar. A decisão de <i>qual</i> sala importa agora continua igual —
+/// é ela que acende a moldura —, e quem explica o que fazer lá dentro é a
+/// própria sala, que já tem a sua linha de dica.
 ///
 /// A guilda é sete portas escuras lado a lado, todas com o mesmo peso visual:
 /// nada distingue a sala que faz o jogo andar da sala que o jogador só visita
@@ -17,9 +23,9 @@ using UnityEngine.UI;
 /// para a mais rotineira. Um guia que listasse tudo o que é possível fazer não
 /// seria guia nenhum — seria o mesmo menu de sete portas, agora por escrito.
 ///
-/// O texto descreve o estado real (nomes, números), nunca uma instrução genérica:
-/// "Gromm está esgotado" ensina a regra do estresse de passagem, "Visite o
-/// Mercado" não ensina nada.
+/// O texto de cada caso continua escrito no <see cref="Decidir"/>: ele é o que
+/// explica a regra de cada condição para quem lê o código, e é lido pelo
+/// relatório de Play Mode, que audita se o guia aponta para a sala certa.
 /// </summary>
 public class GuildGuide : MonoBehaviour
 {
@@ -115,11 +121,42 @@ public class GuildGuide : MonoBehaviour
         string sala, texto;
         Decidir(out sala, out texto);
 
-        if (linha != null) linha.text = texto;
+        // A frase não vai mais para a tela: o objeto fica na cena, vazio e
+        // desligado, porque é a referência que o guia guarda e apagar objeto de
+        // cena por ferramenta é irreversível. O texto continua servindo ao
+        // relatório de Play Mode, que confere se o guia aponta para a sala certa.
+        if (linha != null && linha.gameObject.activeSelf) linha.text = "";
 
         foreach (var s in salas)
-            if (s != null && s.realce != null)
-                s.realce.SetActive(s.nome == sala);
+        {
+            if (s == null || s.realce == null) continue;
+
+            bool eEsta = s.nome == sala;
+            s.realce.SetActive(eEsta);
+            Recuar(s.realce.transform.parent, eEsta);
+        }
+    }
+
+    /// <summary>
+    /// A porta sugerida fica em brilho cheio; as outras recuam.
+    ///
+    /// <b>A moldura acesa sozinha não bastava.</b> Sete portas do mesmo tamanho
+    /// e do mesmo brilho, e um contorno dourado de dez pixels no meio delas: na
+    /// captura de 12/09 a Forja estava acesa e era preciso saber onde procurar
+    /// para achar. Escurecer as outras é o que o olho lê de longe — e é sutil o
+    /// bastante (72%) para não parecer porta trancada, que seria mentira: todas
+    /// continuam clicáveis.
+    /// </summary>
+    static void Recuar(Transform sala, bool emDestaque)
+    {
+        if (sala == null) return;
+
+        var img = sala.GetComponent<Image>();
+        if (img == null) return;
+
+        float tom = emDestaque ? 1f : 0.72f;
+        Color c = img.color;
+        img.color = new Color(tom, tom, tom, c.a);
     }
 
     /// <summary>

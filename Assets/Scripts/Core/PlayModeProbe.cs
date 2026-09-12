@@ -2452,11 +2452,20 @@ public class PlayModeProbe : MonoBehaviour
                 Line($"  ATENÇÃO: só {aptos.Count} herói(s) em condição de partir — o grupo sai incompleto");
 
             // ── O que o guia manda fazer ──
+            // Desde 12/09 o guia não escreve na tela — ele acende a porta. O
+            // relatório pergunta a decisão direto a ele: é o que permite auditar
+            // se a sala apontada é a certa para o estado da guilda, que é a
+            // única coisa que o guia ainda faz.
             var guia = UnityEngine.Object.FindObjectOfType<GuildGuide>(true);
-            if (guia != null && guia.linha != null && !string.IsNullOrWhiteSpace(guia.linha.text))
-                Line($"  o guia da guilda diz: \"{StripTags(guia.linha.text)}\"");
+            if (guia != null)
+            {
+                guia.Decidir(out string salaAcesa, out string motivo);
+                Line($"  o guia acende: {salaAcesa}  ·  motivo: {StripTags(motivo)}");
+            }
             else
-                Line("  o guia da guilda não diz nada nesta volta");
+            {
+                Line("  não há guia da guilda na cena");
+            }
 
             // ── O que o quadro pede ──
             //
@@ -2630,6 +2639,17 @@ public class PlayModeProbe : MonoBehaviour
                 // que dá conselho de ser a única sem orientação. O relatório
                 // errou sobre o jogo, de novo; o defeito era do critério.
                 if (t.name.Contains("Hint") || t.name.Contains("Guia")) temDica = true;
+            }
+
+            // A guilda não tem linha de dica desde 12/09: ela orienta pela porta
+            // acesa. Contá-la como tela sem orientação seria o relatório errando
+            // sobre o jogo — pelo mesmo motivo que o Txt_Guia entrou no critério
+            // quando a frase existia.
+            if (tela.nome == "Guilda")
+            {
+                var g = UnityEngine.Object.FindObjectOfType<GuildGuide>(true);
+                if (g != null && g.salas.Exists(x => x != null && x.realce != null
+                                                  && x.realce.activeSelf)) temDica = true;
             }
 
             Line($"  {tela.nome,-24} {ativos,6}   {desligados,10}   {textos,6}   {(temDica ? "sim" : "NÃO"),12}");

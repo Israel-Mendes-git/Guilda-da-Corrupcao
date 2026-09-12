@@ -1546,13 +1546,21 @@ public static class GuildSceneSetup
             return;
         }
 
-        // O conselho vive no alto, onde a tela estava vazia, e ocupa a largura
-        // toda: as frases citam nome de herói e chegam a duas linhas.
+        // <b>A frase do guia sai de cena em 12/09.</b>
+        //
+        // Ela dizia "A arma de Elara Stella nunca foi forjada. Há 3981 de ouro
+        // parado…" no alto da guilda, e é exatamente o que o autor descartou como
+        // forma de guiar: <i>nem tutorial, nem caixa de texto</i>. O que fica é a
+        // porta acesa — e, ao entrar, a sala explica, porque toda sala já tem a
+        // sua linha de dica.
+        //
+        // O objeto continua existindo e só é esvaziado: o GuildGuide guarda uma
+        // referência a ele, e apagar objeto de cena por ferramenta é
+        // irreversível.
         TMP_Text linha = EnsureText(mapa, "Txt_Guia", "", 24,
             new Vector2(0, 1), new Vector2(1, 1), new Vector2(60, -108), new Vector2(-60, -34));
-        linha.alignment = TextAlignmentOptions.Center;
-        linha.color = ButtonLabelColor;
-        linha.enableWordWrapping = true;
+        linha.text = "";
+        linha.gameObject.SetActive(false);
 
         Sprite moldura = AssetDatabase.LoadAssetAtPath<Sprite>(OutlineSpritePath);
 
@@ -1608,10 +1616,19 @@ public static class GuildSceneSetup
         img.color = RealceTint;
         img.raycastTarget = false;
 
+        // A moldura respira. Parada, ela sumia entre sete portas do mesmo peso:
+        // na captura de 11/09 a Forja estava acesa e era preciso procurar para
+        // notar. Desde que a frase saiu, este brilho é a única orientação da
+        // guilda — e o que o olho pega numa tela estática é o que se move.
+        if (go.GetComponent<RealcePulsante>() == null)
+            Undo.AddComponent<RealcePulsante>(go);
+
         // Transborda a sala de propósito: uma moldura rente à borda se confunde
-        // com a moldura que o kit já pôs em toda caixa.
+        // com a moldura que o kit já pôs em toda caixa. Vinte pixels, e não dez:
+        // desde que a frase do guia saiu, esta moldura é a orientação da guilda
+        // inteira, e a dez ela passava por detalhe do cenário.
         ApplyRect(go.GetComponent<RectTransform>(), Vector2.zero, Vector2.one,
-                  new Vector2(-10, -10), new Vector2(10, 10));
+                  new Vector2(-20, -20), new Vector2(20, 20));
 
         go.SetActive(false);
         return go;
