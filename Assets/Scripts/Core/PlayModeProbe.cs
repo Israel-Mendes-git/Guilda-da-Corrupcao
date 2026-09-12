@@ -328,6 +328,9 @@ public class PlayModeProbe : MonoBehaviour
         Section("O QUE CADA TELA OFERECE");
         yield return AuditarTelas();
 
+        Section("O PRIMEIRO CONTATO");
+        yield return MedirPrimeiroContato();
+
         Section("CUSTO DE CADA ACAO, EM CLIQUES");
         yield return CustoDasAcoes();
 
@@ -2660,6 +2663,164 @@ public class PlayModeProbe : MonoBehaviour
 
         ui.ShowGuildScreen();
         yield return new WaitForSeconds(0.25f);
+    }
+
+    /// <summary>
+    /// O vocabulário do jogo: cada termo que o jogador precisa entender para
+    /// ler uma tela.
+    ///
+    /// <b>Por que uma lista à mão.</b> Contar palavras mede o tamanho do texto,
+    /// não o tamanho do que há para aprender — e foi medindo texto que a
+    /// auditoria de 12/09 apontou a tela de Baralhos (80 textos) como a mais
+    /// pesada do jogo, quando 60 daqueles textos eram o nome, o custo e a
+    /// descrição das cartas na mesa. Conceito é outra coisa: é a palavra que não
+    /// se entende sem alguém explicar.
+    ///
+    /// A lista é o vocabulário próprio deste jogo. "Ouro" e "dano" ficam de
+    /// fora: quem abre um roguelike de fantasia já sabe o que são.
+    /// </summary>
+    /// <summary>
+    /// Cada entrada é <b>conceito, radical</b>: a Sala de Mapas escreve
+    /// "corrompida" e a Biblioteca escreve "corrupção", e as duas falam da mesma
+    /// coisa. Procurar a palavra inteira media a grafia, não o conceito — na
+    /// primeira medição a Sala de Mapas apareceu com um conceito só.
+    /// </summary>
+    static readonly (string conceito, string radical)[] Vocabulario =
+    {
+        ("corrupção", "corromp"), ("corrupção", "corrupç"),
+        ("estresse", "estress"), ("moral", "moral"), ("ferimento", "ferid"),
+        ("aflição", "afliç"), ("virtude", "virtude"), ("beira da morte", "beira da morte"),
+        ("esgotamento", "esgotad"), ("energia", "energia"), ("bloqueio", "bloqu"),
+        ("formação", "formaç"), ("retaguarda", "retaguarda"), ("linha de frente", "frente"),
+        ("relíquia", "relíquia"), ("poção", "poç"), ("escrito", "escrito"),
+        ("selo", "selar"), ("selo", "selad"), ("encomenda", "encomenda"),
+        ("espólio", "espólio"), ("ração", "raç"), ("tocha", "tocha"),
+        ("baralho", "baralho"), ("raridade", "raridade"), ("salário", "salário"),
+        ("reputação", "reputaç"), ("ciclo", "ciclo"), ("mapeamento", "mape"),
+        ("acervo", "acervo"), ("custo médio", "custo médio"), ("provisão", "provis"),
+        ("veneno", "veneno"), ("traço", "traço"), ("memória", "memória"),
+        ("dia de estrada", "dias de estrada"), ("moeda de meta", "memórias")
+    };
+
+    /// <summary>
+    /// Quanto o jogo pede ao jogador que nunca o abriu.
+    ///
+    /// <b>Por que medir isto.</b> A queixa do autor é "muita informação, pouco
+    /// aproveitamento, confusão em quem joga pela primeira vez", e até aqui a
+    /// única régua era contar textos e botões — que apontou para as telas mais
+    /// bem resolvidas do jogo. Esta seção conta <b>conceitos</b>: quantos termos
+    /// próprios do jogo o jogador encontra antes de conseguir partir, e em que
+    /// tela cada um aparece pela primeira vez.
+    ///
+    /// É a mesma ideia da letalidade: um número que se compara entre versões, e
+    /// que diz se uma mudança melhorou ou piorou o primeiro contato.
+    /// </summary>
+    IEnumerator MedirPrimeiroContato()
+    {
+        var ui = UIManager.Instance;
+        if (ui == null)
+        {
+            Line("pulada: UIManager ausente");
+            yield break;
+        }
+
+        // O caminho mínimo: o que o jogador atravessa para a primeira jornada
+        // acontecer. Não é o caminho que ele deveria fazer — é o mais curto que
+        // existe, e por isso é o piso do que o jogo exige entender.
+        var caminho = new (string nome, GameObject painel, System.Action abrir)[]
+        {
+            ("Guilda",      ui.guildPanel,          () => ui.ShowGuildScreen()),
+            ("Preparação",  ui.questSelectionPanel, () => ui.ShowQuestSelection())
+        };
+
+        var vistosNoCaminho = new HashSet<string>();
+
+        foreach (var tela in caminho)
+        {
+            if (tela.painel == null) continue;
+
+            tela.abrir();
+            yield return new WaitForSeconds(0.25f);
+
+            var achados = ConceitosNaTela(tela.painel);
+            var novos = achados.Where(c => !vistosNoCaminho.Contains(c)).ToList();
+            foreach (var c in novos) vistosNoCaminho.Add(c);
+
+            Line($"  {tela.nome,-14} {achados.Count,2} conceito(s), {novos.Count,2} inédito(s)"
+               + (novos.Count > 0 ? $"  ·  {string.Join(", ", novos)}" : ""));
+        }
+
+        Line("");
+        Line($"  o caminho mínimo até a primeira jornada exige {vistosNoCaminho.Count} conceito(s)");
+
+        // E o resto da guilda, que está aberto desde o primeiro minuto e não é
+        // preciso atravessar para jogar.
+        var salas = new (string nome, GameObject painel, System.Action abrir)[]
+        {
+            ("Taverna",       ui.tavernPanel,    () => ui.ShowTavern()),
+            ("Biblioteca",    ui.libraryPanel,   () => ui.ShowLibrary()),
+            ("Forja",         ui.forgePanel,     () => ui.ShowForge()),
+            ("Mercado",       ui.marketPanel,    () => ui.ShowMarket()),
+            ("Cemitério",     ui.cemeteryPanel,  () => ui.ShowCemetery()),
+            ("Sala de Mapas", ui.mapRoomPanel,   () => ui.ShowMapRoom()),
+            ("Baralhos",      ui.deckManagerPanel, () => ui.ShowDeckManager())
+        };
+
+        var vistosNoTodo = new HashSet<string>(vistosNoCaminho);
+        int portasAbertas = 0;
+
+        Line("");
+        foreach (var sala in salas)
+        {
+            if (sala.painel == null) continue;
+
+            portasAbertas++;
+            sala.abrir();
+            yield return new WaitForSeconds(0.25f);
+
+            var achados = ConceitosNaTela(sala.painel);
+            var novos = achados.Where(c => !vistosNoTodo.Contains(c)).ToList();
+            foreach (var c in novos) vistosNoTodo.Add(c);
+
+            Line($"  {sala.nome,-14} {achados.Count,2} conceito(s), {novos.Count,2} além do caminho"
+               + (novos.Count > 0 ? $"  ·  {string.Join(", ", novos)}" : ""));
+        }
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.25f);
+
+        Line("");
+        Line($"  a guilda abre {portasAbertas} sala(s) de uma vez, na primeira volta");
+        Line($"  o jogo inteiro nomeia {vistosNoTodo.Count} conceito(s) — "
+           + $"{vistosNoTodo.Count - vistosNoCaminho.Count} deles fora do caminho de jogar");
+        Line("");
+        Line("  (conceito = termo próprio deste jogo, dos que não se entendem sem explicação;");
+        Line("   ouro e dano ficam de fora, porque quem abre um roguelike já sabe o que são)");
+    }
+
+    /// <summary>Quais termos do vocabulário aparecem escritos numa tela.</summary>
+    static List<string> ConceitosNaTela(GameObject painel)
+    {
+        var achados = new List<string>();
+        if (painel == null) return achados;
+
+        var texto = new System.Text.StringBuilder();
+        foreach (TMP_Text t in painel.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (!t.gameObject.activeInHierarchy || string.IsNullOrWhiteSpace(t.text)) continue;
+            texto.Append(StripTags(t.text).ToLowerInvariant()).Append(' ');
+        }
+
+        string tudo = texto.ToString();
+
+        // Distinto por conceito, e não por radical: "corromp" e "corrupç" são a
+        // mesma ideia escrita de dois jeitos, e contar as duas inflaria o número
+        // justamente nas telas que mais falam dela.
+        foreach (var entrada in Vocabulario)
+            if (tudo.Contains(entrada.radical) && !achados.Contains(entrada.conceito))
+                achados.Add(entrada.conceito);
+
+        return achados;
     }
 
     /// <summary>
