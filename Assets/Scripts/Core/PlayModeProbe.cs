@@ -2601,11 +2601,20 @@ public class PlayModeProbe : MonoBehaviour
 
             int ativos = 0, desligados = 0, textos = 0;
             bool temDica = false;
+            var apagados = new List<string>();
 
             foreach (Button b in tela.painel.GetComponentsInChildren<Button>(true))
             {
                 if (!b.gameObject.activeInHierarchy) continue;
-                if (b.interactable) ativos++; else desligados++;
+
+                if (b.interactable) { ativos++; continue; }
+
+                desligados++;
+
+                // O nome de quem está apagado, e não só quantos: sem isso a
+                // auditoria acusa "4 desligados na Taverna" e a investigação
+                // começa abrindo a cena para descobrir quais são.
+                if (apagados.Count < 8) apagados.Add(b.gameObject.name);
             }
 
             foreach (TMP_Text t in tela.painel.GetComponentsInChildren<TMP_Text>(true))
@@ -2624,6 +2633,9 @@ public class PlayModeProbe : MonoBehaviour
             }
 
             Line($"  {tela.nome,-24} {ativos,6}   {desligados,10}   {textos,6}   {(temDica ? "sim" : "NÃO"),12}");
+
+            if (apagados.Count > 0)
+                Line($"      apagados: {string.Join(", ", apagados)}");
         }
 
         ui.ShowGuildScreen();

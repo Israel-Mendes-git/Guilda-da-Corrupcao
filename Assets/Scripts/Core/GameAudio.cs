@@ -48,7 +48,19 @@ public class GameAudio : MonoBehaviour
     private MusicContext atual = (MusicContext)(-1);
     private Coroutine troca;
 
-    [Range(0f, 1f)] public float volumeMusica = 0.45f;
+    /// <summary>
+    /// Música a 0,22, e não a 0,45.
+    ///
+    /// A trilha cobria os efeitos e incomodava em sessão longa de teste. O
+    /// número é o padrão de quem nunca tocou no slider — as opções continuam
+    /// mandando, e quem já escolheu um volume mantém o dele.
+    ///
+    /// <b>Este campo é serializado na cena.</b> Mudar só aqui não muda o
+    /// componente que já existe no GameAudio da cena; o valor tem de ser
+    /// corrigido nos dois lugares, e é o que a migração do perfil faz do lado
+    /// de quem já jogou.
+    /// </summary>
+    [Range(0f, 1f)] public float volumeMusica = 0.22f;
     [Range(0f, 1f)] public float volumeEfeitos = 0.85f;
     public float fadeDuration = 1.2f;
 

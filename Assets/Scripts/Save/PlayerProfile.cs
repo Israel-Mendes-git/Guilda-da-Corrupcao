@@ -55,6 +55,27 @@ public static class PlayerProfile
         }
 
         MigrarMoeda(dados);
+        MigrarVolumeDaMusica(dados);
+    }
+
+    /// <summary>
+    /// Leva ao volume novo quem nunca escolheu um.
+    ///
+    /// O padrão da música caiu de 0,45 para 0,22 em 12/09, e padrão só vale para
+    /// perfil novo: quem já abriu o jogo uma vez tem o 0,45 gravado no
+    /// <c>profile.json</c> e continuaria com a trilha por cima dos efeitos para
+    /// sempre. Só o valor antigo exato é trocado — quem mexeu no slider escolheu,
+    /// e escolha do jogador não se migra.
+    /// </summary>
+    static void MigrarVolumeDaMusica(ProfileData perfil)
+    {
+        if (perfil == null || perfil.settings == null) return;
+
+        if (!Mathf.Approximately(perfil.settings.musicVolume, SettingsSave.VolumeMusicaPadraoAntigo))
+            return;
+
+        perfil.settings.musicVolume = SettingsSave.VolumeMusicaPadrao;
+        Salvar();
     }
 
     /// <summary>
@@ -194,7 +215,19 @@ public class UnlockSave
 [Serializable]
 public class SettingsSave
 {
-    public float musicVolume = 0.45f;
+    /// <summary>
+    /// O volume de música de quem nunca abriu as opções.
+    ///
+    /// Era 0,45 e passou a 0,22 em 12/09: a trilha cobria os efeitos. Fica como
+    /// constante porque a migração precisa reconhecer o valor antigo — trocar o
+    /// padrão sozinho não mexe em nenhum perfil já gravado.
+    /// </summary>
+    public const float VolumeMusicaPadrao = 0.22f;
+
+    /// <summary>O padrão anterior, para a migração saber quem nunca escolheu.</summary>
+    public const float VolumeMusicaPadraoAntigo = 0.45f;
+
+    public float musicVolume = VolumeMusicaPadrao;
     public float sfxVolume = 0.85f;
 
     public bool fullscreen = true;

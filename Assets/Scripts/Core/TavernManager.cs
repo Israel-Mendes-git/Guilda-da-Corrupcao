@@ -571,8 +571,15 @@ public class TavernManager : MonoBehaviour
             var drag = view.GetComponent<CardDragHandler>();
             if (drag != null) Destroy(drag);
 
+            // O Button sai do objeto em vez de ser desligado.
+            //
+            // Desligado, o UGUI aplica o estado Disabled e <b>esmaece o desenho
+            // da carta</b> — a prateleira ficava com quatro cartas apagadas, que
+            // é a leitura de "você não pode isto" para algo que é só mostruário.
+            // De quebra, a auditoria de telas contava quatro botões desligados
+            // por sala que não tinham nada a ver com ação bloqueada.
             var botao = view.GetComponent<Button>();
-            if (botao != null) botao.interactable = false;
+            if (botao != null) Destroy(botao);
         }
     }
 
