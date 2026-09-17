@@ -5,7 +5,7 @@
 > Foco escolhido pelo autor: **fechar as dívidas do núcleo** e, em seguida, **construir a estrutura
 > de roguelike**.
 >
-> **Conferido no Editor em 14/08** (via MCP, não só pelo relatório antigo): o projeto **compila** —
+> **Conferido no Editor em 14/08** (não só pelo relatório antigo): o projeto **compila** —
 > os únicos avisos no console vêm de DLLs duplicadas do pacote `realvirtual-MCP`, alheias ao jogo.
 > Seguem valendo: as 6 referências nulas da cena, `maxRosterSize = 8`, as 2 cartas sem efeito de
 > jornada e **1 único** evento de combate não-chefe entre os 19.
@@ -92,7 +92,7 @@ O jogo é um sandbox infinito. Não há `GameOver`, fim de run, nem tela de iní
 
 | Item | Evidência | Situação |
 |---|---|---|
-| Mudança de cópias no `DeckManager` | `HANDOFF.md` "Não verificado" | compilou, **nunca passou por Play Mode** |
+| Mudança de cópias no `DeckManager` | registro anterior: "Não verificado" | compilou, **nunca passou por Play Mode** |
 | Ruído de log | 51 `Debug.Log` em `QuestSelectionUI`, 10 em `DeckGenerator`, 8 em `GameInitializer`, 5 em `MapManager` | encheu o `Editor.log` em 76 MB numa sessão |
 | Referências nulas na cena | relatório: `JourneyManager` (biomeIcon, deckCountText, handCountText, discardCountText), `MapRoomManager.revealedEventPrefab`, `JourneyMapUI.edgePrefab` | contadores de baralho/mão/descarte não atualizam |
 | Heróis iniciais duplicados | `GuildManager.AddStartingHeroes` (`:53`, via `HeroFactory`) **e** `GameInitializer.CreateInitialHeroes` (`:49`, hardcoded) | valores divergentes (Gromm HP 42 × 45); a segunda cria heróis sem `heroId` e sem deck |
@@ -175,7 +175,7 @@ anda. Medir a cada ciclo.
 | `Tools ▸ Rodar Smoke Test` | **38 verificações, 0 falhas** — nada regrediu |
 | Run de Play Mode | **"PLAY MODE OK — nenhum erro capturado"**, jornada completa, saída por vitória |
 | XP no fluxo real | `Gromm: Nv.3 | XP 0 → 143/250` — bate com a fórmula (60 + 7×8, ×1,23 de corrupção); mortos não recebem |
-| Pendência do handoff | **resolvida**: coleção do `DeckManager` em 4 itens, não mais zerada |
+| Pendência anterior | **resolvida**: coleção do `DeckManager` em 4 itens, não mais zerada |
 | Referências | todas ligadas; os 3 opcionais aparecem rotulados como opcionais |
 | `TavernManager` | deixou de ser reportado como AUSENTE |
 
@@ -929,8 +929,7 @@ A tela precisa ler como sete portas de uma mesma guilda, e não como sete quadro
 - **Os retratos do rodapé da guilda estavam vazios** — os cards são objetos da cena herdada, sem
   código que os monte.
 
-**O que falta desta frente está no `HANDOFF.md`**, na seção "O que a próxima sessão precisa
-discutir": tipografia, vinheta, paleta sépia, o momento da quebra do herói, o narrador e a tocha.
+**O que falta desta frente** ainda está em aberto: tipografia, vinheta, paleta sépia, o momento da quebra do herói, o narrador e a tocha.
 
 ---
 
@@ -1138,7 +1137,7 @@ como lugar; o que cada lugar *faz* é a fase seguinte.
 
 | Ferramenta | Para quê | Custo |
 |---|---|---|
-| Compilar por fora (Roslyn do Unity, receita no `HANDOFF.md`) | erro de sintaxe antes de abrir o Editor | segundos |
+| Compilar por fora (Roslyn do Unity) | erro de sintaxe antes de abrir o Editor | segundos |
 | `RunSmokeTest.trigger` → `SmokeTestReport.txt` | 41 verificações + 200 jornadas + 800 combates; mortes/jornada e mortes/combate | ~1 min |
 | `RunPlayModeTest.trigger` → `PlayModeReport.txt` | telas alcançáveis por raycast, jornada completa, console limpo | ~2 min |
 
@@ -1146,9 +1145,8 @@ Os dois gatilhos são arquivos vazios criados na raiz do projeto e consumidos pe
 ganha foco — nenhum dos dois precisa do menu, e ambos gravam relatório em arquivo para que duas
 execuções possam ser comparadas.
 
-**Regras que já custaram caro** (do handoff — valem para todo este plano):
+**Regras que já custaram caro** (valem para todo este plano):
 - Play Mode com compilação quebrada roda o **assembly antigo**: conferir o console antes de ler o relatório.
-- **Não** chamar `refresh_unity` depois de criar o gatilho.
 - Campo público é serializado: mudar o valor no script **não** muda a cena. Alterar os dois.
 - Uma run de Play Mode é n=1 — balanceamento se mede no simulador.
 - Acrescentar valor de enum **só no fim**: os assets guardam o número.
