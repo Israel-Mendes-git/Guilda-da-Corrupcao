@@ -76,7 +76,6 @@ conteúdo mediu **24% de vitória contra chefes, com 3,37 mortes por combate**.
 
 - [`GDD.md`](GDD.md) — documento de design completo, com status por sistema
   (`[IMPLEMENTADO]` / `[PARCIAL]` / `[PLANEJADO]`).
-- [`HANDOFF.md`](HANDOFF.md) — estado da última sessão de trabalho e próximos passos.
 
 ## Notas
 
