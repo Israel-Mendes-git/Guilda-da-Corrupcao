@@ -135,6 +135,12 @@ public static class SceneFlow
 
         if (RunManager.Existe) RunManager.Instance.StartNewRun();
 
+        // Fora do if de propósito: sem RunManager na primeira partida da sessão,
+        // o StartNewRun não roda, e a guilda nasceria com as salas que a sessão
+        // anterior do Editor deixou em pé — estático sobrevive ao Play Mode
+        // quando o domain reload está desligado.
+        Obras.Reiniciar();
+
         DeckRepository.Limpar();
         GameAudio.Parar();
     }

@@ -161,6 +161,15 @@ public class MapManager : MonoBehaviour
             return;
         }
 
+        // A guilda é erguida sala por sala (ver <see cref="Obras"/>): onde ainda
+        // não há sala há terreno, e o clique abre a obra em vez da tela. A porta
+        // da estrada nunca cai aqui — "Journey" não é sala.
+        if (Obras.Da(currentLocationAction, out SalaDaGuilda sala) && !Obras.Construida(sala))
+        {
+            AbrirTerreno(sala);
+            return;
+        }
+
         switch (currentLocationAction)
         {
             case "Tavern":
@@ -203,6 +212,53 @@ public class MapManager : MonoBehaviour
                 Debug.LogWarning($"MapManager: ação desconhecida '{currentLocationAction}' para {currentLocationName}.");
                 break;
         }
+    }
+
+    /// <summary>
+    /// O terreno vazio: o que a sala fará, o que já espera por ela e o preço.
+    ///
+    /// <b>É a única apresentação que cada sala recebe</b>, e ela chega no instante
+    /// em que o jogador está decidindo pagar — não numa caixa de boas-vindas que
+    /// ele fecharia antes de ler. É por isso que a guilda pode abrir com duas
+    /// portas sem nenhum tutorial: as outras cinco se explicam uma de cada vez,
+    /// quando ele for até elas.
+    ///
+    /// Sem ouro, o botão fica na tela apagado em vez de sumir — o jogador precisa
+    /// saber quanto falta para voltar aqui.
+    /// </summary>
+    void AbrirTerreno(SalaDaGuilda sala)
+    {
+        int preco = Obras.Preco(sala);
+        int ouro = GuildManager.Instance != null ? GuildManager.Instance.gold : 0;
+        bool podePagar = Obras.PodePagar(sala);
+
+        string corpo = Obras.Promessa(sala);
+
+        string espera = Obras.Espera(sala);
+        if (!string.IsNullOrEmpty(espera))
+            corpo += $"\n\n<color=#D9B85A>{espera}</color>";
+
+        if (!podePagar)
+            corpo += $"\n\n<color=#B4514E>Faltam {preco - ouro} de ouro.</color>";
+
+        UIManager.Instance.ShowConfirm(
+            $"Terreno vazio — {Obras.Nome(sala)}",
+            corpo,
+            $"Erguer · {preco} ouro",
+            "Voltar",
+            () => Erguer(sala),
+            null,
+            podePagar);
+    }
+
+    void Erguer(SalaDaGuilda sala)
+    {
+        if (!Obras.Construir(sala)) return;
+
+        // Entra na sala recém-erguida no mesmo clique: quem acabou de pagar por
+        // ela quer ver o que comprou, e voltar ao mapa para clicar na mesma porta
+        // de novo seria um passo a mais sem nenhuma decisão dentro.
+        OnEnterButtonClick();
     }
 
     public void EnableJourneyButton()

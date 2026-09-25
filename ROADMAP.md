@@ -1246,6 +1246,59 @@ escrito têm nome estrutural ("Escrito da Mata") e nenhum texto: o world buildin
 
 ---
 
+### Fase 3.17 — A guilda que o jogador ergue ✅ *construída em 25/09*
+
+**O problema, na terceira tentativa.** A queixa é a mesma desde 10/09: *"muito conteúdo, pouco
+aproveitamento por parte do jogador, sensação de estar perdido no que fazer"*. As duas tentativas
+anteriores mexeram na apresentação — a moldura pulsante (3.13), depois os três níveis de luz da
+porta (3.14) — e o autor voltou das duas dizendo que a sensação continuava. Nenhuma delas mudou o
+**número de coisas que chegam de uma vez**: eram sete portas no primeiro minuto em todas.
+
+**A solução é do autor:** *"fazer o jogador construir elas com o tempo de jogo"*. A guilda abre com
+**duas portas** — a Jornada e a Taverna, onde ela se funda — e as outras cinco são terreno vazio até
+ele pagar. Cada sala entra sozinha, na hora em que ele decidiu que precisava dela. Não é tutorial
+nem caixa de texto, que ele descartou em 10/09: é a guilda tendo o tamanho do que ele já usa.
+
+**As regras, decididas por ele em 25/09** (as quatro primeiras em rodada de perguntas, as duas
+últimas em seguida):
+
+| Decisão | Regra |
+|---|---|
+| **O primeiro dia** | Jornada e Taverna de pé; Mercado, Cemitério, Forja, Biblioteca e Sala de Mapas são terreno |
+| **A moeda** | ouro, e só. Rejeitados: tempo de obra, material trazido da estrada, e obra destravada por progresso |
+| **A ordem** | livre. Todas as obras disponíveis desde o começo; ele ergue na ordem que quiser. Rejeitados: escolher 1 entre 2 ao fim de cada jornada, e ordem fixa |
+| **Quem espera** | o que depende de uma sala inexistente **espera por ela**: *"é possível fazer depois de construir; tipo enterrar os mortos"*. Nada se perde |
+| **Como aparece** | terreno vazio no lugar da sala, no mesmo mapa. Rejeitados: a guilda crescer com um botão "Construir" no rodapé, e porta fechada com tábuas |
+| **O preço** | barato — a guilda inteira sai por 700, pronta por volta da quarta jornada. Rejeitados: ~1500 (pronta na oitava) e ~3000 (não dá para ter tudo) |
+
+**Os preços** (meus, e vetáveis): Mercado 100 · Cemitério 120 · Forja 150 · Biblioteca 150 · Sala de
+Mapas 180. Crescem na ordem em que a sala deixa de ser socorro e vira conforto. Contra os **100 com
+que a guilda nasce** (`MetaProgression.OuroBasePorRun`) e os ~395 que uma jornada rende: o primeiro
+dia compra exatamente uma sala, ou nenhuma, se ele preferir guardar.
+
+**O que o código faz:**
+
+| Arquivo | Papel |
+|---|---|
+| `Assets/Scripts/Core/Obras.cs` | novo. O enum `SalaDaGuilda`, os preços, o que cada sala promete e o que já espera por ela (`Espera`), e o `Construir` que cobra |
+| `MapManager.OnEnterButtonClick` | o clique numa porta sem sala abre a obra em vez da sala; pagar entra na sala no mesmo clique |
+| `UIManager.ShowConfirm` | sobrecarga com rótulos próprios e o "sim" apagável — *Erguer · 150 ouro* em vez de *Sim*, e apagado quando o cofre não cobre |
+| `GuildGuide` | terreno fica a 16% de brilho com o rótulo legível por cima (*Forja / terreno · 150 ouro*); acende quando há ouro para erguê-lo ou alguém esperando por ele |
+| `GuildSave.roomsBuilt` + `SaveFormat.Current = 2` | as salas de pé entram no save. Um save da versão 1 foi jogado com tudo aberto e é restaurado assim — ler a lista vazia dele como "nada construído" demoliria a guilda de quem carregasse |
+
+**A espera saiu de graça**, e é o que tornou a regra do autor barata: os caídos já moram em
+`GuildManager.fallenHeroes` e os escritos em `Escritos`, nenhum dos dois passa pela sala para
+existir. A sala é onde se **gasta** o que acumulou. Nada essencial ficou atrás de uma obra: selar
+região acontece na jornada, e a preparação leva provisões próprias (`baseRations`), então partir sem
+Mercado é possível — mais pobre, não bloqueado.
+
+**Como verificar:** `PlayModeReport.txt`, seção *A GUILDA ERGUIDA SALA POR SALA* — mede que a
+Taverna nasce de pé, que a obra não sai de graça com o cofre vazio, que o preço cobrado bate, e que
+a sala paga abre no mesmo clique. As seções seguintes erguem tudo à força, para continuarem medindo
+a guilda completa.
+
+---
+
 ### Fase 4 — Dar peso ao que já está escrito
 *Barato, porque os dados já existem e só falta quem os leia.*
 

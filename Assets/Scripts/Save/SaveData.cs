@@ -58,7 +58,12 @@ public class SaveGame
 /// <summary>A versão do formato, num lugar só.</summary>
 public static class SaveFormat
 {
-    public const int Current = 1;
+    /// <summary>
+    /// 2 desde 25/09: a guilda passou a nascer com duas portas e o save precisa
+    /// dizer quais salas estão de pé. A versão 1 continua legível — ver
+    /// <see cref="GuildSave.roomsBuilt"/>.
+    /// </summary>
+    public const int Current = 2;
 
     /// <summary>Saves mais antigos que isto são recusados em vez de lidos torto.</summary>
     public const int MinimumSupported = 1;
@@ -80,6 +85,17 @@ public class GuildSave
 
     /// <summary>Salários devidos. Save antigo traz 0, que é o que uma guilda sem dívida tem.</summary>
     public int debt;
+
+    /// <summary>
+    /// As salas de pé, por índice de <see cref="SalaDaGuilda"/>.
+    ///
+    /// Desde 25/09 a guilda abre com duas portas e o jogador ergue as outras
+    /// cinco. Um save da versão 1 foi jogado com todas abertas e <b>não passa por
+    /// aqui</b>: o <see cref="GameStateIO"/> olha <c>version</c> e manda erguer
+    /// tudo, porque lista vazia aqui significaria demolir a guilda de quem já
+    /// estava jogando.
+    /// </summary>
+    public List<int> roomsBuilt = new List<int>();
 
     /// <summary>
     /// Os mortos que receberam monumento, por id de herói.

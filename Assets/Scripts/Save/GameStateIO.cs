@@ -34,6 +34,7 @@ public static class GameStateIO
                 relicStock = new List<string>(guilda.relicStock ?? new List<string>()),
                 potionStock = new List<string>(guilda.potionStock ?? new List<string>()),
                 debt = guilda.divida,
+                roomsBuilt = Obras.Serializar(),
                 honored = new List<string>(guilda.honrados ?? new List<string>())
             };
 
@@ -173,6 +174,13 @@ public static class GameStateIO
             guilda.relicStock = new List<string>(dados.guild.relicStock ?? new List<string>());
             guilda.potionStock = new List<string>(dados.guild.potionStock ?? new List<string>());
             guilda.honrados = new List<string>(dados.guild.honored ?? new List<string>());
+
+            // Um save da versão 1 foi jogado antes de a guilda ser erguida sala
+            // por sala: lá as sete portas estavam abertas desde o primeiro dia, e
+            // ler a lista vazia dele como "nada construído" demoliria a guilda de
+            // quem carregou a partida.
+            if (dados.version >= 2) Obras.Restaurar(dados.guild.roomsBuilt);
+            else Obras.ErguerTudo();
         }
 
         foreach (var salvo in dados.roster)

@@ -141,3 +141,9 @@ GDD - Guilda da Corrupcao_doc_*.jpg
 
 # Response file da compilação por fora do Editor (regenerado a cada vez; caminhos absolutos)
 build.rsp
+
+# DLL de saída da compilação por fora do Editor (Tools/buildcheck.py)
+AssemblyCheck.dll
+
+# Configuração local do editor de texto
+/.vscode/

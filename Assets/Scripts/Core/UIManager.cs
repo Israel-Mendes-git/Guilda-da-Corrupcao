@@ -552,6 +552,70 @@ public class UIManager : MonoBehaviour
 
     #region Popup de Confirmação
 
+    /// <summary>
+    /// O mesmo popup, com os rótulos dos botões escritos por quem chama.
+    ///
+    /// Nasceu para o terreno vazio da guilda, onde "Sim" e "Não" seriam dois
+    /// botões sem assunto: o que o jogador aperta é <i>Erguer a Forja — 150</i>.
+    /// Os rótulos de fábrica são lidos da cena na primeira chamada e repostos ao
+    /// fechar, para que a próxima confirmação comum não herde o texto desta.
+    /// </summary>
+    /// <param name="simHabilitado">
+    /// Falso quando a ação existe mas ainda não pode ser tomada — o terreno cujo
+    /// preço o cofre não cobre. O botão continua na tela dizendo o que custaria,
+    /// apagado: esconder seria fingir que a obra não existe, e deixar clicável
+    /// seria prometer uma compra que não acontece.
+    /// </param>
+    public void ShowConfirm(string title, string message, string rotuloSim, string rotuloNao,
+                            System.Action onConfirm, System.Action onCancel = null,
+                            bool simHabilitado = true)
+    {
+        GuardarRotulosDeFabrica();
+        EscreverRotulo(confirmYesButton, rotuloSim);
+        EscreverRotulo(confirmNoButton, rotuloNao);
+
+        if (confirmYesButton != null) confirmYesButton.interactable = simHabilitado;
+
+        ShowConfirm(title, message, onConfirm, onCancel);
+    }
+
+    string rotuloSimDeFabrica;
+    string rotuloNaoDeFabrica;
+
+    void GuardarRotulosDeFabrica()
+    {
+        if (rotuloSimDeFabrica != null) return;
+
+        rotuloSimDeFabrica = LerRotulo(confirmYesButton) ?? "Sim";
+        rotuloNaoDeFabrica = LerRotulo(confirmNoButton) ?? "Não";
+    }
+
+    void ReporRotulosDeFabrica()
+    {
+        // O interactable volta sempre, mesmo sem rótulo guardado: um popup aberto
+        // com o Sim apagado não pode deixar a próxima confirmação sem resposta.
+        if (confirmYesButton != null) confirmYesButton.interactable = true;
+
+        if (rotuloSimDeFabrica == null) return;
+
+        EscreverRotulo(confirmYesButton, rotuloSimDeFabrica);
+        EscreverRotulo(confirmNoButton, rotuloNaoDeFabrica);
+    }
+
+    static string LerRotulo(Button botao)
+    {
+        if (botao == null) return null;
+        TMP_Text texto = botao.GetComponentInChildren<TMP_Text>(true);
+        return texto != null ? texto.text : null;
+    }
+
+    static void EscreverRotulo(Button botao, string rotulo)
+    {
+        if (botao == null || rotulo == null) return;
+        TMP_Text texto = botao.GetComponentInChildren<TMP_Text>(true);
+        if (texto != null) texto.text = rotulo;
+    }
+
     public void ShowConfirm(string title, string message, System.Action onConfirm, System.Action onCancel = null)
     {
         if (confirmPopup == null || confirmTitleText == null || confirmMessageText == null
@@ -580,12 +644,14 @@ public class UIManager : MonoBehaviour
     void OnConfirmYes()
     {
         PlayPopupAnimation(confirmPopup, false);
+        ReporRotulosDeFabrica();
         onConfirmAction?.Invoke();
     }
 
     void OnConfirmNo()
     {
         PlayPopupAnimation(confirmPopup, false);
+        ReporRotulosDeFabrica();
         onCancelAction?.Invoke();
     }
 

@@ -227,6 +227,11 @@ public class RunManager : MonoBehaviour
         RegionMap.Reiniciar();
         Encomendas.Reiniciar();
         Escritos.Reiniciar();
+
+        // A guilda nova volta a ser duas portas e cinco terrenos: o que a run
+        // anterior ergueu não atravessa para a próxima. O que atravessa é a
+        // meta-progressão, e ela é comprada no Santuário.
+        Obras.Reiniciar();
     }
 
     /// <summary>
