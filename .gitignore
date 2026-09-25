@@ -147,3 +147,6 @@ AssemblyCheck.dll
 
 # Configuração local do editor de texto
 /.vscode/
+
+# Cache do Python das ferramentas em Tools/
+__pycache__/

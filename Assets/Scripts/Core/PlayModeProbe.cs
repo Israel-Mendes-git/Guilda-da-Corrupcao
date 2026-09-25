@@ -286,6 +286,18 @@ public class PlayModeProbe : MonoBehaviour
 
         Section("A FUNDACAO");
         yield return TestarFundacao();
+
+        Section("A GUILDA ERGUIDA SALA POR SALA");
+        yield return TestarObras();
+
+        // O resto do relatório mede a guilda inteira — mercado, forja, cemitério,
+        // biblioteca e sala de mapas, cada um com a sua seção. Com a mecânica de
+        // obras, essas salas só existem depois de pagas; erguer tudo aqui é o
+        // mesmo expediente do elenco clássico logo abaixo: pôr a guilda no estado
+        // que as seções seguintes existem para medir.
+        Obras.ErguerTudo();
+        Line("todas as salas erguidas à força — as seções seguintes medem a guilda completa.");
+
         RepovoarElencoClassico();
 
         Section("FORMACAO DO GRUPO");
@@ -1331,13 +1343,130 @@ public class PlayModeProbe : MonoBehaviour
         ui.ShowGuildScreen();
         yield return new WaitForSeconds(0.45f);
 
+        // Desde 25/09 a Biblioteca pode ser terreno: a guilda é erguida sala por
+        // sala, e o clique num terreno abre a obra em vez da sala. As duas
+        // respostas são certas — errado é o clique não levar a lugar nenhum.
+        bool eraTerreno = !Obras.Construida(SalaDaGuilda.Biblioteca);
+
         if (mm.libraryButton != null) mm.libraryButton.onClick.Invoke();
         yield return null;
 
         bool bibliotecaAberta = ui.libraryPanel != null && ui.libraryPanel.activeInHierarchy;
-        Line($"clique na porta da Biblioteca, depois de visitar uma sala: sala aberta={bibliotecaAberta}");
-        if (!bibliotecaAberta) Line("FALHA: a segunda porta não abriu a sala.");
+        bool obraAberta = ui.confirmPopup != null && ui.confirmPopup.activeInHierarchy;
 
+        Line($"clique na porta da Biblioteca (terreno={eraTerreno}): "
+           + $"sala aberta={bibliotecaAberta} | obra aberta={obraAberta}");
+
+        if (eraTerreno && !obraAberta)
+            Line("FALHA: o clique no terreno não abriu a obra.");
+        if (!eraTerreno && !bibliotecaAberta)
+            Line("FALHA: a segunda porta não abriu a sala.");
+
+        if (obraAberta && ui.confirmNoButton != null)
+        {
+            ui.confirmNoButton.onClick.Invoke();
+            yield return new WaitForSeconds(0.25f);
+        }
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.2f);
+    }
+
+    /// <summary>
+    /// A guilda que o jogador ergue: cinco terrenos no primeiro dia, e cada um
+    /// vira sala quando ele paga.
+    ///
+    /// É o teste da mecânica decidida em 25/09. Mede as três coisas que fazem
+    /// ela funcionar ou não: <b>o terreno não abre a sala</b> (senão a guilda
+    /// continua com sete portas desde o início), <b>o terreno sem ouro não
+    /// cobra</b>, e <b>a sala erguida abre no mesmo clique</b> — quem pagou quer
+    /// ver o que comprou.
+    /// </summary>
+    IEnumerator TestarObras()
+    {
+        var guilda = GuildManager.Instance;
+        var ui = UIManager.Instance;
+        var mm = Resources.FindObjectsOfTypeAll<MapManager>()
+                          .FirstOrDefault(m => m != null && m.gameObject.scene.rootCount > 0);
+
+        if (guilda == null || ui == null || mm == null)
+        {
+            Line("pulada: GuildManager, UIManager ou MapManager ausentes");
+            yield break;
+        }
+
+        Line($"salas de pé no começo: Taverna={Obras.Construida(SalaDaGuilda.Taverna)} | "
+           + $"terrenos: {Obras.Faltam} de {Obras.Construiveis.Length}");
+
+        if (!Obras.Construida(SalaDaGuilda.Taverna))
+            Line("FALHA: a Taverna precisa nascer de pé — a guilda se funda nela.");
+
+        int soma = Obras.Construiveis.Sum(s => Obras.Preco(s));
+        Line($"a guilda inteira custa {soma} de ouro, contra os {MetaProgression.OuroBasePorRun} "
+           + "com que ela nasce");
+
+        // 1. Sem ouro, o terreno não cobra nem abre a sala.
+        int ouroAntes = guilda.gold;
+        guilda.gold = 0;
+
+        ui.ShowGuildScreen();
+        yield return new WaitForSeconds(0.3f);
+
+        bool ergueuSemOuro = Obras.Construir(SalaDaGuilda.Forja);
+        Line($"erguer a Forja com 0 de ouro: conseguiu={ergueuSemOuro} (esperado False) | "
+           + $"cofre={guilda.gold}");
+        if (ergueuSemOuro) Line("FALHA: a obra saiu de graça.");
+
+        // 2. Com ouro, o terreno vira sala e a sala abre no mesmo clique.
+        guilda.gold = Obras.Preco(SalaDaGuilda.Forja);
+        int cofre = guilda.gold;
+
+        if (mm.forgeButton != null) mm.forgeButton.onClick.Invoke();
+        yield return new WaitForSeconds(0.2f);
+
+        bool obraNaTela = ui.confirmPopup != null && ui.confirmPopup.activeInHierarchy;
+        Line($"clique no terreno da Forja: obra na tela={obraNaTela}");
+        if (!obraNaTela) Line("FALHA: o terreno não abriu a obra.");
+
+        if (obraNaTela && ui.confirmYesButton != null)
+        {
+            Line($"  botão de erguer clicável={ui.confirmYesButton.interactable} (esperado True)");
+
+            // A captura vem ANTES do clique. Erguer abre a sala no mesmo gesto, e
+            // depois dele a tela já é a Forja por dentro: a captura chamada
+            // "guilda_obras" vinha mostrando a bancada da forja, e não a obra.
+            //
+            // A espera é pela animação de entrada do popup: a 0,2s a caixa
+            // aparecia no meio do fade, com os dois botões lavados.
+            yield return new WaitForSeconds(0.3f);
+            yield return Capture("guilda_obras");
+
+            ui.confirmYesButton.onClick.Invoke();
+            yield return new WaitForSeconds(0.35f);
+        }
+
+        bool forjaDePe = Obras.Construida(SalaDaGuilda.Forja);
+        bool forjaAberta = ui.forgePanel != null && ui.forgePanel.activeInHierarchy;
+
+        Line($"depois de erguer: Forja de pé={forjaDePe} | sala aberta no mesmo clique={forjaAberta} | "
+           + $"cofre {cofre} → {guilda.gold}");
+
+        if (!forjaDePe) Line("FALHA: a obra foi paga e a sala não subiu.");
+        if (forjaDePe && guilda.gold != cofre - Obras.Preco(SalaDaGuilda.Forja))
+            Line("FALHA: o preço cobrado não bate com o preço da obra.");
+        if (forjaDePe && !forjaAberta)
+            Line("FALHA: quem pagou pela sala não foi levado para dentro dela.");
+
+        // 3. O que esperava pela sala continua esperando por ela, não se perde.
+        Line($"esperando pelo Cemitério: \"{Obras.Espera(SalaDaGuilda.Cemiterio)}\" | "
+           + $"pela Biblioteca: \"{Obras.Espera(SalaDaGuilda.Biblioteca)}\"");
+
+        // O ouro foi mexido no campo, que não avisa ninguém: sem esta notificação
+        // o rodapé e a luz das portas ficariam mostrando o cofre do teste.
+        guilda.gold = ouroAntes;
+        guilda.NotificarTudoMudou();
+
+        ui.CloseForge();
         ui.ShowGuildScreen();
         yield return new WaitForSeconds(0.2f);
     }
@@ -1717,9 +1846,18 @@ public class PlayModeProbe : MonoBehaviour
         guia.Atualizar();
         var luzes = guia.LuzDasPortas().ToList();
 
-        Line($"portas {quando}: {luzes.Count(l => l.luz != GuildGuide.Luz.Escura)} com motivo, de {luzes.Count}");
+        Line($"portas {quando}: {luzes.Count(l => l.luz != GuildGuide.Luz.Escura)} com motivo, de {luzes.Count}"
+           + $" | {Obras.Faltam} ainda em terreno");
+
         foreach (var (nome, luz) in luzes)
-            Line($"  {nome,-16} {RotuloDaLuz(luz)}");
+        {
+            string terreno = GuildGuide.EhTerreno(nome)
+                && Obras.DaChave(nome.ToLowerInvariant(), out SalaDaGuilda sala)
+                ? $"  terreno · {Obras.Preco(sala)} ouro"
+                : "";
+
+            Line($"  {nome,-16} {RotuloDaLuz(luz)}{terreno}");
+        }
     }
 
     static string RotuloDaLuz(GuildGuide.Luz luz)

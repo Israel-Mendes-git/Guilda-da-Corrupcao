@@ -44,8 +44,34 @@ public class GuildGuide : MonoBehaviour
         public GameObject realce;
     }
 
+    /// <summary>
+    /// As duas caras de uma porta: a construção de pé e o terreno onde ela ainda
+    /// não existe.
+    ///
+    /// Preenchida pelo <c>GuildArt</c>, no Editor, e não pelo
+    /// <c>GuildSceneSetup</c> — que limpa <see cref="salas"/> a cada montagem e
+    /// levaria esta lista junto. São recortes da mesma pintura do pátio, então
+    /// trocar um pelo outro troca só aquele pedaço da tela.
+    /// </summary>
+    [System.Serializable]
+    public class Arte
+    {
+        public string nome;
+        public Sprite sala;
+        public Sprite terreno;
+    }
+
+    public List<Arte> artes = new List<Arte>();
+
     /// <summary>A luz de uma porta: o que a guilda diz sem falar.</summary>
     public enum Luz { Escura, Acesa, Pulsando }
+
+    /// <summary>
+    /// Quanto sobra de uma porta que ainda é terreno. Mais escura que a porta
+    /// apagada de propósito: apagada é uma sala sem o que oferecer <i>hoje</i>,
+    /// terreno é uma sala que ainda não existe, e as duas não podem ler igual.
+    /// </summary>
+    const float BrilhoDoTerreno = 0.16f;
 
     public TMP_Text linha;
     public List<Sala> salas = new List<Sala>();
@@ -79,13 +105,14 @@ public class GuildGuide : MonoBehaviour
     const int OuroParado = 1200;
 
     /// <summary>
-    /// Brilho do cenário e do rótulo de cada nível de luz. A porta que pulsa
-    /// fica inteira; a acesa recua um pouco, para a moldura ter onde aparecer;
-    /// a escura fica em trinta por cento — lê-se o nome, e lê-se que está
-    /// apagada.
+    /// Quanto sobra da porta sem motivo, depois da sombra.
+    ///
+    /// A porta acesa e a que pulsa não recuam mais: sobre uma pintura contínua,
+    /// recuo é retângulo. Este é o único nível que ainda escurece, e escurece
+    /// menos que os 30% de antes — com a sombra derretendo nas bordas, 55% já se
+    /// lê como apagada sem virar buraco no meio do pátio.
     /// </summary>
-    const float BrilhoAceso = 0.82f;
-    const float BrilhoEscuro = 0.30f;
+    const float BrilhoEscuro = 0.55f;
 
     // Os preços que decidem se uma sala tem motivo. Espelham os managers das
     // salas pelo mesmo motivo do custo da arma: o guia é recalculado a cada
@@ -107,6 +134,13 @@ public class GuildGuide : MonoBehaviour
     /// porta de vez.
     /// </summary>
     readonly Dictionary<Graphic, Color> corOriginal = new Dictionary<Graphic, Color>();
+
+    /// <summary>
+    /// O rótulo de fábrica de cada porta, antes de o terreno escrever o preço
+    /// por cima. Guardado pela mesma razão da cor: a porta erguida precisa voltar
+    /// a se chamar só "Forja", e o nome mora na cena, não aqui.
+    /// </summary>
+    readonly Dictionary<TMP_Text, string> rotuloOriginal = new Dictionary<TMP_Text, string>();
 
     void OnEnable()
     {
@@ -140,6 +174,13 @@ public class GuildGuide : MonoBehaviour
         GuildManager.Instance.onRosterChanged += Atualizar;
         GuildManager.Instance.onGoldChanged += Atualizar;
         QuestManager.Instance.onQuestsChanged += Atualizar;
+
+        // Não é redundante com o onGoldChanged: a obra cobra o ouro antes de a
+        // sala entrar na lista, e o repintar disparado pelo pagamento ainda vê
+        // terreno ali. Sem esta linha, a porta recém-erguida só perderia o preço
+        // na próxima mudança de ouro.
+        Obras.onObraConcluida += AoErguerObra;
+
         inscrito = true;
     }
 
@@ -155,8 +196,15 @@ public class GuildGuide : MonoBehaviour
         if (QuestManager.Instance != null)
             QuestManager.Instance.onQuestsChanged -= Atualizar;
 
+        // Evento estático: sem esta linha o componente destruído continuaria
+        // preso à lista de inscritos, e a guilda da próxima partida teria dois
+        // guias pintando as mesmas portas.
+        Obras.onObraConcluida -= AoErguerObra;
+
         inscrito = false;
     }
+
+    void AoErguerObra(SalaDaGuilda sala) => Atualizar();
 
     /// <summary>Recalcula o conselho e a luz de cada porta.</summary>
     public void Atualizar()
@@ -174,9 +222,55 @@ public class GuildGuide : MonoBehaviour
                     : TemMotivo(s.nome) ? Luz.Acesa
                     : Luz.Escura;
 
+            bool terreno = EhTerreno(s.nome);
+
+            // A troca de pintura vem primeiro: com arte de terreno, a porta já
+            // diz que não há sala ali, e escurecê-la a 16% só apagaria o canteiro
+            // que ela acabou de mostrar. Sem arte, o escuro volta a ser a única
+            // forma de dizer isso.
+            bool pintado = Repintar(s.realce.transform.parent, s.nome, terreno);
+
             s.realce.SetActive(luz == Luz.Pulsando);
-            Iluminar(s.realce.transform.parent, luz);
+            Iluminar(s.realce.transform.parent, luz, terreno && !pintado);
+            Rotular(s.realce.transform.parent, s.nome, terreno);
         }
+    }
+
+    /// <summary>
+    /// Troca o recorte da porta entre a construção e o terreno.
+    ///
+    /// Devolve falso quando não há arte para aquela sala — é o que mantém a
+    /// guilda funcionando enquanto a pintura de alguma porta não existir, com o
+    /// terreno voltando a ser a sala escurecida.
+    /// </summary>
+    bool Repintar(Transform sala, string nome, bool terreno)
+    {
+        if (sala == null || artes == null) return false;
+
+        Arte arte = artes.FirstOrDefault(a => a != null && a.nome == nome);
+        Sprite querida = terreno ? arte?.terreno : arte?.sala;
+        if (querida == null) return false;
+
+        Transform cena = sala.Find("Cena");
+        if (cena == null) return false;
+
+        var img = cena.GetComponent<Image>();
+        if (img == null) return false;
+
+        if (img.sprite != querida) img.sprite = querida;
+        return true;
+    }
+
+    /// <summary>
+    /// A porta ainda é terreno: a sala não foi erguida.
+    ///
+    /// Vale para o mapa da guilda e para o relatório de Play Mode, que audita a
+    /// guilda recém-fundada e precisa saber que cinco das sete portas ainda não
+    /// são portas.
+    /// </summary>
+    public static bool EhTerreno(string nome)
+    {
+        return Obras.DaChave(Chave(nome), out SalaDaGuilda sala) && !Obras.Construida(sala);
     }
 
     /// <summary>A luz de uma porta, pelo nome do objeto — para o relatório de Play Mode.</summary>
@@ -202,18 +296,44 @@ public class GuildGuide : MonoBehaviour
     /// alvo do Button, e o Button repinta o alvo dele a cada entrada e saída do
     /// ponteiro — era por isso que o recuo de 72% da versão anterior mal
     /// aparecia. A moldura fica de fora porque tem a cor dela.
+    ///
+    /// <b>Por que a sombra, e não o brilho do recorte (25/09).</b> Multiplicar a
+    /// cor do recorte funcionava quando cada porta era uma pintura própria sobre
+    /// mármore escuro: escurecer uma não dizia nada sobre a vizinha. Agora as
+    /// sete portas são pedaços de uma pintura só, e um recorte a 82% desenha um
+    /// <b>retângulo</b> mais escuro no meio do pátio — a 30% desenha um quadrado
+    /// preto, que foi como a Jornada apagada apareceu na captura de hoje. A luz
+    /// passa a ser uma sombra de bordas derretidas por cima, que lê como sombra
+    /// e não como emenda.
     /// </summary>
-    void Iluminar(Transform sala, Luz luz)
+    void Iluminar(Transform sala, Luz luz, bool terrenoSemArte)
     {
         if (sala == null) return;
 
-        float brilho = luz == Luz.Escura ? BrilhoEscuro
-                     : luz == Luz.Acesa ? BrilhoAceso
-                     : 1f;
+        // Quanto da sombra aparece. A porta acesa e a que pulsa ficam com a
+        // pintura como ela é: quem chama atenção é a moldura, não um recorte mais
+        // claro que o pátio em volta.
+        float sombra = terrenoSemArte ? 1f - BrilhoDoTerreno
+                     : luz == Luz.Escura ? 1f - BrilhoEscuro
+                     : 0f;
+
+        Transform veu = sala.Find("Sombra");
+        var imgVeu = veu != null ? veu.GetComponent<Image>() : null;
+        if (imgVeu != null)
+        {
+            Color c = imgVeu.color;
+            imgVeu.color = new Color(c.r, c.g, c.b, sombra);
+        }
+
+        // Sem a sombra a porta não teria como ficar escura, e aí o rótulo é que
+        // carrega o recado sozinho — mais apagado na porta sem motivo, inteiro em
+        // todas as outras.
+        float doRotulo = imgVeu == null && !terrenoSemArte && luz == Luz.Escura ? BrilhoEscuro : 1f;
 
         foreach (Graphic g in sala.GetComponentsInChildren<Graphic>(true))
         {
             if (g == null || g.transform == sala) continue;
+            if (veu != null && g.transform == veu) continue;
             if (g.GetComponentInParent<RealcePulsante>() != null) continue;
 
             if (!corOriginal.TryGetValue(g, out Color cor))
@@ -222,7 +342,42 @@ public class GuildGuide : MonoBehaviour
                 corOriginal[g] = cor;
             }
 
-            g.color = new Color(cor.r * brilho, cor.g * brilho, cor.b * brilho, cor.a);
+            // O rótulo nunca entra na sombra: no terreno ele carrega o nome da
+            // sala que caberia ali e o preço, e é a informação que o canteiro
+            // existe para dar.
+            float doGrafico = g is TMP_Text ? doRotulo : 1f;
+
+            g.color = new Color(cor.r * doGrafico, cor.g * doGrafico, cor.b * doGrafico, cor.a);
+        }
+    }
+
+    /// <summary>
+    /// Escreve no rótulo da porta o que o terreno custa, e devolve o nome limpo
+    /// quando a sala é erguida.
+    ///
+    /// O preço fica <b>na porta</b>, e não só dentro da obra: o jogador que entra
+    /// na guilda com ouro no bolso precisa ver o que dá para levantar sem entrar
+    /// em cinco terrenos para perguntar o preço de cada um.
+    /// </summary>
+    void Rotular(Transform sala, string nome, bool terreno)
+    {
+        if (sala == null) return;
+
+        bool temSala = Obras.DaChave(Chave(nome), out SalaDaGuilda qual);
+
+        foreach (TMP_Text texto in sala.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (texto == null) continue;
+
+            if (!rotuloOriginal.TryGetValue(texto, out string original))
+            {
+                original = texto.text;
+                rotuloOriginal[texto] = original;
+            }
+
+            texto.text = terreno && temSala
+                ? $"{original}\n<size=65%>terreno · {Obras.Preco(qual)} ouro</size>"
+                : original;
         }
     }
 
@@ -240,6 +395,13 @@ public class GuildGuide : MonoBehaviour
         if (guilda == null) return true;
 
         string chave = Chave(nome);
+
+        // Terreno acende pelo que a obra resolveria: ouro no cofre para erguê-la,
+        // ou alguém já parado esperando por ela. Terreno sem as duas coisas fica
+        // apagado como qualquer sala sem motivo — a guilda do primeiro dia não
+        // pode acender cinco obras que ele não tem como pagar.
+        if (Obras.DaChave(chave, out SalaDaGuilda obra) && !Obras.Construida(obra))
+            return Obras.PodePagar(obra) || !string.IsNullOrEmpty(Obras.Espera(obra));
 
         List<HeroData> vivos = guilda.roster.Where(h => h != null && h.IsAlive).ToList();
         List<HeroData> aptos = vivos.Where(h => h.IsFitForJourney).ToList();
